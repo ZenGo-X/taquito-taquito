@@ -135,7 +135,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                             totalStorage +=
                                 'paid_storage_size_diff' in result ? Number(result.paid_storage_size_diff) || 0 : 0;
                         });
-                        return [2 /*return*/, new estimate_1.Estimate(Math.max((totalGas || 0), minimumGas), Number(totalStorage || 0) + defaultStorage, opbytes.length / 2)];
+                        return [2 /*return*/, new estimate_1.Estimate(Math.max(totalGas || 0, minimumGas), Number(totalStorage || 0) + defaultStorage, opbytes.length / 2)];
                 }
             });
         });
@@ -176,15 +176,21 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     RPCEstimateProvider.prototype.transfer = function (_a) {
         var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
         return __awaiter(this, void 0, void 0, function () {
-            var pkh, op;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+            var pkh, _b, op;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        _b = rest.source;
+                        if (_b) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        pkh = _b.sent();
-                        return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), this.DEFAULT_PARAMS))];
+                        _b = (_c.sent());
+                        _c.label = 2;
                     case 2:
-                        op = _b.sent();
+                        pkh = _b;
+                        return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), this.DEFAULT_PARAMS))];
+                    case 3:
+                        op = _c.sent();
                         return [2 /*return*/, this.createEstimate({ operation: op, source: pkh }, 'transaction', constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER)];
                 }
             });
