@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var opHashFilter = function (op, filter) { return op.hash === filter.opHash; };
 var sourceFilter = function (x, filter) {
     switch (x.kind) {
@@ -73,3 +73,4 @@ exports.evaluateFilter = function (op, filter) {
         }
     });
 };
+//# sourceMappingURL=filters.js.map

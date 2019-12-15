@@ -1,12 +1,12 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var setDelegate = function (key) {
     return [
         { prim: 'DROP' },
         { prim: 'NIL', args: [{ prim: 'operation' }] },
         {
             prim: 'PUSH',
-            args: [{ prim: 'key_hash' }, { string: key }]
+            args: [{ prim: 'key_hash' }, { string: key }],
         },
         { prim: 'SOME' },
         { prim: 'SET_DELEGATE' },
@@ -19,12 +19,12 @@ var transferImplicit = function (key, mutez) {
         { prim: 'NIL', args: [{ prim: 'operation' }] },
         {
             prim: 'PUSH',
-            args: [{ prim: 'key_hash' }, { string: key }]
+            args: [{ prim: 'key_hash' }, { string: key }],
         },
         { prim: 'IMPLICIT_ACCOUNT' },
         {
             prim: 'PUSH',
-            args: [{ prim: 'mutez' }, { int: "" + mutez }]
+            args: [{ prim: 'mutez' }, { int: "" + mutez }],
         },
         { prim: 'UNIT' },
         { prim: 'TRANSFER_TOKENS' },
@@ -46,18 +46,18 @@ var transferToContract = function (key, amount) {
         { prim: 'NIL', args: [{ prim: 'operation' }] },
         {
             prim: 'PUSH',
-            args: [{ prim: 'address' }, { string: key }]
+            args: [{ prim: 'address' }, { string: key }],
         },
         { prim: 'CONTRACT', args: [{ prim: 'unit' }] },
         [
             {
                 prim: 'IF_NONE',
-                args: [[[{ prim: 'UNIT' }, { prim: 'FAILWITH' }]], []]
+                args: [[[{ prim: 'UNIT' }, { prim: 'FAILWITH' }]], []],
             },
         ],
         {
             prim: 'PUSH',
-            args: [{ prim: 'mutez' }, { int: "" + amount }]
+            args: [{ prim: 'mutez' }, { int: "" + amount }],
         },
         { prim: 'UNIT' },
         { prim: 'TRANSFER_TOKENS' },
@@ -68,5 +68,6 @@ exports.MANAGER_LAMBDA = {
     setDelegate: setDelegate,
     removeDelegate: removeDelegate,
     transferImplicit: transferImplicit,
-    transferToContract: transferToContract
+    transferToContract: transferToContract,
 };
+//# sourceMappingURL=manager-lambda.js.map

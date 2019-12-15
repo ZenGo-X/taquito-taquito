@@ -10,7 +10,7 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
 var filters_1 = require("./filters");
@@ -54,3 +54,4 @@ var PollingSubscribeProvider = /** @class */ (function () {
     return PollingSubscribeProvider;
 }());
 exports.PollingSubscribeProvider = PollingSubscribeProvider;
+//# sourceMappingURL=polling-provider.js.map

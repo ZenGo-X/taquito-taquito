@@ -12,7 +12,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var operations_1 = require("./operations");
 /**
  * @description Delegation operation provide utility function to fetch newly issued delegation
@@ -90,3 +90,4 @@ var DelegateOperation = /** @class */ (function (_super) {
     return DelegateOperation;
 }(operations_1.Operation));
 exports.DelegateOperation = DelegateOperation;
+//# sourceMappingURL=delegate-operation.js.map

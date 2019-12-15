@@ -33,8 +33,8 @@ export declare class NaiveEstimateProvider implements EstimationProvider {
      * @param Estimate
      */
     setDelegate({ fee, gasLimit, }: {
-        fee?: DEFAULT_FEE;
-        gasLimit?: DEFAULT_GAS_LIMIT;
+        fee?: DEFAULT_FEE | undefined;
+        gasLimit?: DEFAULT_GAS_LIMIT | undefined;
     }): Promise<Estimate>;
     /**
      *
@@ -45,7 +45,7 @@ export declare class NaiveEstimateProvider implements EstimationProvider {
      * @param Estimate
      */
     registerDelegate({ fee, gasLimit, }: {
-        fee?: DEFAULT_FEE;
-        gasLimit?: DEFAULT_GAS_LIMIT;
+        fee?: DEFAULT_FEE | undefined;
+        gasLimit?: DEFAULT_GAS_LIMIT | undefined;
     }): Promise<Estimate>;
 }

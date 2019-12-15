@@ -35,7 +35,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * @description Default signer implementation which does nothing and produce invalid signature
  */
@@ -70,7 +70,7 @@ var NoopSigner = /** @class */ (function () {
                         bytes: bytes,
                         sig: '',
                         prefixSig: '',
-                        sbytes: bytes
+                        sbytes: bytes,
                     }];
             });
         });
@@ -78,3 +78,4 @@ var NoopSigner = /** @class */ (function () {
     return NoopSigner;
 }());
 exports.NoopSigner = NoopSigner;
+//# sourceMappingURL=noop.js.map

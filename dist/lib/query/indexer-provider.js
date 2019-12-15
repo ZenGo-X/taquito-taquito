@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var IndexerProvider = /** @class */ (function () {
     function IndexerProvider(indexerClient) {
         this.indexerClient = indexerClient;
@@ -11,3 +11,4 @@ var IndexerProvider = /** @class */ (function () {
     return IndexerProvider;
 }());
 exports.IndexerProvider = IndexerProvider;
+//# sourceMappingURL=indexer-provider.js.map

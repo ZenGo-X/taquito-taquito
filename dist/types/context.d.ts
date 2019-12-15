@@ -19,7 +19,7 @@ export declare class Context {
     private _config?;
     private _forger;
     private _injector;
-    constructor(_rpcClient?: RpcClient, _signer?: Signer, _proto?: Protocols, _config?: Partial<Config>, forger?: Forger, injector?: Injector);
+    constructor(_rpcClient?: RpcClient, _signer?: Signer, _proto?: Protocols | undefined, _config?: Partial<Config> | undefined, forger?: Forger, injector?: Injector);
     config: Required<Config>;
     rpc: RpcClient;
     injector: Injector;

@@ -10,7 +10,7 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
 /**
@@ -108,7 +108,7 @@ var Operation = /** @class */ (function () {
         var _a = this.context.config, defaultConfirmationCount = _a.defaultConfirmationCount, confirmationPollingIntervalSecond = _a.confirmationPollingIntervalSecond, confirmationPollingTimeoutSecond = _a.confirmationPollingTimeoutSecond;
         this._pollingConfig$.next({
             interval: interval || confirmationPollingIntervalSecond,
-            timeout: timeout || confirmationPollingTimeoutSecond
+            timeout: timeout || confirmationPollingTimeoutSecond,
         });
         var conf = confirmations !== undefined ? confirmations : defaultConfirmationCount;
         return new Promise(function (resolve, reject) {
@@ -122,3 +122,4 @@ var Operation = /** @class */ (function () {
     return Operation;
 }());
 exports.Operation = Operation;
+//# sourceMappingURL=operations.js.map

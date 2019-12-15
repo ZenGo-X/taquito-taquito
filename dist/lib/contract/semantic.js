@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
 var big_map_1 = require("./big-map");
 var bignumber_js_1 = require("bignumber.js");
@@ -13,7 +13,8 @@ exports.smartContractAbstractionSemantic = function (provider) { return ({
         }
         else {
             var schema = new michelson_encoder_1.Schema(code);
-            return new big_map_1.BigMapAbstraction(new bignumber_js_1["default"](val.int), schema, provider);
+            return new big_map_1.BigMapAbstraction(new bignumber_js_1.default(val.int), schema, provider);
         }
-    }
+    },
 }); };
+//# sourceMappingURL=semantic.js.map

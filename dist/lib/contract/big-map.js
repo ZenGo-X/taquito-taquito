@@ -35,7 +35,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var BigMapAbstraction = /** @class */ (function () {
     function BigMapAbstraction(id, schema, provider) {
         this.id = id;
@@ -58,3 +58,4 @@ var BigMapAbstraction = /** @class */ (function () {
     return BigMapAbstraction;
 }());
 exports.BigMapAbstraction = BigMapAbstraction;
+//# sourceMappingURL=big-map.js.map

@@ -38,7 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var indexer_1 = require("@taquito/indexer");
 var rpc_1 = require("@taquito/rpc");
 var signer_1 = require("@taquito/signer");
@@ -250,3 +250,4 @@ exports.TezosToolkit = TezosToolkit;
  * @description Default Tezos toolkit instance
  */
 exports.Tezos = new TezosToolkit();
+//# sourceMappingURL=taquito.js.map

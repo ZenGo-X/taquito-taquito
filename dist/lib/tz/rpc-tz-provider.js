@@ -59,7 +59,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var operation_emitter_1 = require("../operations/operation-emitter");
 var operations_1 = require("../operations/operations");
 var RpcTzProvider = /** @class */ (function (_super) {
@@ -90,7 +90,7 @@ var RpcTzProvider = /** @class */ (function (_super) {
                         operation = {
                             kind: 'activate_account',
                             pkh: pkh,
-                            secret: secret
+                            secret: secret,
                         };
                         return [4 /*yield*/, this.prepareAndForge({ operation: [operation], source: pkh })];
                     case 1:
@@ -107,3 +107,4 @@ var RpcTzProvider = /** @class */ (function (_super) {
     return RpcTzProvider;
 }(operation_emitter_1.OperationEmitter));
 exports.RpcTzProvider = RpcTzProvider;
+//# sourceMappingURL=rpc-tz-provider.js.map

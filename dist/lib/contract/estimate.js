@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var MINIMAL_FEE_MUTEZ = 100;
 var MINIMAL_FEE_PER_BYTE_MUTEZ = 1;
 var MINIMAL_FEE_PER_STORAGE_BYTE_MUTEZ = 1000;
@@ -98,3 +98,4 @@ var Estimate = /** @class */ (function () {
     return Estimate;
 }());
 exports.Estimate = Estimate;
+//# sourceMappingURL=estimate.js.map

@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var RpcInjector = /** @class */ (function () {
     function RpcInjector(context) {
         this.context = context;
@@ -10,3 +10,4 @@ var RpcInjector = /** @class */ (function () {
     return RpcInjector;
 }());
 exports.RpcInjector = RpcInjector;
+//# sourceMappingURL=rpc-injector.js.map

@@ -12,7 +12,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var operations_1 = require("./operations");
 var bignumber_js_1 = require("bignumber.js");
 /**
@@ -40,7 +40,7 @@ var TransactionOperation = /** @class */ (function (_super) {
     });
     Object.defineProperty(TransactionOperation.prototype, "amount", {
         get: function () {
-            return new bignumber_js_1["default"](this.params.amount);
+            return new bignumber_js_1.default(this.params.amount);
         },
         enumerable: true,
         configurable: true
@@ -107,3 +107,4 @@ var TransactionOperation = /** @class */ (function (_super) {
     return TransactionOperation;
 }(operations_1.Operation));
 exports.TransactionOperation = TransactionOperation;
+//# sourceMappingURL=transaction-operation.js.map

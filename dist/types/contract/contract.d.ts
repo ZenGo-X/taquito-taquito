@@ -1,5 +1,5 @@
 import { ParameterSchema, Schema } from '@taquito/michelson-encoder';
-import { EntrypointsResponse, ScriptResponse } from '@taquito/rpc';
+import { ScriptResponse } from '@taquito/rpc';
 import { ContractProvider } from './interface';
 interface SendParams {
     fee?: number;
@@ -71,7 +71,7 @@ export declare class Contract {
     };
     readonly schema: Schema;
     readonly parameterSchema: ParameterSchema;
-    constructor(address: string, script: ScriptResponse, provider: ContractProvider, entrypoints?: EntrypointsResponse);
+    constructor(address: string, script: ScriptResponse, provider: ContractProvider, entrypoints?: import("@taquito/rpc/dist/types/types.005").EntrypointsResponse005 | undefined);
     private _initializeMethods;
     private _initializeMethodsLegacy;
     /**

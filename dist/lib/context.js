@@ -46,7 +46,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var rpc_1 = require("@taquito/rpc");
 var noop_1 = require("./signer/noop");
 var rpc_forger_1 = require("./forger/rpc-forger");
@@ -54,7 +54,7 @@ var rpc_injector_1 = require("./injector/rpc-injector");
 exports.defaultConfig = {
     confirmationPollingIntervalSecond: 10,
     defaultConfirmationCount: 0,
-    confirmationPollingTimeoutSecond: 180
+    confirmationPollingTimeoutSecond: 180,
 };
 /**
  * @description Encapsulate common service used throughout different part of the library
@@ -157,3 +157,4 @@ var Context = /** @class */ (function () {
     return Context;
 }());
 exports.Context = Context;
+//# sourceMappingURL=context.js.map

@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var DEFAULT_GAS_LIMIT;
 (function (DEFAULT_GAS_LIMIT) {
     DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["DELEGATION"] = 10600] = "DELEGATION";
@@ -29,5 +29,6 @@ var Protocols;
 })(Protocols = exports.Protocols || (exports.Protocols = {}));
 exports.protocols = {
     '004': [Protocols.Pt24m4xi],
-    '005': [Protocols.PsBABY5H, Protocols.PsBabyM1]
+    '005': [Protocols.PsBABY5H, Protocols.PsBabyM1],
 };
+//# sourceMappingURL=constants.js.map

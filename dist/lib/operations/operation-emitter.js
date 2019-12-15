@@ -53,7 +53,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
             r[k] = a[j];
     return r;
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var constants_1 = require("../constants");
 var OperationEmitter = /** @class */ (function () {
     function OperationEmitter(context) {
@@ -216,9 +216,9 @@ var OperationEmitter = /** @class */ (function () {
                                 opOb: {
                                     branch: branch,
                                     contents: contents,
-                                    protocol: protocol
+                                    protocol: protocol,
                                 },
-                                counter: counter
+                                counter: counter,
                             }];
                 }
             });
@@ -251,9 +251,9 @@ var OperationEmitter = /** @class */ (function () {
                                 opOb: {
                                     branch: branch,
                                     contents: contents,
-                                    protocol: protocol
+                                    protocol: protocol,
                                 },
-                                counter: counter
+                                counter: counter,
                             }];
                 }
             });
@@ -333,3 +333,4 @@ var OperationEmitter = /** @class */ (function () {
     return OperationEmitter;
 }());
 exports.OperationEmitter = OperationEmitter;
+//# sourceMappingURL=operation-emitter.js.map

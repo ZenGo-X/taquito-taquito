@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var InvalidParameterError = /** @class */ (function () {
     function InvalidParameterError(smartContractMethodName, sigs, args) {
         this.smartContractMethodName = smartContractMethodName;
@@ -20,3 +20,4 @@ var InvalidDelegationSource = /** @class */ (function () {
     return InvalidDelegationSource;
 }());
 exports.InvalidDelegationSource = InvalidDelegationSource;
+//# sourceMappingURL=errors.js.map

@@ -77,7 +77,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
             r[k] = a[j];
     return r;
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var constants_1 = require("../constants");
 var operation_emitter_1 = require("../operations/operation-emitter");
 var estimate_1 = require("./estimate");
@@ -92,7 +92,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
         _this.DEFAULT_PARAMS = {
             fee: 30000,
             storageLimit: 60000,
-            gasLimit: 800000
+            gasLimit: 800000,
         };
         return _this;
     }
@@ -255,3 +255,4 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     return RPCEstimateProvider;
 }(operation_emitter_1.OperationEmitter));
 exports.RPCEstimateProvider = RPCEstimateProvider;
+//# sourceMappingURL=rpc-estimate-provider.js.map

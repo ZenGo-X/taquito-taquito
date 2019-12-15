@@ -70,7 +70,7 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
 var constants_1 = require("../constants");
 var operation_emitter_1 = require("../operations/operation-emitter");
@@ -219,7 +219,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                     case 2: return [2 /*return*/, {
                             fee: calculatedFee,
                             gasLimit: calculatedGas,
-                            storageLimit: calculatedStorage
+                            storageLimit: calculatedStorage,
                         }];
                 }
             });
@@ -298,7 +298,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         sourceOrDefault = _a;
                         return [4 /*yield*/, this.prepareAndForge({
                                 operation: operation,
-                                source: sourceOrDefault
+                                source: sourceOrDefault,
                             })];
                     case 6:
                         opBytes = _c.sent();
@@ -425,17 +425,20 @@ var RpcContractProvider = /** @class */ (function (_super) {
      */
     RpcContractProvider.prototype.signAndBroadcast = function (params, prefixSig, sbytes) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, hash, context, forgedBytes, opResponse, operation;
+            var _a, hash, context, forgedBytes, opResponse, transactionParams, operation;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, this.inject(params, prefixSig, sbytes)];
                     case 1:
                         _a = _b.sent(), hash = _a.hash, context = _a.context, forgedBytes = _a.forgedBytes, opResponse = _a.opResponse;
-                        if (!params.opOb.contents || params.opOb.contents.length !== 1) {
-                            console.log('params =', JSON.stringify(params, null, 2));
-                            throw Error('Invalid operation object contents');
+                        if (!params.opOb.contents) {
+                            throw new Error('Invalid operation contents');
                         }
-                        return [4 /*yield*/, prepare_1.createTransferOperation(constructedOperationToTransferParams(params.opOb.contents[0]))];
+                        transactionParams = params.opOb.contents.find(function (content) { return content.kind === 'transaction'; });
+                        if (!transactionParams) {
+                            throw new Error('No transaction in operation contents');
+                        }
+                        return [4 /*yield*/, prepare_1.createTransferOperation(constructedOperationToTransferParams(transactionParams))];
                     case 2:
                         operation = _b.sent();
                         return [2 /*return*/, new transaction_operation_1.TransactionOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
@@ -476,3 +479,4 @@ function constructedOperationToTransferParams(op) {
         // @ts-ignore
         fee: Number(op.fee), gasLimit: Number(op.gas_limit), storageLimit: Number(op.storage_limit) }, op);
 }
+//# sourceMappingURL=rpc-contract-provider.js.map

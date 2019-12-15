@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var RpcForger = /** @class */ (function () {
     function RpcForger(context) {
         this.context = context;
@@ -11,3 +11,4 @@ var RpcForger = /** @class */ (function () {
     return RpcForger;
 }());
 exports.RpcForger = RpcForger;
+//# sourceMappingURL=rpc-forger.js.map

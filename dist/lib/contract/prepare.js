@@ -35,7 +35,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var constants_1 = require("../constants");
 var utils_1 = require("@taquito/utils");
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
@@ -59,7 +59,7 @@ exports.createOriginationOperation = function (_a, publicKeyHash) {
             }
             script = {
                 code: Array.isArray(code) ? code : utils_1.ml2mic(code),
-                storage: contractStorage
+                storage: contractStorage,
             };
             operation = {
                 kind: 'origination',
@@ -70,7 +70,7 @@ exports.createOriginationOperation = function (_a, publicKeyHash) {
                 manager_pubkey: publicKeyHash,
                 spendable: spendable,
                 delegatable: delegatable,
-                script: script
+                script: script,
             };
             if (delegate) {
                 operation.delegate = delegate;
@@ -90,7 +90,7 @@ exports.createTransferOperation = function (_a) {
                 gas_limit: gasLimit,
                 storage_limit: storageLimit,
                 amount: mutez ? amount.toString() : format_1.format('tz', 'mutez', amount).toString(),
-                destination: to
+                destination: to,
             };
             if (parameter) {
                 operation.parameters = rawParam
@@ -114,7 +114,7 @@ exports.createSetDelegateOperation = function (_a) {
                 fee: fee,
                 gas_limit: gasLimit,
                 storage_limit: storageLimit,
-                delegate: delegate
+                delegate: delegate,
             };
             return [2 /*return*/, operation];
         });
@@ -129,8 +129,9 @@ exports.createRegisterDelegateOperation = function (_a, source) {
                     fee: fee,
                     gas_limit: gasLimit,
                     storage_limit: storageLimit,
-                    delegate: source
+                    delegate: source,
                 }];
         });
     });
 };
+//# sourceMappingURL=prepare.js.map

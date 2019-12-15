@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
 var ObservableSubscription = /** @class */ (function () {
@@ -70,3 +70,4 @@ var ObservableSubscription = /** @class */ (function () {
     return ObservableSubscription;
 }());
 exports.ObservableSubscription = ObservableSubscription;
+//# sourceMappingURL=observable-subscription.js.map

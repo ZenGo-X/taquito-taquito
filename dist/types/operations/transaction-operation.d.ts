@@ -12,14 +12,14 @@ export declare class TransactionOperation extends Operation implements GasConsum
     private readonly params;
     readonly source: string;
     constructor(hash: string, params: RPCTransferOperation, source: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
-    readonly operationResults: OperationResultTransaction;
+    readonly operationResults: OperationResultTransaction | undefined;
     readonly amount: BigNumber;
     readonly destination: string;
     readonly fee: number;
     readonly gasLimit: number;
     readonly storageLimit: number;
-    readonly consumedGas: string;
-    readonly storageDiff: string;
-    readonly storageSize: string;
+    readonly consumedGas: string | undefined;
+    readonly storageDiff: string | undefined;
+    readonly storageSize: string | undefined;
     readonly errors: any;
 }

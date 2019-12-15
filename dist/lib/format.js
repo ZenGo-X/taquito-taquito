@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var bignumber_js_1 = require("bignumber.js");
 var TZ_DECIMALS = 6;
 var MTZ_DECIMALS = 3;
@@ -17,7 +17,7 @@ function getDecimal(format) {
 function format(from, to, amount) {
     if (from === void 0) { from = 'mutez'; }
     if (to === void 0) { to = 'mutez'; }
-    var bigNum = new bignumber_js_1["default"](amount);
+    var bigNum = new bignumber_js_1.default(amount);
     if (bigNum.isNaN()) {
         return amount;
     }
@@ -26,3 +26,4 @@ function format(from, to, amount) {
         .dividedBy(Math.pow(10, getDecimal(to)));
 }
 exports.format = format;
+//# sourceMappingURL=format.js.map

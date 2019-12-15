@@ -6,7 +6,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
             r[k] = a[j];
     return r;
 };
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
 var errors_1 = require("./errors");
 var DEFAULT_SMART_CONTRACT_METHOD_NAME = 'main';
@@ -55,9 +55,9 @@ var ContractMethod = /** @class */ (function () {
             parameter: {
                 entrypoint: this.isMultipleEntrypoint ? this.name : 'default',
                 value: this.isAnonymous
-                    ? (_b = this.parameterSchema).Encode.apply(_b, __spreadArrays([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, this.args)
+                    ? (_b = this.parameterSchema).Encode.apply(_b, __spreadArrays([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, this.args),
             },
-            rawParam: true
+            rawParam: true,
         });
     };
     return ContractMethod;
@@ -109,7 +109,7 @@ var LegacyContractMethod = /** @class */ (function () {
             storageLimit: storageLimit,
             parameter: this.parameterSchema.isMultipleEntryPoint
                 ? (_b = this.parameterSchema).Encode.apply(_b, __spreadArrays([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, this.args),
-            rawParam: true
+            rawParam: true,
         });
     };
     return LegacyContractMethod;
@@ -231,3 +231,4 @@ var Contract = /** @class */ (function () {
     return Contract;
 }());
 exports.Contract = Contract;
+//# sourceMappingURL=contract.js.map

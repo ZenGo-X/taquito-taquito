@@ -1,4 +1,2 @@
 import BigNumber from 'bignumber.js';
-declare type Format = 'tz' | 'mtz' | 'mutez';
-export declare function format(from: Format, to: Format, amount: number | string | BigNumber): string | number | BigNumber;
-export {};
+export declare function format(from: "tz" | "mtz" | "mutez" | undefined, to: "tz" | "mtz" | "mutez" | undefined, amount: number | string | BigNumber): string | number | BigNumber;
