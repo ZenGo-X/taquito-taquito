@@ -275,13 +275,19 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     sbytes: string
   ): Promise<TransactionOperation> {
     const { hash, context, forgedBytes, opResponse } = await this.inject(params, prefixSig, sbytes);
-    if (!params.opOb.contents || params.opOb.contents.length !== 1) {
-      console.log('params =', JSON.stringify(params, null, 2));
-      throw Error('Invalid operation object contents');
+    if (!params.opOb.contents) {
+      throw new Error('Invalid operation contents');
+    }
+
+    const transactionParams: ConstructedOperation | undefined = params.opOb.contents.find(
+      content => content.kind === 'transaction'
+    );
+    if (!transactionParams) {
+      throw new Error('No transaction in operation contents');
     }
 
     const operation = await createTransferOperation(
-      constructedOperationToTransferParams(params.opOb.contents[0])
+      constructedOperationToTransferParams(transactionParams)
     );
     return new TransactionOperation(
       hash,
