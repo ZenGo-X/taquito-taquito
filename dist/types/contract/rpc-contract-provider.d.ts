@@ -67,6 +67,26 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
     setDelegate(params: DelegateParams): Promise<DelegateOperation>;
     /**
      *
+     * @description Get relevant parameters for later signing and broadcast of a delegate transaction
+     *
+     * @returns ForgedBytes parameters needed to sign and broadcast
+     *
+     * @param params delegate parameters
+     */
+    getDelegateSignatureHash(params: DelegateParams): Promise<ForgedBytes>;
+    /**
+     *
+     * @description inject a signature to construct a delegate operation
+     *
+     * @returns A delegate operation handle with the result from the rpc node
+     *
+     * @param params result of `getTransferSignatureHash`
+     * @param prefixSig the prefix to be used for the encoding of the signature bytes
+     * @param sbytes signature bytes in hex
+     */
+    injectDelegateSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<DelegateOperation>;
+    /**
+     *
      * @description Register the current address as delegate. Will sign and inject an operation using the current context
      *
      * @returns An operation handle with the result from the rpc node
@@ -102,6 +122,6 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      * @param prefixSig the prefix to be used for the encoding of the signature bytes
      * @param sbytes signature bytes in hex
      */
-    signAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<TransactionOperation>;
+    injectTransferSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<TransactionOperation>;
     at(address: string): Promise<Contract>;
 }

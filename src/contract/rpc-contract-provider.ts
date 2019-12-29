@@ -203,6 +203,69 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
 
   /**
    *
+   * @description Get relevant parameters for later signing and broadcast of a delegate transaction
+   *
+   * @returns ForgedBytes parameters needed to sign and broadcast
+   *
+   * @param params delegate parameters
+   */
+  async getDelegateSignatureHash(params: DelegateParams): Promise<ForgedBytes> {
+    // Since babylon delegation source cannot smart contract
+    if ((await this.context.isAnyProtocolActive(protocols['005'])) && /kt1/i.test(params.source)) {
+      throw new InvalidDelegationSource(params.source);
+    }
+
+    const estimate = await this.estimate(params, this.estimator.setDelegate.bind(this.estimator));
+    const operation = await createSetDelegateOperation({ ...params, ...estimate });
+    const sourceOrDefault = params.source || (await this.signer.publicKeyHash());
+    return this.prepareAndForge({
+      operation,
+      source: sourceOrDefault,
+    });
+  }
+
+  /**
+   *
+   * @description inject a signature to construct a delegate operation
+   *
+   * @returns A delegate operation handle with the result from the rpc node
+   *
+   * @param params result of `getTransferSignatureHash`
+   * @param prefixSig the prefix to be used for the encoding of the signature bytes
+   * @param sbytes signature bytes in hex
+   */
+  async injectDelegateSignatureAndBroadcast(
+    params: ForgedBytes,
+    prefixSig: string,
+    sbytes: string
+  ): Promise<DelegateOperation> {
+    const { hash, context, forgedBytes, opResponse } = await this.inject(params, prefixSig, sbytes);
+    if (!params.opOb.contents) {
+      throw new Error('Invalid operation contents');
+    }
+
+    const delegationParams: ConstructedOperation | undefined = params.opOb.contents.find(
+      content => content.kind === 'delegation'
+    );
+    if (!delegationParams) {
+      throw new Error('No delegation in operation contents');
+    }
+
+    const operation = await createSetDelegateOperation(
+      constructedOperationToDelegateParams(delegationParams)
+    );
+    return new DelegateOperation(
+      hash,
+      operation,
+      params.opOb.contents[0].source,
+      forgedBytes,
+      opResponse,
+      context
+    );
+  }
+
+  /**
+   *
    * @description Register the current address as delegate. Will sign and inject an operation using the current context
    *
    * @returns An operation handle with the result from the rpc node
@@ -269,7 +332,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
    * @param prefixSig the prefix to be used for the encoding of the signature bytes
    * @param sbytes signature bytes in hex
    */
-  async signAndBroadcast(
+  async injectTransferSignatureAndBroadcast(
     params: ForgedBytes,
     prefixSig: string,
     sbytes: string
@@ -323,5 +386,15 @@ function constructedOperationToTransferParams(op: ConstructedOperation): Transfe
     gasLimit: Number(op.gas_limit),
     storageLimit: Number(op.storage_limit),
     ...op,
+  };
+}
+
+function constructedOperationToDelegateParams(op: ConstructedOperation): DelegateParams {
+  return {
+    source: op.source,
+    delegate: op.delegate,
+    fee: Number(op.fee),
+    gasLimit: Number(op.gas_limit),
+    storageLimit: Number(op.storage_limit),
   };
 }

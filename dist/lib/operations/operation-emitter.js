@@ -82,10 +82,10 @@ var OperationEmitter = /** @class */ (function () {
     OperationEmitter.prototype.prepareOperation = function (_a) {
         var operation = _a.operation, source = _a.source;
         return __awaiter(this, void 0, void 0, function () {
-            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, _b, counterPromise, managerPromise, i, counter_1, _c, header, metadata, headCounter, manager, haveManager, reveal, _d, proto005, constructOps, branch, contents, protocol;
+            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, managerPromise, i, counter_1, _b, header, metadata, headCounter, manager, haveManager, reveal, _c, proto005, constructOps, branch, contents, protocol;
             var _this = this;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         counters = {};
                         requiresReveal = false;
@@ -98,39 +98,34 @@ var OperationEmitter = /** @class */ (function () {
                         else {
                             ops = [operation];
                         }
-                        _b = source;
-                        if (_b) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        _b = (_e.sent());
-                        _e.label = 2;
-                    case 2:
-                        publicKeyHash = _b;
+                        publicKeyHash = _d.sent();
                         counterPromise = Promise.resolve(undefined);
                         managerPromise = Promise.resolve(undefined);
                         i = 0;
-                        _e.label = 3;
-                    case 3:
-                        if (!(i < ops.length)) return [3 /*break*/, 6];
-                        if (!['transaction', 'origination', 'delegation'].includes(ops[i].kind)) return [3 /*break*/, 5];
+                        _d.label = 2;
+                    case 2:
+                        if (!(i < ops.length)) return [3 /*break*/, 5];
+                        if (!['transaction', 'origination', 'delegation'].includes(ops[i].kind)) return [3 /*break*/, 4];
                         requiresReveal = true;
                         return [4 /*yield*/, this.rpc.getContract(publicKeyHash)];
-                    case 4:
-                        counter_1 = (_e.sent()).counter;
+                    case 3:
+                        counter_1 = (_d.sent()).counter;
                         counterPromise = Promise.resolve(counter_1);
                         managerPromise = this.rpc.getManagerKey(publicKeyHash);
-                        return [3 /*break*/, 6];
-                    case 5:
+                        return [3 /*break*/, 5];
+                    case 4:
                         i++;
-                        return [3 /*break*/, 3];
-                    case 6: return [4 /*yield*/, Promise.all([
+                        return [3 /*break*/, 2];
+                    case 5: return [4 /*yield*/, Promise.all([
                             blockHeaderPromise,
                             blockMetaPromise,
                             counterPromise,
                             managerPromise,
                         ])];
-                    case 7:
-                        _c = _e.sent(), header = _c[0], metadata = _c[1], headCounter = _c[2], manager = _c[3];
+                    case 6:
+                        _b = _d.sent(), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
                         if (!header) {
                             throw new Error('Unable to latest block header');
                         }
@@ -138,37 +133,37 @@ var OperationEmitter = /** @class */ (function () {
                             throw new Error('Unable to fetch latest metadata');
                         }
                         head = header;
-                        if (!requiresReveal) return [3 /*break*/, 9];
+                        if (!requiresReveal) return [3 /*break*/, 8];
                         haveManager = manager && typeof manager === 'object' ? !!manager.key : !!manager;
-                        if (!!haveManager) return [3 /*break*/, 9];
-                        _d = {
+                        if (!!haveManager) return [3 /*break*/, 8];
+                        _c = {
                             kind: 'reveal',
                             fee: constants_1.DEFAULT_FEE.REVEAL
                         };
                         return [4 /*yield*/, this.signer.publicKey()];
-                    case 8:
-                        reveal = (_d.public_key = _e.sent(),
-                            _d.source = publicKeyHash,
-                            _d.gas_limit = constants_1.DEFAULT_GAS_LIMIT.REVEAL,
-                            _d.storage_limit = constants_1.DEFAULT_STORAGE_LIMIT.REVEAL,
-                            _d);
+                    case 7:
+                        reveal = (_c.public_key = _d.sent(),
+                            _c.source = publicKeyHash,
+                            _c.gas_limit = constants_1.DEFAULT_GAS_LIMIT.REVEAL,
+                            _c.storage_limit = constants_1.DEFAULT_STORAGE_LIMIT.REVEAL,
+                            _c);
                         ops.unshift(reveal);
-                        _e.label = 9;
-                    case 9:
+                        _d.label = 8;
+                    case 8:
                         counter = parseInt(headCounter || '0', 10);
                         if (!counters[publicKeyHash] || counters[publicKeyHash] < counter) {
                             counters[publicKeyHash] = counter;
                         }
                         return [4 /*yield*/, this.context.isAnyProtocolActive(constants_1.protocols['005'])];
-                    case 10:
-                        proto005 = _e.sent();
+                    case 9:
+                        proto005 = _d.sent();
                         constructOps = function (cOps) {
                             // tslint:disable strict-type-predicates
                             return cOps.map(function (op) {
                                 var constructedOp = __assign({}, op);
                                 if (_this.isSourceOp(op)) {
                                     if (typeof op.source === 'undefined') {
-                                        constructedOp.source = publicKeyHash;
+                                        constructedOp.source = source || publicKeyHash;
                                     }
                                 }
                                 if (_this.isFeeOp(op)) {
