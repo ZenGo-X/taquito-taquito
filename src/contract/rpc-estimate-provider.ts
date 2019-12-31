@@ -78,7 +78,7 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     });
 
     return new Estimate(
-      Math.max(totalGas || 0, minimumGas),
+      Math.max((totalGas || 0), minimumGas),
       Number(totalStorage || 0) + defaultStorage,
       opbytes.length / 2
     );
@@ -116,7 +116,7 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
    * @param TransferOperation Originate operation parameter
    */
   async transfer({ fee, storageLimit, gasLimit, ...rest }: TransferParams) {
-    const pkh = rest.source || (await this.signer.publicKeyHash());
+    const pkh = await this.signer.publicKeyHash();
     const op = await createTransferOperation({
       ...rest,
       ...this.DEFAULT_PARAMS,
