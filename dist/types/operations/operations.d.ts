@@ -23,7 +23,7 @@ export declare class Operation {
      * @param context Taquito context allowing access to rpc and signer
      */
     constructor(hash: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
-    readonly status: "failed" | "unknown" | "applied" | "skipped" | "backtracked";
+    readonly status: "applied" | "failed" | "skipped" | "backtracked" | "unknown";
     /**
      *
      * @param confirmations [0] Number of confirmation to wait for

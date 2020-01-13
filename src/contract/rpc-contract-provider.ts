@@ -397,7 +397,7 @@ function constructedOperationToDelegateParams(op: ConstructedOperation, tracking
     source: op.source,
     delegate: op.delegate,
     fee: Number(op.fee),
-    gasLimit: trackindId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
+    gasLimit: trackingId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
     storageLimit: Number(op.storage_limit),
   };
 }

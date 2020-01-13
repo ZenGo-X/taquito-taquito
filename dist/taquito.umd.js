@@ -287,8 +287,8 @@
     (function (DEFAULT_STORAGE_LIMIT) {
         DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["DELEGATION"] = 0] = "DELEGATION";
         DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["ORIGINATION"] = 257] = "ORIGINATION";
-        DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["TRANSFER"] = 300] = "TRANSFER";
-        DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["REVEAL"] = 300] = "REVEAL";
+        DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["TRANSFER"] = 257] = "TRANSFER";
+        DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["REVEAL"] = 0] = "REVEAL";
     })(exports.DEFAULT_STORAGE_LIMIT || (exports.DEFAULT_STORAGE_LIMIT = {}));
     (function (Protocols) {
         Protocols["Pt24m4xi"] = "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd";
@@ -1631,7 +1631,7 @@
          * @param prefixSig the prefix to be used for the encoding of the signature bytes
          * @param sbytes signature bytes in hex
          */
-        RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes) {
+        RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes, trackingId) {
             return __awaiter(this, void 0, void 0, function () {
                 var _a, hash, context, forgedBytes, opResponse, delegationParams, operation;
                 return __generator(this, function (_b) {
@@ -1646,7 +1646,7 @@
                             if (!delegationParams) {
                                 throw new Error('No delegation in operation contents');
                             }
-                            return [4 /*yield*/, createSetDelegateOperation(constructedOperationToDelegateParams(delegationParams))];
+                            return [4 /*yield*/, createSetDelegateOperation(constructedOperationToDelegateParams(delegationParams, trackingId))];
                         case 2:
                             operation = _b.sent();
                             return [2 /*return*/, new DelegateOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
@@ -1822,13 +1822,14 @@
             // @ts-ignore
             fee: Number(op.fee), gasLimit: Number(op.gas_limit), storageLimit: Number(op.storage_limit) }, op);
     }
-    function constructedOperationToDelegateParams(op) {
+    function constructedOperationToDelegateParams(op, trackingId) {
+        var gasLimit = Number(op.gas_limit);
         return {
             source: op.source,
             delegate: op.delegate,
             fee: Number(op.fee),
-            gasLimit: Number(op.gas_limit),
-            storageLimit: Number(op.storage_limit)
+            gasLimit: trackingId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
+            storageLimit: Number(op.storage_limit),
         };
     }
 
@@ -1983,7 +1984,7 @@
                                 totalStorage +=
                                     'paid_storage_size_diff' in result ? Number(result.paid_storage_size_diff) || 0 : 0;
                             });
-                            return [2 /*return*/, new Estimate(Math.max((totalGas || 0), minimumGas), Number(totalStorage || 0) + defaultStorage, opbytes.length / 2)];
+                            return [2 /*return*/, new Estimate(Math.max(totalGas || 0, minimumGas), Number(totalStorage || 0) + defaultStorage, opbytes.length / 2)];
                     }
                 });
             });
@@ -2033,7 +2034,7 @@
                             return [4 /*yield*/, createTransferOperation(__assign(__assign({}, rest), this.DEFAULT_PARAMS))];
                         case 2:
                             op = _b.sent();
-                            return [2 /*return*/, this.createEstimate({ operation: op, source: pkh }, 'transaction', exports.DEFAULT_STORAGE_LIMIT.TRANSFER)];
+                            return [2 /*return*/, this.createEstimate({ operation: op, source: pkh }, 'transaction', typeof storageLimit === 'number' ? storageLimit : exports.DEFAULT_STORAGE_LIMIT.TRANSFER)];
                     }
                 });
             });
