@@ -237,7 +237,8 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
   async injectDelegateSignatureAndBroadcast(
     params: ForgedBytes,
     prefixSig: string,
-    sbytes: string
+    sbytes: string,
+    trackingId? : number
   ): Promise<DelegateOperation> {
     const { hash, context, forgedBytes, opResponse } = await this.inject(params, prefixSig, sbytes);
     if (!params.opOb.contents) {
@@ -252,7 +253,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     }
 
     const operation = await createSetDelegateOperation(
-      constructedOperationToDelegateParams(delegationParams)
+      constructedOperationToDelegateParams(delegationParams, trackingId)
     );
     return new DelegateOperation(
       hash,
@@ -389,12 +390,14 @@ function constructedOperationToTransferParams(op: ConstructedOperation): Transfe
   };
 }
 
-function constructedOperationToDelegateParams(op: ConstructedOperation): DelegateParams {
+function constructedOperationToDelegateParams(op: ConstructedOperation, trackingId? : number): DelegateParams {
+  const gasLimit : number =  Number(op.gas_limit);
+  
   return {
     source: op.source,
     delegate: op.delegate,
     fee: Number(op.fee),
-    gasLimit: Number(op.gas_limit),
+    gasLimit: trackindId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
     storageLimit: Number(op.storage_limit),
   };
 }

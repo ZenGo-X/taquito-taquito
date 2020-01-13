@@ -78,7 +78,7 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     });
 
     return new Estimate(
-      Math.max((totalGas || 0), minimumGas),
+      Math.max(totalGas || 0, minimumGas),
       Number(totalStorage || 0) + defaultStorage,
       opbytes.length / 2
     );
@@ -124,7 +124,7 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     return this.createEstimate(
       { operation: op, source: pkh },
       'transaction',
-      DEFAULT_STORAGE_LIMIT.TRANSFER
+      typeof storageLimit === 'number' ? storageLimit : DEFAULT_STORAGE_LIMIT.TRANSFER
     );
   }
 

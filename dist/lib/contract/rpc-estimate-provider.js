@@ -135,7 +135,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                             totalStorage +=
                                 'paid_storage_size_diff' in result ? Number(result.paid_storage_size_diff) || 0 : 0;
                         });
-                        return [2 /*return*/, new estimate_1.Estimate(Math.max((totalGas || 0), minimumGas), Number(totalStorage || 0) + defaultStorage, opbytes.length / 2)];
+                        return [2 /*return*/, new estimate_1.Estimate(Math.max(totalGas || 0, minimumGas), Number(totalStorage || 0) + defaultStorage, opbytes.length / 2)];
                 }
             });
         });
@@ -185,7 +185,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), this.DEFAULT_PARAMS))];
                     case 2:
                         op = _b.sent();
-                        return [2 /*return*/, this.createEstimate({ operation: op, source: pkh }, 'transaction', constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER)];
+                        return [2 /*return*/, this.createEstimate({ operation: op, source: pkh }, 'transaction', typeof storageLimit === 'number' ? storageLimit : constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER)];
                 }
             });
         });
