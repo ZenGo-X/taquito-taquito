@@ -13,8 +13,8 @@ export declare enum DEFAULT_FEE {
 export declare enum DEFAULT_STORAGE_LIMIT {
     DELEGATION = 0,
     ORIGINATION = 257,
-    TRANSFER = 300,
-    REVEAL = 300
+    TRANSFER = 257,
+    REVEAL = 0
 }
 export declare enum Protocols {
     Pt24m4xi = "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd",

@@ -361,7 +361,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
      * @param prefixSig the prefix to be used for the encoding of the signature bytes
      * @param sbytes signature bytes in hex
      */
-    RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes) {
+    RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes, trackingId) {
         return __awaiter(this, void 0, void 0, function () {
             var _a, hash, context, forgedBytes, opResponse, delegationParams, operation;
             return __generator(this, function (_b) {
@@ -376,7 +376,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         if (!delegationParams) {
                             throw new Error('No delegation in operation contents');
                         }
-                        return [4 /*yield*/, prepare_1.createSetDelegateOperation(constructedOperationToDelegateParams(delegationParams))];
+                        return [4 /*yield*/, prepare_1.createSetDelegateOperation(constructedOperationToDelegateParams(delegationParams, trackingId))];
                     case 2:
                         operation = _b.sent();
                         return [2 /*return*/, new delegate_operation_1.DelegateOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
@@ -553,13 +553,14 @@ function constructedOperationToTransferParams(op) {
         // @ts-ignore
         fee: Number(op.fee), gasLimit: Number(op.gas_limit), storageLimit: Number(op.storage_limit) }, op);
 }
-function constructedOperationToDelegateParams(op) {
+function constructedOperationToDelegateParams(op, trackingId) {
+    var gasLimit = Number(op.gas_limit);
     return {
         source: op.source,
         delegate: op.delegate,
         fee: Number(op.fee),
-        gasLimit: Number(op.gas_limit),
-        storageLimit: Number(op.storage_limit)
+        gasLimit: trackindId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
+        storageLimit: Number(op.storage_limit),
     };
 }
 //# sourceMappingURL=rpc-contract-provider.js.map
