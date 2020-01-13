@@ -123,11 +123,13 @@ export interface ContractProvider {
    * @param params result of `getTransferSignatureHash`
    * @param prefixSig the prefix to be used for the encoding of the signature bytes
    * @param sbytes signature bytes in hex
+   * @param (optional) trackingId Id for the provider to know the delegators source
    */
   injectDelegateSignatureAndBroadcast(
     params: ForgedBytes,
     prefixSig: string,
-    sbytes: string
+    sbytes: string,
+    trackingId?: number
   ): Promise<DelegateOperation>;
 
   /**
