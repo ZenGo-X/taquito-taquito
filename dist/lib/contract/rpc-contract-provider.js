@@ -361,7 +361,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
      * @param prefixSig the prefix to be used for the encoding of the signature bytes
      * @param sbytes signature bytes in hex
      */
-    RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes, trackingId) {
+    RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes) {
         return __awaiter(this, void 0, void 0, function () {
             var _a, hash, context, forgedBytes, opResponse, delegationParams, operation;
             return __generator(this, function (_b) {
@@ -376,7 +376,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         if (!delegationParams) {
                             throw new Error('No delegation in operation contents');
                         }
-                        return [4 /*yield*/, prepare_1.createSetDelegateOperation(constructedOperationToDelegateParams(delegationParams, trackingId))];
+                        return [4 /*yield*/, prepare_1.createSetDelegateOperation(constructedOperationToDelegateParams(delegationParams))];
                     case 2:
                         operation = _b.sent();
                         return [2 /*return*/, new delegate_operation_1.DelegateOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
@@ -430,7 +430,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
             var estimate, operation, source, _a, opBytes, _b, hash, context, forgedBytes, opResponse;
             return __generator(this, function (_c) {
                 switch (_c.label) {
-                    case 0: return [4 /*yield*/, this.estimate(params, this.estimator.transfer.bind(this.estimator))];
+                    case 0: return [4 /*yield*/, this.estimate(params, this.estimator.transfer.bind(this.estimator, params))];
                     case 1:
                         estimate = _c.sent();
                         return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, params), estimate))];
@@ -553,13 +553,12 @@ function constructedOperationToTransferParams(op) {
         // @ts-ignore
         fee: Number(op.fee), gasLimit: Number(op.gas_limit), storageLimit: Number(op.storage_limit) }, op);
 }
-function constructedOperationToDelegateParams(op, trackingId) {
-    var gasLimit = Number(op.gas_limit);
+function constructedOperationToDelegateParams(op) {
     return {
         source: op.source,
         delegate: op.delegate,
         fee: Number(op.fee),
-        gasLimit: trackingId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
+        gasLimit: Number(op.gas_limit),
         storageLimit: Number(op.storage_limit),
     };
 }

@@ -106,9 +106,8 @@ export interface ContractProvider {
      * @param params result of `getTransferSignatureHash`
      * @param prefixSig the prefix to be used for the encoding of the signature bytes
      * @param sbytes signature bytes in hex
-     * @param (optional) trackingId Id for the provider to know the delegators source
      */
-    injectDelegateSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string, trackingId?: number): Promise<DelegateOperation>;
+    injectDelegateSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<DelegateOperation>;
     /**
      *
      * @description Set the delegate for a contract. Will sign and inject an operation using the current context

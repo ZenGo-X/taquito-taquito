@@ -82,6 +82,7 @@ var constants_1 = require("../constants");
 var operation_emitter_1 = require("../operations/operation-emitter");
 var estimate_1 = require("./estimate");
 var prepare_1 = require("./prepare");
+var format_1 = require("../format");
 // RPC require a signature but do not verify it
 var SIGNATURE_STUB = 'edsigtkpiSSschcaCt9pUVrpNPf7TTcgvgDEDD6NCEHMy8NNQJCGnMfLZzYoQj74yLjo9wx6MPVV29CvVzgi7qEcEUok3k7AuMg';
 var RPCEstimateProvider = /** @class */ (function (_super) {
@@ -176,16 +177,63 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     RPCEstimateProvider.prototype.transfer = function (_a) {
         var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
         return __awaiter(this, void 0, void 0, function () {
-            var pkh, op;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var pkh, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, _b, sourceBalance, manager, isNewImplicitAccount, requireReveal, revealFee, _storageLimit, defaultParams, op;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        pkh = _b.sent();
-                        return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), this.DEFAULT_PARAMS))];
+                        pkh = _c.sent();
+                        mutezAmount = rest.mutez
+                            ? rest.amount.toString()
+                            : format_1.format('tz', 'mutez', rest.amount).toString();
+                        sourceBalancePromise = this.rpc.getBalance(pkh);
+                        managerPromise = this.rpc.getManagerKey(pkh);
+                        isNewImplicitAccountPromise = this.isNewImplicitAccount(rest.to);
+                        return [4 /*yield*/, Promise.all([
+                                sourceBalancePromise,
+                                managerPromise,
+                                isNewImplicitAccountPromise,
+                            ])];
                     case 2:
-                        op = _b.sent();
-                        return [2 /*return*/, this.createEstimate({ operation: op, source: pkh }, 'transaction', typeof storageLimit === 'number' ? storageLimit : constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER)];
+                        _b = _c.sent(), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2];
+                        requireReveal = !manager;
+                        revealFee = requireReveal ? constants_1.DEFAULT_FEE.REVEAL : 0;
+                        _storageLimit = isNewImplicitAccount ? constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
+                        defaultParams = {
+                            fee: sourceBalance.minus(Number(mutezAmount) + revealFee + _storageLimit * 1000).toNumber(),
+                            storageLimit: _storageLimit,
+                            gasLimit: constants_1.DEFAULT_GAS_LIMIT.TRANSFER,
+                        };
+                        return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), defaultParams))];
+                    case 3:
+                        op = _c.sent();
+                        return [2 /*return*/, this.createEstimate({ operation: op, source: pkh }, 'transaction', _storageLimit)];
+                }
+            });
+        });
+    };
+    RPCEstimateProvider.prototype.isNewImplicitAccount = function (address) {
+        return __awaiter(this, void 0, void 0, function () {
+            var pref, isImplicit, balance, e_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        pref = address.substring(0, 3);
+                        isImplicit = ['tz1', 'tz2', 'tz3'].includes(pref);
+                        if (!isImplicit) {
+                            return [2 /*return*/, false];
+                        }
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, this.rpc.getBalance(address)];
+                    case 2:
+                        balance = _a.sent();
+                        return [2 /*return*/, balance.eq(0)];
+                    case 3:
+                        e_1 = _a.sent();
+                        return [2 /*return*/, true];
+                    case 4: return [2 /*return*/];
                 }
             });
         });
@@ -200,20 +248,36 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
      */
     RPCEstimateProvider.prototype.setDelegate = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var op, sourceOrDefault, _a;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0: return [4 /*yield*/, prepare_1.createSetDelegateOperation(__assign(__assign({}, params), this.DEFAULT_PARAMS))];
+            var sourceBalancePromise, managerPromise, _a, sourceBalance, manager, requireReveal, revealFee, defaultParams, op, sourceOrDefault, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        sourceBalancePromise = this.rpc.getBalance(params.source);
+                        managerPromise = this.rpc.getManagerKey(params.source);
+                        return [4 /*yield*/, Promise.all([
+                                sourceBalancePromise,
+                                managerPromise
+                            ])];
                     case 1:
-                        op = _b.sent();
-                        _a = params.source;
-                        if (_a) return [3 /*break*/, 3];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                        _a = _c.sent(), sourceBalance = _a[0], manager = _a[1];
+                        requireReveal = !manager;
+                        revealFee = requireReveal ? constants_1.DEFAULT_FEE.REVEAL : 0;
+                        defaultParams = {
+                            fee: sourceBalance.toNumber() - 1 - revealFee,
+                            storageLimit: constants_1.DEFAULT_STORAGE_LIMIT.DELEGATION,
+                            gasLimit: constants_1.DEFAULT_GAS_LIMIT.DELEGATION,
+                        };
+                        return [4 /*yield*/, prepare_1.createSetDelegateOperation(__assign(__assign({}, params), defaultParams))];
                     case 2:
-                        _a = (_b.sent());
-                        _b.label = 3;
+                        op = _c.sent();
+                        _b = params.source;
+                        if (_b) return [3 /*break*/, 4];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 3:
-                        sourceOrDefault = _a;
+                        _b = (_c.sent());
+                        _c.label = 4;
+                    case 4:
+                        sourceOrDefault = _b;
                         return [2 /*return*/, this.createEstimate({ operation: op, source: sourceOrDefault }, 'delegation', constants_1.DEFAULT_STORAGE_LIMIT.DELEGATION, 
                             // Delegation have a minimum gas cost
                             constants_1.DEFAULT_GAS_LIMIT.DELEGATION)];

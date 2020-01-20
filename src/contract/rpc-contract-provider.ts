@@ -118,7 +118,6 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     let calculatedFee = fee;
     let calculatedGas = gasLimit;
     let calculatedStorage = storageLimit;
-
     if (fee === undefined || gasLimit === undefined || storageLimit === undefined) {
       const estimation = await estimator({ fee, gasLimit, storageLimit, ...(rest as any) });
 
@@ -237,8 +236,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
   async injectDelegateSignatureAndBroadcast(
     params: ForgedBytes,
     prefixSig: string,
-    sbytes: string,
-    trackingId? : number
+    sbytes: string
   ): Promise<DelegateOperation> {
     const { hash, context, forgedBytes, opResponse } = await this.inject(params, prefixSig, sbytes);
     if (!params.opOb.contents) {
@@ -253,7 +251,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     }
 
     const operation = await createSetDelegateOperation(
-      constructedOperationToDelegateParams(delegationParams, trackingId)
+      constructedOperationToDelegateParams(delegationParams)
     );
     return new DelegateOperation(
       hash,
@@ -294,7 +292,10 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
    * @param Transfer operation parameter
    */
   async transfer(params: TransferParams) {
-    const estimate = await this.estimate(params, this.estimator.transfer.bind(this.estimator));
+    const estimate = await this.estimate(
+      params,
+      this.estimator.transfer.bind(this.estimator, params)
+    );
     const operation = await createTransferOperation({
       ...params,
       ...estimate,
@@ -390,14 +391,12 @@ function constructedOperationToTransferParams(op: ConstructedOperation): Transfe
   };
 }
 
-function constructedOperationToDelegateParams(op: ConstructedOperation, trackingId? : number): DelegateParams {
-  const gasLimit : number =  Number(op.gas_limit);
-  
+function constructedOperationToDelegateParams(op: ConstructedOperation): DelegateParams {
   return {
     source: op.source,
     delegate: op.delegate,
     fee: Number(op.fee),
-    gasLimit: trackingId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
+    gasLimit: Number(op.gas_limit),
     storageLimit: Number(op.storage_limit),
   };
 }
