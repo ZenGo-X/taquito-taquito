@@ -1,13 +1,14 @@
 import { IndexerClient } from '@taquito/indexer';
 import { RpcClient } from '@taquito/rpc';
 import { Protocols } from './constants';
-import { Config } from './context';
+import { Config, TaquitoProvider } from './context';
 import { ContractProvider, EstimationProvider } from './contract/interface';
 import { format } from './format';
 import { QueryProvider } from './query/interface';
 import { Signer } from './signer/interface';
 import { SubscribeProvider } from './subscribe/interface';
 import { TzProvider } from './tz/interface';
+import { Forger } from './forger/interface';
 export * from './query/interface';
 export * from './signer/interface';
 export * from './subscribe/interface';
@@ -16,8 +17,15 @@ export * from './tz/interface';
 export * from './contract';
 export * from './contract/big-map';
 export * from './constants';
+export { OpKind } from './operations/types';
+export { TaquitoProvider } from './context';
+export { PollingSubscribeProvider } from './subscribe/polling-provider';
+export { RpcForger } from './forger/rpc-forger';
+export { CompositeForger } from './forger/composite-forger';
+export { TezosOperationError, TezosOperationErrorWithMessage, TezosPreapplyFailureError, } from './operations/operation-errors';
 export { SubscribeProvider } from './subscribe/interface';
 export interface SetProviderOptions {
+    forger?: Forger;
     rpc?: string | RpcClient;
     indexer?: string | IndexerClient;
     stream?: string | SubscribeProvider;
@@ -38,15 +46,17 @@ export declare class TezosToolkit {
     private _tz;
     private _estimate;
     private _contract;
+    private _batch;
     readonly format: typeof format;
     constructor();
     /**
      *
      * @param options rpc url or rpcClient to use to interact with the Tezos network and indexer url to use to interact with the Tezos network
      */
-    setProvider({ rpc, indexer, stream, signer, protocol, config }: SetProviderOptions): void;
+    setProvider({ rpc, indexer, stream, signer, protocol, config, forger }: SetProviderOptions): void;
     private setSignerProvider;
     private setRpcProvider;
+    private setForgerProvider;
     private setIndexerProvider;
     private setStreamProvider;
     /**
@@ -57,6 +67,7 @@ export declare class TezosToolkit {
      * @description Provide access to smart contract utilities
      */
     readonly contract: ContractProvider;
+    batch: (params?: import("./operations/types").ParamsWithKind[] | undefined) => import("./batch/rpc-batch-provider").OperationBatch;
     /**
      * @description Provide access to operation estimation utilities
      */
@@ -95,6 +106,7 @@ export declare class TezosToolkit {
      * @param secret Faucet secret
      */
     importKey(email: string, password: string, mnemonic: string, secret: string): Promise<void>;
+    getFactory<T, K extends Array<any>>(ctor: TaquitoProvider<T, K>): (...args: K) => T;
 }
 /**
  * @description Default Tezos toolkit instance

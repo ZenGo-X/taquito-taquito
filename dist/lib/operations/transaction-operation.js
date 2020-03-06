@@ -13,8 +13,9 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var operations_1 = require("./operations");
 var bignumber_js_1 = require("bignumber.js");
+var operation_errors_1 = require("./operation-errors");
+var operations_1 = require("./operations");
 /**
  * @description Transaction operation provide utility function to fetch newly issued transaction
  *
@@ -32,8 +33,7 @@ var TransactionOperation = /** @class */ (function (_super) {
         get: function () {
             var transactionOp = Array.isArray(this.results) &&
                 this.results.find(function (op) { return op.kind === 'transaction'; });
-            var result = transactionOp && transactionOp.metadata && transactionOp.metadata.operation_result;
-            return result ? result : undefined;
+            return transactionOp ? [transactionOp] : [];
         },
         enumerable: true,
         configurable: true
@@ -73,33 +73,35 @@ var TransactionOperation = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
+    TransactionOperation.prototype.sumProp = function (arr, prop) {
+        return arr.reduce(function (prev, current) {
+            return prop in current ? Number(current[prop]) + prev : prev;
+        }, 0);
+    };
     Object.defineProperty(TransactionOperation.prototype, "consumedGas", {
         get: function () {
-            var consumedGas = this.operationResults && this.operationResults.consumed_gas;
-            return consumedGas ? consumedGas : undefined;
+            return String(this.sumProp(operation_errors_1.flattenOperationResult({ contents: this.operationResults }), 'consumed_gas'));
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageDiff", {
         get: function () {
-            var storageDiff = this.operationResults && this.operationResults.paid_storage_size_diff;
-            return storageDiff ? storageDiff : undefined;
+            return String(this.sumProp(operation_errors_1.flattenOperationResult({ contents: this.operationResults }), 'paid_storage_size_diff'));
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageSize", {
         get: function () {
-            var storageSize = this.operationResults && this.operationResults.storage_size;
-            return storageSize ? storageSize : undefined;
+            return String(this.sumProp(operation_errors_1.flattenOperationResult({ contents: this.operationResults }), 'storage_size'));
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "errors", {
         get: function () {
-            return this.operationResults && this.operationResults.errors;
+            return operation_errors_1.flattenErrors({ contents: this.operationResults });
         },
         enumerable: true,
         configurable: true

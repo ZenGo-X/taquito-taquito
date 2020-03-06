@@ -108,6 +108,56 @@ var NaiveEstimateProvider = /** @class */ (function () {
             });
         });
     };
+    NaiveEstimateProvider.prototype.batch = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var estimates, _i, params_1, param, _a, _b, _c, _d, _e, _f, _g;
+            return __generator(this, function (_h) {
+                switch (_h.label) {
+                    case 0:
+                        estimates = [];
+                        _i = 0, params_1 = params;
+                        _h.label = 1;
+                    case 1:
+                        if (!(_i < params_1.length)) return [3 /*break*/, 11];
+                        param = params_1[_i];
+                        _a = param.kind;
+                        switch (_a) {
+                            case 'transaction': return [3 /*break*/, 2];
+                            case 'origination': return [3 /*break*/, 4];
+                            case 'delegation': return [3 /*break*/, 6];
+                            case 'activate_account': return [3 /*break*/, 8];
+                        }
+                        return [3 /*break*/, 9];
+                    case 2:
+                        _c = (_b = estimates).push;
+                        return [4 /*yield*/, this.transfer(param)];
+                    case 3:
+                        _c.apply(_b, [_h.sent()]);
+                        return [3 /*break*/, 10];
+                    case 4:
+                        _e = (_d = estimates).push;
+                        return [4 /*yield*/, this.originate(param)];
+                    case 5:
+                        _e.apply(_d, [_h.sent()]);
+                        return [3 /*break*/, 10];
+                    case 6:
+                        _g = (_f = estimates).push;
+                        return [4 /*yield*/, this.setDelegate(param)];
+                    case 7:
+                        _g.apply(_f, [_h.sent()]);
+                        return [3 /*break*/, 10];
+                    case 8:
+                        estimates.push(new estimate_1.Estimate(0, 0, 0, 0));
+                        return [3 /*break*/, 10];
+                    case 9: throw new Error("Unsupported operation kind: " + param.kind);
+                    case 10:
+                        _i++;
+                        return [3 /*break*/, 1];
+                    case 11: return [2 /*return*/, estimates];
+                }
+            });
+        });
+    };
     return NaiveEstimateProvider;
 }());
 exports.NaiveEstimateProvider = NaiveEstimateProvider;

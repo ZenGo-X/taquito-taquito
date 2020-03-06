@@ -7,7 +7,7 @@ export interface Signer {
      * @param op Operation to sign
      * @param magicByte Magic bytes 1 for block, 2 for endorsement, 3 for generic
      */
-    sign(op: {}, magicByte: Uint8Array): Promise<{
+    sign(op: {}, magicByte?: Uint8Array): Promise<{
         bytes: string;
         sig: string;
         prefixSig: string;

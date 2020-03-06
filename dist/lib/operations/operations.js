@@ -61,7 +61,7 @@ var Operation = /** @class */ (function () {
             }));
         });
         // Observable that emit once operation is seen in a block
-        this.confirmed$ = this.polling$.pipe(operators_1.switchMap(function () { return _this.currentHead$; }), operators_1.map(function (head) {
+        this.confirmed$ = this.polling$.pipe(operators_1.switchMapTo(this.currentHead$), operators_1.map(function (head) {
             for (var i = 3; i >= 0; i--) {
                 head.operations[i].forEach(function (op) {
                     if (op.hash === _this.hash) {
@@ -105,6 +105,9 @@ var Operation = /** @class */ (function () {
      */
     Operation.prototype.confirmation = function (confirmations, interval, timeout) {
         var _this = this;
+        if (typeof confirmations !== 'undefined' && confirmations < 1) {
+            throw new Error('Confirmation count must be at least 1');
+        }
         var _a = this.context.config, defaultConfirmationCount = _a.defaultConfirmationCount, confirmationPollingIntervalSecond = _a.confirmationPollingIntervalSecond, confirmationPollingTimeoutSecond = _a.confirmationPollingTimeoutSecond;
         this._pollingConfig$.next({
             interval: interval || confirmationPollingIntervalSecond,
@@ -113,9 +116,9 @@ var Operation = /** @class */ (function () {
         var conf = confirmations !== undefined ? confirmations : defaultConfirmationCount;
         return new Promise(function (resolve, reject) {
             _this.confirmed$
-                .pipe(operators_1.switchMap(function () { return _this.polling$; }), operators_1.switchMap(function () { return _this.currentHead$; }), operators_1.filter(function (head) { return head.header.level - _this._foundAt >= conf; }), operators_1.first())
+                .pipe(operators_1.switchMap(function () { return _this.polling$; }), operators_1.switchMap(function () { return _this.currentHead$; }), operators_1.filter(function (head) { return head.header.level - _this._foundAt >= conf - 1; }), operators_1.first())
                 .subscribe(function (_) {
-                resolve(_this._foundAt + conf);
+                resolve(_this._foundAt + (conf - 1));
             }, reject);
         });
     };

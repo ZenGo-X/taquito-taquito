@@ -40,11 +40,12 @@ var constants_1 = require("../constants");
 var utils_1 = require("@taquito/utils");
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
 var format_1 = require("../format");
-exports.createOriginationOperation = function (_a, publicKeyHash) {
-    var code = _a.code, init = _a.init, _b = _a.balance, balance = _b === void 0 ? '0' : _b, _c = _a.spendable, spendable = _c === void 0 ? false : _c, _d = _a.delegatable, delegatable = _d === void 0 ? false : _d, delegate = _a.delegate, storage = _a.storage, _e = _a.fee, fee = _e === void 0 ? constants_1.DEFAULT_FEE.ORIGINATION : _e, _f = _a.gasLimit, gasLimit = _f === void 0 ? constants_1.DEFAULT_GAS_LIMIT.ORIGINATION : _f, _g = _a.storageLimit, storageLimit = _g === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.ORIGINATION : _g;
+var rpc_1 = require("@taquito/rpc");
+exports.createOriginationOperation = function (_a) {
+    var code = _a.code, init = _a.init, _b = _a.balance, balance = _b === void 0 ? '0' : _b, delegate = _a.delegate, storage = _a.storage, _c = _a.fee, fee = _c === void 0 ? constants_1.DEFAULT_FEE.ORIGINATION : _c, _d = _a.gasLimit, gasLimit = _d === void 0 ? constants_1.DEFAULT_GAS_LIMIT.ORIGINATION : _d, _e = _a.storageLimit, storageLimit = _e === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.ORIGINATION : _e;
     return __awaiter(void 0, void 0, void 0, function () {
         var contractCode, contractStorage, schema, script, operation;
-        return __generator(this, function (_h) {
+        return __generator(this, function (_f) {
             // tslint:disable-next-line: strict-type-predicates
             if (storage !== undefined && init !== undefined) {
                 throw new Error('Storage and Init cannot be set a the same time. Please either use storage or init but not both.');
@@ -62,14 +63,11 @@ exports.createOriginationOperation = function (_a, publicKeyHash) {
                 storage: contractStorage,
             };
             operation = {
-                kind: 'origination',
+                kind: rpc_1.OpKind.ORIGINATION,
                 fee: fee,
                 gas_limit: gasLimit,
                 storage_limit: storageLimit,
                 balance: format_1.format('tz', 'mutez', balance).toString(),
-                manager_pubkey: publicKeyHash,
-                spendable: spendable,
-                delegatable: delegatable,
                 script: script,
             };
             if (delegate) {
@@ -85,7 +83,7 @@ exports.createTransferOperation = function (_a) {
         var operation;
         return __generator(this, function (_g) {
             operation = {
-                kind: 'transaction',
+                kind: rpc_1.OpKind.TRANSACTION,
                 fee: fee,
                 gas_limit: gasLimit,
                 storage_limit: storageLimit,
@@ -109,7 +107,7 @@ exports.createSetDelegateOperation = function (_a) {
         var operation;
         return __generator(this, function (_e) {
             operation = {
-                kind: 'delegation',
+                kind: rpc_1.OpKind.DELEGATION,
                 source: source,
                 fee: fee,
                 gas_limit: gasLimit,
@@ -125,7 +123,7 @@ exports.createRegisterDelegateOperation = function (_a, source) {
     return __awaiter(void 0, void 0, void 0, function () {
         return __generator(this, function (_e) {
             return [2 /*return*/, {
-                    kind: 'delegation',
+                    kind: rpc_1.OpKind.DELEGATION,
                     fee: fee,
                     gas_limit: gasLimit,
                     storage_limit: storageLimit,

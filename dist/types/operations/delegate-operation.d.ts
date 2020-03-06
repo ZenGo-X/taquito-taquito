@@ -1,7 +1,7 @@
 import { OperationContentsAndResult } from '@taquito/rpc';
 import { Context } from '../context';
 import { Operation } from './operations';
-import { ForgedBytes, GasConsumingOperation, StorageConsumingOperation, FeeConsumingOperation, RPCDelegateOperation } from './types';
+import { FeeConsumingOperation, ForgedBytes, GasConsumingOperation, RPCDelegateOperation, StorageConsumingOperation } from './types';
 /**
  * @description Delegation operation provide utility function to fetch newly issued delegation
  *
@@ -18,5 +18,5 @@ export declare class DelegateOperation extends Operation implements GasConsuming
     readonly gasLimit: number;
     readonly storageLimit: number;
     readonly consumedGas: string | undefined;
-    readonly errors: any;
+    readonly errors: import("@taquito/rpc").TezosGenericOperationError[] | undefined;
 }

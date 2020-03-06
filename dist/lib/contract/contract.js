@@ -43,10 +43,14 @@ var ContractMethod = /** @class */ (function () {
      *
      * @param Options generic operation parameter
      */
-    ContractMethod.prototype.send = function (_a) {
+    ContractMethod.prototype.send = function (params) {
+        if (params === void 0) { params = {}; }
+        return this.provider.transfer(this.toTransferParams(params));
+    };
+    ContractMethod.prototype.toTransferParams = function (_a) {
         var _b, _c;
         var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, _e = _d.amount, amount = _e === void 0 ? 0 : _e;
-        return this.provider.transfer({
+        return {
             to: this.address,
             amount: amount,
             fee: fee,
@@ -58,7 +62,7 @@ var ContractMethod = /** @class */ (function () {
                     ? (_b = this.parameterSchema).Encode.apply(_b, __spreadArrays([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, this.args),
             },
             rawParam: true,
-        });
+        };
     };
     return ContractMethod;
 }());
@@ -69,52 +73,6 @@ var validateArgs = function (args, schema, name) {
         throw new errors_1.InvalidParameterError(name, sigs, args);
     }
 };
-/**
- * @description Utility class to send smart contract operation
- */
-var LegacyContractMethod = /** @class */ (function () {
-    function LegacyContractMethod(provider, address, parameterSchema, name, args) {
-        this.provider = provider;
-        this.address = address;
-        this.parameterSchema = parameterSchema;
-        this.name = name;
-        this.args = args;
-    }
-    Object.defineProperty(LegacyContractMethod.prototype, "schema", {
-        /**
-         * @description Get the schema of the smart contract method
-         */
-        get: function () {
-            return this.parameterSchema.isMultipleEntryPoint
-                ? this.parameterSchema.ExtractSchema()[this.name]
-                : this.parameterSchema.ExtractSchema();
-        },
-        enumerable: true,
-        configurable: true
-    });
-    /**
-     *
-     * @description Send the smart contract operation
-     *
-     * @param Options generic operation parameter
-     */
-    LegacyContractMethod.prototype.send = function (_a) {
-        var _b, _c;
-        var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, _e = _d.amount, amount = _e === void 0 ? 0 : _e;
-        return this.provider.transfer({
-            to: this.address,
-            amount: amount,
-            fee: fee,
-            gasLimit: gasLimit,
-            storageLimit: storageLimit,
-            parameter: this.parameterSchema.isMultipleEntryPoint
-                ? (_b = this.parameterSchema).Encode.apply(_b, __spreadArrays([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, this.args),
-            rawParam: true,
-        });
-    };
-    return LegacyContractMethod;
-}());
-exports.LegacyContractMethod = LegacyContractMethod;
 /**
  * @description Smart contract abstraction
  */
@@ -132,12 +90,7 @@ var Contract = /** @class */ (function () {
         this.methods = {};
         this.schema = michelson_encoder_1.Schema.fromRPCResponse({ script: this.script });
         this.parameterSchema = michelson_encoder_1.ParameterSchema.fromRPCResponse({ script: this.script });
-        if (!this.entrypoints) {
-            this._initializeMethodsLegacy(address, provider);
-        }
-        else {
-            this._initializeMethods(address, provider, this.entrypoints.entrypoints);
-        }
+        this._initializeMethods(address, provider, this.entrypoints.entrypoints);
     }
     Contract.prototype._initializeMethods = function (address, provider, entrypoints) {
         var _this = this;
@@ -182,34 +135,6 @@ var Contract = /** @class */ (function () {
                 return new ContractMethod(provider, address, smartContractMethodSchema_1, DEFAULT_SMART_CONTRACT_METHOD_NAME, args, false);
             };
             this.methods[DEFAULT_SMART_CONTRACT_METHOD_NAME] = method;
-        }
-    };
-    Contract.prototype._initializeMethodsLegacy = function (address, provider) {
-        var _this = this;
-        var parameterSchema = this.parameterSchema;
-        var paramSchema = this.parameterSchema.ExtractSchema();
-        if (this.parameterSchema.isMultipleEntryPoint) {
-            Object.keys(paramSchema).forEach(function (smartContractMethodName) {
-                var method = function () {
-                    var args = [];
-                    for (var _i = 0; _i < arguments.length; _i++) {
-                        args[_i] = arguments[_i];
-                    }
-                    validateArgs(__spreadArrays([smartContractMethodName], args), parameterSchema, smartContractMethodName);
-                    return new LegacyContractMethod(provider, address, parameterSchema, smartContractMethodName, args);
-                };
-                _this.methods[smartContractMethodName] = method;
-            });
-        }
-        else {
-            this.methods[DEFAULT_SMART_CONTRACT_METHOD_NAME] = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                validateArgs(args, parameterSchema, DEFAULT_SMART_CONTRACT_METHOD_NAME);
-                return new LegacyContractMethod(provider, address, parameterSchema, DEFAULT_SMART_CONTRACT_METHOD_NAME, args);
-            };
         }
     };
     /**

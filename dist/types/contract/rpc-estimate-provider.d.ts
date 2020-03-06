@@ -1,10 +1,12 @@
 import { OperationEmitter } from '../operations/operation-emitter';
-import { DelegateParams, OriginateParams, TransferParams, RegisterDelegateParams } from '../operations/types';
+import { DelegateParams, OriginateParams, ParamsWithKind, RegisterDelegateParams, TransferParams } from '../operations/types';
 import { Estimate } from './estimate';
 import { EstimationProvider } from './interface';
 export declare class RPCEstimateProvider extends OperationEmitter implements EstimationProvider {
-    private readonly DEFAULT_PARAMS;
-    private getOperationResult;
+    private readonly ALLOCATION_STORAGE;
+    private readonly ORIGINATION_STORAGE;
+    private getAccountLimits;
+    private createEstimateFromOperationContent;
     private createEstimate;
     /**
      *
@@ -24,6 +26,7 @@ export declare class RPCEstimateProvider extends OperationEmitter implements Est
      * @param TransferOperation Originate operation parameter
      */
     transfer({ fee, storageLimit, gasLimit, ...rest }: TransferParams): Promise<Estimate>;
+    isNewImplicitAccount(address: string): Promise<boolean>;
     /**
      *
      * @description Estimate gasLimit, storageLimit and fees for a delegate operation
@@ -33,6 +36,7 @@ export declare class RPCEstimateProvider extends OperationEmitter implements Est
      * @param Estimate
      */
     setDelegate(params: DelegateParams): Promise<Estimate>;
+    batch(params: ParamsWithKind[]): Promise<Estimate[]>;
     /**
      *
      * @description Estimate gasLimit, storageLimit and fees for a delegate operation

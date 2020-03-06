@@ -8,7 +8,7 @@ import {
   TransferParams,
   RegisterDelegateParams,
   ForgedBytes,
-  RPCTransferOperation,
+  ParamsWithKind,
 } from '../operations/types';
 import { Contract } from './contract';
 import { Estimate } from './estimate';
@@ -55,6 +55,7 @@ export interface EstimationProvider {
    * @param Estimate
    */
   registerDelegate(params?: RegisterDelegateParams): Promise<Estimate>;
+  batch(params: ParamsWithKind[]): Promise<Estimate[]>;
 }
 
 export interface ContractProvider {
@@ -123,13 +124,11 @@ export interface ContractProvider {
    * @param params result of `getTransferSignatureHash`
    * @param prefixSig the prefix to be used for the encoding of the signature bytes
    * @param sbytes signature bytes in hex
-   * @param (optional) trackingId Id for the provider to know the delegators source
    */
   injectDelegateSignatureAndBroadcast(
     params: ForgedBytes,
     prefixSig: string,
-    sbytes: string,
-    trackingId?: number
+    sbytes: string
   ): Promise<DelegateOperation>;
 
   /**

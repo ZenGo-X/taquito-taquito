@@ -35,6 +35,13 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
@@ -50,9 +57,22 @@ var indexer_provider_1 = require("./query/indexer-provider");
 var noop_1 = require("./signer/noop");
 var polling_provider_1 = require("./subscribe/polling-provider");
 var rpc_tz_provider_1 = require("./tz/rpc-tz-provider");
+var rpc_forger_1 = require("./forger/rpc-forger");
+var rpc_batch_provider_1 = require("./batch/rpc-batch-provider");
 __export(require("./contract"));
 __export(require("./contract/big-map"));
 __export(require("./constants"));
+var types_1 = require("./operations/types");
+exports.OpKind = types_1.OpKind;
+var polling_provider_2 = require("./subscribe/polling-provider");
+exports.PollingSubscribeProvider = polling_provider_2.PollingSubscribeProvider;
+var rpc_forger_2 = require("./forger/rpc-forger");
+exports.RpcForger = rpc_forger_2.RpcForger;
+var composite_forger_1 = require("./forger/composite-forger");
+exports.CompositeForger = composite_forger_1.CompositeForger;
+var operation_errors_1 = require("./operations/operation-errors");
+exports.TezosOperationError = operation_errors_1.TezosOperationError;
+exports.TezosPreapplyFailureError = operation_errors_1.TezosPreapplyFailureError;
 /**
  * @description Facade class that surfaces all of the libraries capability and allow it's configuration
  */
@@ -65,7 +85,9 @@ var TezosToolkit = /** @class */ (function () {
         this._tz = new rpc_tz_provider_1.RpcTzProvider(this._context);
         this._estimate = new rpc_estimate_provider_1.RPCEstimateProvider(this._context);
         this._contract = new rpc_contract_provider_1.RpcContractProvider(this._context, this._estimate);
+        this._batch = new rpc_batch_provider_1.RPCBatchProvider(this._context, this._estimate);
         this.format = format_1.format;
+        this.batch = this._batch.batch.bind(this._batch);
         this.setProvider({ rpc: this._rpcClient });
     }
     /**
@@ -73,11 +95,12 @@ var TezosToolkit = /** @class */ (function () {
      * @param options rpc url or rpcClient to use to interact with the Tezos network and indexer url to use to interact with the Tezos network
      */
     TezosToolkit.prototype.setProvider = function (_a) {
-        var rpc = _a.rpc, indexer = _a.indexer, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config;
+        var rpc = _a.rpc, indexer = _a.indexer, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger;
         this.setRpcProvider(rpc);
         this.setIndexerProvider(indexer);
         this.setStreamProvider(stream);
         this.setSignerProvider(signer);
+        this.setForgerProvider(forger);
         this._context.proto = protocol;
         this._context.config = config;
     };
@@ -103,6 +126,11 @@ var TezosToolkit = /** @class */ (function () {
         }
         this._options.rpc = rpc;
         this._context.rpc = this._rpcClient;
+    };
+    TezosToolkit.prototype.setForgerProvider = function (forger) {
+        var f = typeof forger === 'undefined' ? new rpc_forger_1.RpcForger(this._context) : forger;
+        this._options.forger = f;
+        this._context.forger = f;
     };
     TezosToolkit.prototype.setIndexerProvider = function (indexer) {
         if (typeof indexer === 'string') {
@@ -201,47 +229,66 @@ var TezosToolkit = /** @class */ (function () {
     });
     TezosToolkit.prototype.importKey = function (privateKeyOrEmail, passphrase, mnemonic, secret) {
         return __awaiter(this, void 0, void 0, function () {
-            var signer, pkh, op, ex_1, isInvalidActivationError;
+            var previousSigner, signer, pkh, op, ex_1, isInvalidActivationError, ex_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (!(privateKeyOrEmail && passphrase && mnemonic && secret)) return [3 /*break*/, 8];
+                        if (!(privateKeyOrEmail && passphrase && mnemonic && secret)) return [3 /*break*/, 11];
+                        previousSigner = this.signer;
                         signer = signer_1.InMemorySigner.fromFundraiser(privateKeyOrEmail, passphrase, mnemonic);
                         return [4 /*yield*/, signer.publicKeyHash()];
                     case 1:
                         pkh = _a.sent();
-                        op = void 0;
+                        this.setSignerProvider(signer);
                         _a.label = 2;
                     case 2:
-                        _a.trys.push([2, 4, , 5]);
-                        return [4 /*yield*/, this.tz.activate(pkh, secret)];
+                        _a.trys.push([2, 9, , 10]);
+                        op = void 0;
+                        _a.label = 3;
                     case 3:
-                        op = _a.sent();
-                        return [3 /*break*/, 5];
+                        _a.trys.push([3, 5, , 6]);
+                        return [4 /*yield*/, this.tz.activate(pkh, secret)];
                     case 4:
+                        op = _a.sent();
+                        return [3 /*break*/, 6];
+                    case 5:
                         ex_1 = _a.sent();
                         isInvalidActivationError = ex_1 && ex_1.body && /Invalid activation/.test(ex_1.body);
                         if (!isInvalidActivationError) {
                             throw ex_1;
                         }
-                        return [3 /*break*/, 5];
-                    case 5:
-                        if (!op) return [3 /*break*/, 7];
-                        return [4 /*yield*/, op.confirmation()];
+                        return [3 /*break*/, 6];
                     case 6:
-                        _a.sent();
-                        _a.label = 7;
+                        if (!op) return [3 /*break*/, 8];
+                        return [4 /*yield*/, op.confirmation()];
                     case 7:
-                        this.setSignerProvider(signer);
-                        return [3 /*break*/, 9];
-                    case 8:
+                        _a.sent();
+                        _a.label = 8;
+                    case 8: return [3 /*break*/, 10];
+                    case 9:
+                        ex_2 = _a.sent();
+                        // Restore to previous signer in case of error
+                        this.setSignerProvider(previousSigner);
+                        throw ex_2;
+                    case 10: return [3 /*break*/, 12];
+                    case 11:
                         // Fallback to regular import
                         this.setSignerProvider(new signer_1.InMemorySigner(privateKeyOrEmail, passphrase));
-                        _a.label = 9;
-                    case 9: return [2 /*return*/];
+                        _a.label = 12;
+                    case 12: return [2 /*return*/];
                 }
             });
         });
+    };
+    TezosToolkit.prototype.getFactory = function (ctor) {
+        var _this = this;
+        return function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
+            return new (ctor.bind.apply(ctor, __spreadArrays([void 0, _this._context], args)))();
+        };
     };
     return TezosToolkit;
 }());
