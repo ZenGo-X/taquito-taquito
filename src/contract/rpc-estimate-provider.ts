@@ -61,10 +61,10 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
       opOb: { branch, contents },
     } = await this.prepareAndForge(params);
 
-    let operation: RPCRunOperationParam = { branch, contents, signature: SIGNATURE_STUB };
-    if (await this.context.isAnyProtocolActive(protocols['005'])) {
-      operation = { operation, chain_id: await this.rpc.getChainId() };
-    }
+    let operation: RPCRunOperationParam = {
+      operation: { branch, contents, signature: SIGNATURE_STUB },
+      chain_id: await this.rpc.getChainId(),
+    };
 
     const { opResponse } = await this.simulate(operation);
     const operationResults = this.getOperationResult(opResponse, kind);
