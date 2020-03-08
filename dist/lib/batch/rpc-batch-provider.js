@@ -59,6 +59,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var prepare_1 = require("../contract/prepare");
 var batch_operation_1 = require("../operations/batch-operation");
@@ -149,24 +160,34 @@ var OperationBatch = /** @class */ (function (_super) {
      * @param params Operations parameter
      */
     OperationBatch.prototype.with = function (params) {
-        for (var _i = 0, params_1 = params; _i < params_1.length; _i++) {
-            var param = params_1[_i];
-            switch (param.kind) {
-                case rpc_1.OpKind.TRANSACTION:
-                    this.withTransfer(param);
-                    break;
-                case rpc_1.OpKind.ORIGINATION:
-                    this.withOrigination(param);
-                    break;
-                case rpc_1.OpKind.DELEGATION:
-                    this.withDelegation(param);
-                    break;
-                case rpc_1.OpKind.ACTIVATION:
-                    this.withActivation(param);
-                    break;
-                default:
-                    throw new Error("Unsupported operation kind: " + param.kind);
+        var e_1, _a;
+        try {
+            for (var params_1 = __values(params), params_1_1 = params_1.next(); !params_1_1.done; params_1_1 = params_1.next()) {
+                var param = params_1_1.value;
+                switch (param.kind) {
+                    case rpc_1.OpKind.TRANSACTION:
+                        this.withTransfer(param);
+                        break;
+                    case rpc_1.OpKind.ORIGINATION:
+                        this.withOrigination(param);
+                        break;
+                    case rpc_1.OpKind.DELEGATION:
+                        this.withDelegation(param);
+                        break;
+                    case rpc_1.OpKind.ACTIVATION:
+                        this.withActivation(param);
+                        break;
+                    default:
+                        throw new Error("Unsupported operation kind: " + param.kind);
+                }
             }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (params_1_1 && !params_1_1.done && (_a = params_1.return)) _a.call(params_1);
+            }
+            finally { if (e_1) throw e_1.error; }
         }
         return this;
     };
@@ -178,58 +199,73 @@ var OperationBatch = /** @class */ (function (_super) {
      */
     OperationBatch.prototype.send = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var estimates, ops, i, _i, _a, op, estimated, _b, _c, source, _d, opBytes, _e, hash, context, forgedBytes, opResponse;
+            var estimates, ops, i, _a, _b, op, estimated, _c, _d, e_2_1, source, _e, opBytes, _f, hash, context, forgedBytes, opResponse;
+            var e_2, _g;
             var _this = this;
-            return __generator(this, function (_f) {
-                switch (_f.label) {
+            return __generator(this, function (_h) {
+                switch (_h.label) {
                     case 0: return [4 /*yield*/, this.estimator.batch(this.operations)];
                     case 1:
-                        estimates = _f.sent();
+                        estimates = _h.sent();
                         ops = [];
                         i = 0;
-                        _i = 0, _a = this.operations;
-                        _f.label = 2;
+                        _h.label = 2;
                     case 2:
-                        if (!(_i < _a.length)) return [3 /*break*/, 8];
-                        op = _a[_i];
-                        if (!types_1.isOpWithFee(op)) return [3 /*break*/, 5];
+                        _h.trys.push([2, 10, 11, 12]);
+                        _a = __values(this.operations), _b = _a.next();
+                        _h.label = 3;
+                    case 3:
+                        if (!!_b.done) return [3 /*break*/, 9];
+                        op = _b.value;
+                        if (!types_1.isOpWithFee(op)) return [3 /*break*/, 6];
                         return [4 /*yield*/, this.estimate(op, function () { return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
                                 return [2 /*return*/, estimates[i]];
                             }); }); })];
-                    case 3:
-                        estimated = _f.sent();
-                        _c = (_b = ops).push;
-                        return [4 /*yield*/, this.getRPCOp(__assign(__assign({}, op), estimated))];
                     case 4:
-                        _c.apply(_b, [_f.sent()]);
-                        return [3 /*break*/, 6];
+                        estimated = _h.sent();
+                        _d = (_c = ops).push;
+                        return [4 /*yield*/, this.getRPCOp(__assign(__assign({}, op), estimated))];
                     case 5:
-                        ops.push(__assign({}, op));
-                        _f.label = 6;
+                        _d.apply(_c, [_h.sent()]);
+                        return [3 /*break*/, 7];
                     case 6:
-                        i++;
-                        _f.label = 7;
+                        ops.push(__assign({}, op));
+                        _h.label = 7;
                     case 7:
-                        _i++;
-                        return [3 /*break*/, 2];
+                        i++;
+                        _h.label = 8;
                     case 8:
-                        _d = (params && params.source);
-                        if (_d) return [3 /*break*/, 10];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 9:
-                        _d = (_f.sent());
-                        _f.label = 10;
+                        _b = _a.next();
+                        return [3 /*break*/, 3];
+                    case 9: return [3 /*break*/, 12];
                     case 10:
-                        source = _d;
+                        e_2_1 = _h.sent();
+                        e_2 = { error: e_2_1 };
+                        return [3 /*break*/, 12];
+                    case 11:
+                        try {
+                            if (_b && !_b.done && (_g = _a.return)) _g.call(_a);
+                        }
+                        finally { if (e_2) throw e_2.error; }
+                        return [7 /*endfinally*/];
+                    case 12:
+                        _e = (params && params.source);
+                        if (_e) return [3 /*break*/, 14];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 13:
+                        _e = (_h.sent());
+                        _h.label = 14;
+                    case 14:
+                        source = _e;
                         return [4 /*yield*/, this.prepareAndForge({
                                 operation: ops,
                                 source: source,
                             })];
-                    case 11:
-                        opBytes = _f.sent();
+                    case 15:
+                        opBytes = _h.sent();
                         return [4 /*yield*/, this.signAndInject(opBytes)];
-                    case 12:
-                        _e = _f.sent(), hash = _e.hash, context = _e.context, forgedBytes = _e.forgedBytes, opResponse = _e.opResponse;
+                    case 16:
+                        _f = _h.sent(), hash = _f.hash, context = _f.context, forgedBytes = _f.forgedBytes, opResponse = _f.opResponse;
                         return [2 /*return*/, new batch_operation_1.BatchOperation(hash, ops, source, forgedBytes, opResponse, context)];
                 }
             });

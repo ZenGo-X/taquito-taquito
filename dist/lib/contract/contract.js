@@ -1,10 +1,23 @@
 "use strict";
-var __spreadArrays = (this && this.__spreadArrays) || function () {
-    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-    for (var r = Array(s), k = 0, i = 0; i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-            r[k] = a[j];
-    return r;
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spread = (this && this.__spread) || function () {
+    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+    return ar;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
@@ -47,22 +60,31 @@ var ContractMethod = /** @class */ (function () {
         if (params === void 0) { params = {}; }
         return this.provider.transfer(this.toTransferParams(params));
     };
+    /**
+     *
+     * @description Create transfer params to be used with TezosToolkit.contract.transfer methods
+     *
+     * @param Options generic transfer operation parameters
+     */
     ContractMethod.prototype.toTransferParams = function (_a) {
         var _b, _c;
-        var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, _e = _d.amount, amount = _e === void 0 ? 0 : _e;
-        return {
+        var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, source = _d.source, _e = _d.amount, amount = _e === void 0 ? 0 : _e, _f = _d.mutez, mutez = _f === void 0 ? false : _f;
+        var fullTransferParams = {
             to: this.address,
             amount: amount,
             fee: fee,
+            mutez: mutez,
+            source: source,
             gasLimit: gasLimit,
             storageLimit: storageLimit,
             parameter: {
                 entrypoint: this.isMultipleEntrypoint ? this.name : 'default',
                 value: this.isAnonymous
-                    ? (_b = this.parameterSchema).Encode.apply(_b, __spreadArrays([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, this.args),
+                    ? (_b = this.parameterSchema).Encode.apply(_b, __spread([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, __spread(this.args)),
             },
             rawParam: true,
         };
+        return fullTransferParams;
     };
     return ContractMethod;
 }());
@@ -118,7 +140,7 @@ var Contract = /** @class */ (function () {
                     for (var _i = 0; _i < arguments.length; _i++) {
                         args[_i] = arguments[_i];
                     }
-                    validateArgs(__spreadArrays([smartContractMethodName], args), parameterSchema, smartContractMethodName);
+                    validateArgs(__spread([smartContractMethodName], args), parameterSchema, smartContractMethodName);
                     return new ContractMethod(provider, address, parameterSchema, smartContractMethodName, args, false, true);
                 };
                 _this.methods[smartContractMethodName] = method;

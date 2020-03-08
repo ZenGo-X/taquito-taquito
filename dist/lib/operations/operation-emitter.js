@@ -57,12 +57,25 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-var __spreadArrays = (this && this.__spreadArrays) || function () {
-    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-    for (var r = Array(s), k = 0, i = 0; i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-            r[k] = a[j];
-    return r;
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spread = (this && this.__spread) || function () {
+    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+    return ar;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var rpc_1 = require("@taquito/rpc");
@@ -101,7 +114,7 @@ var OperationEmitter = /** @class */ (function () {
                         blockHeaderPromise = this.rpc.getBlockHeader();
                         blockMetaPromise = this.rpc.getBlockMetadata();
                         if (Array.isArray(operation)) {
-                            ops = __spreadArrays(operation);
+                            ops = __spread(operation);
                         }
                         else {
                             ops = [operation];
@@ -133,7 +146,7 @@ var OperationEmitter = /** @class */ (function () {
                             managerPromise,
                         ])];
                     case 6:
-                        _b = _d.sent(), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
+                        _b = __read.apply(void 0, [_d.sent(), 4]), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
                         if (!header) {
                             throw new Error('Unable to latest block header');
                         }

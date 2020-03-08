@@ -10,6 +10,17 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
@@ -21,17 +32,45 @@ var getLastBlock = function (context) {
 var applyFilter = function (filter) {
     return operators_1.concatMap(function (block) {
         return new rxjs_1.Observable(function (sub) {
-            for (var _i = 0, _a = block.operations; _i < _a.length; _i++) {
-                var ops = _a[_i];
-                for (var _b = 0, ops_1 = ops; _b < ops_1.length; _b++) {
-                    var op = ops_1[_b];
-                    for (var _c = 0, _d = op.contents; _c < _d.length; _c++) {
-                        var content = _d[_c];
-                        if (filters_1.evaluateFilter(__assign({ hash: op.hash }, content), filter)) {
-                            sub.next(__assign({ hash: op.hash }, content));
+            var e_1, _a, e_2, _b, e_3, _c;
+            try {
+                for (var _d = __values(block.operations), _e = _d.next(); !_e.done; _e = _d.next()) {
+                    var ops = _e.value;
+                    try {
+                        for (var ops_1 = (e_2 = void 0, __values(ops)), ops_1_1 = ops_1.next(); !ops_1_1.done; ops_1_1 = ops_1.next()) {
+                            var op = ops_1_1.value;
+                            try {
+                                for (var _f = (e_3 = void 0, __values(op.contents)), _g = _f.next(); !_g.done; _g = _f.next()) {
+                                    var content = _g.value;
+                                    if (filters_1.evaluateFilter(__assign({ hash: op.hash }, content), filter)) {
+                                        sub.next(__assign({ hash: op.hash }, content));
+                                    }
+                                }
+                            }
+                            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+                            finally {
+                                try {
+                                    if (_g && !_g.done && (_c = _f.return)) _c.call(_f);
+                                }
+                                finally { if (e_3) throw e_3.error; }
+                            }
                         }
                     }
+                    catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                    finally {
+                        try {
+                            if (ops_1_1 && !ops_1_1.done && (_b = ops_1.return)) _b.call(ops_1);
+                        }
+                        finally { if (e_2) throw e_2.error; }
+                    }
                 }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
+                }
+                finally { if (e_1) throw e_1.error; }
             }
             sub.complete();
         });

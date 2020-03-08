@@ -17,9 +17,9 @@ var bignumber_js_1 = require("bignumber.js");
 var operation_errors_1 = require("./operation-errors");
 var operations_1 = require("./operations");
 /**
- * @description Transaction operation provide utility function to fetch newly issued transaction
+ * @description Transaction operation provides utility functions to fetch a newly issued transaction
  *
- * @warn Currently support only one transaction per operation
+ * @warn Currently supports one transaction per operation
  */
 var TransactionOperation = /** @class */ (function (_super) {
     __extends(TransactionOperation, _super);

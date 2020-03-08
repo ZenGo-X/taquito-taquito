@@ -1,6 +1,6 @@
 {
   "name": "@taquito/taquito",
-  "version": "6.0.3-beta.1",
+  "version": "6.1.0-beta.0",
   "description": "High level functionality that builds upon the other packages in the Tezos Typescript Library Suite.",
   "keywords": [
     "tezos",
@@ -21,7 +21,10 @@
   "author": "Simon Boissonneault-Robert <simon@ecadlabs.com>",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/ecadlabs/taquito.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ecadlabs/taquito/issues"
   },
   "license": "MIT",
   "engines": {
@@ -61,7 +64,6 @@
       "^@taquito/rpc$": "<rootDir>/../taquito-rpc/src/taquito-rpc.ts",
       "^@taquito/michelson-encoder$": "<rootDir>/../taquito-michelson-encoder/src/taquito-michelson-encoder.ts",
       "^@taquito/http-utils$": "<rootDir>/../taquito-http-utils/src/taquito-http-utils.ts",
-      "^@taquito/indexer$": "<rootDir>/../taquito-indexer/src/taquito-indexer.ts",
       "^@taquito/utils$": "<rootDir>/../taquito-utils/src/taquito-utils.ts"
     },
     "coveragePathIgnorePatterns": [

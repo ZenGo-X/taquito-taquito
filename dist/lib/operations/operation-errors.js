@@ -1,4 +1,15 @@
 "use strict";
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var isErrorWithMessage = function (error) {
     return 'with' in error;
@@ -50,6 +61,7 @@ exports.flattenOperationResult = function (response) {
  * @description Flatten all error from preapply response (including internal error)
  */
 exports.flattenErrors = function (response, status) {
+    var e_1, _a;
     if (status === void 0) { status = 'failed'; }
     var results = Array.isArray(response) ? response : [response];
     var errors = [];
@@ -63,11 +75,20 @@ exports.flattenErrors = function (response, status) {
                     errors = errors.concat(content.metadata.operation_result.errors || []);
                 }
                 if (Array.isArray(content.metadata.internal_operation_results)) {
-                    for (var _i = 0, _a = content.metadata.internal_operation_results; _i < _a.length; _i++) {
-                        var internalResult = _a[_i];
-                        if ('result' in internalResult && internalResult.result.status === status) {
-                            errors = errors.concat(internalResult.result.errors || []);
+                    try {
+                        for (var _b = (e_1 = void 0, __values(content.metadata.internal_operation_results)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                            var internalResult = _c.value;
+                            if ('result' in internalResult && internalResult.result.status === status) {
+                                errors = errors.concat(internalResult.result.errors || []);
+                            }
                         }
+                    }
+                    catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                    finally {
+                        try {
+                            if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                        }
+                        finally { if (e_1) throw e_1.error; }
                     }
                 }
             }

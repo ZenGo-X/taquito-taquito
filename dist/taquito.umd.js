@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@taquito/indexer'), require('@taquito/rpc'), require('@taquito/signer'), require('@taquito/michelson-encoder'), require('@taquito/utils'), require('rxjs'), require('rxjs/operators'), require('bignumber.js')) :
-    typeof define === 'function' && define.amd ? define(['exports', '@taquito/indexer', '@taquito/rpc', '@taquito/signer', '@taquito/michelson-encoder', '@taquito/utils', 'rxjs', 'rxjs/operators', 'bignumber.js'], factory) :
-    (global = global || self, factory(global.taquito = {}, global.indexer, global.rpc, global.signer, global.michelsonEncoder, global.utils, global.rxjs, global.operators, global.BigNumber));
-}(this, (function (exports, indexer, rpc, signer, michelsonEncoder, utils, rxjs, operators, BigNumber) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('@taquito/rpc'), require('@taquito/signer'), require('@taquito/michelson-encoder'), require('@taquito/utils'), require('rxjs'), require('rxjs/operators'), require('bignumber.js')) :
+    typeof define === 'function' && define.amd ? define(['exports', '@taquito/rpc', '@taquito/signer', '@taquito/michelson-encoder', '@taquito/utils', 'rxjs', 'rxjs/operators', 'bignumber.js'], factory) :
+    (global = global || self, factory(global.taquito = {}, global.rpc, global.signer, global.michelsonEncoder, global.utils, global.rxjs, global.operators, global.BigNumber));
+}(this, (function (exports, rpc, signer, michelsonEncoder, utils, rxjs, operators, BigNumber) { 'use strict';
 
     BigNumber = BigNumber && BigNumber.hasOwnProperty('default') ? BigNumber['default'] : BigNumber;
 
@@ -95,12 +95,38 @@
         }
     }
 
-    function __spreadArrays() {
-        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-        for (var r = Array(s), k = 0, i = 0; i < il; i++)
-            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-                r[k] = a[j];
-        return r;
+    function __values(o) {
+        var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
+        if (m) return m.call(o);
+        return {
+            next: function () {
+                if (o && i >= o.length) o = void 0;
+                return { value: o && o[i++], done: !o };
+            }
+        };
+    }
+
+    function __read(o, n) {
+        var m = typeof Symbol === "function" && o[Symbol.iterator];
+        if (!m) return o;
+        var i = m.call(o), r, ar = [], e;
+        try {
+            while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+        }
+        catch (error) { e = { error: error }; }
+        finally {
+            try {
+                if (r && !r.done && (m = i["return"])) m.call(i);
+            }
+            finally { if (e) throw e.error; }
+        }
+        return ar;
+    }
+
+    function __spread() {
+        for (var ar = [], i = 0; i < arguments.length; i++)
+            ar = ar.concat(__read(arguments[i]));
+        return ar;
     }
 
     var UnconfiguredSignerError = /** @class */ (function () {
@@ -540,6 +566,7 @@
      * @description Flatten all error from preapply response (including internal error)
      */
     var flattenErrors = function (response, status) {
+        var e_1, _a;
         if (status === void 0) { status = 'failed'; }
         var results = Array.isArray(response) ? response : [response];
         var errors = [];
@@ -553,11 +580,20 @@
                         errors = errors.concat(content.metadata.operation_result.errors || []);
                     }
                     if (Array.isArray(content.metadata.internal_operation_results)) {
-                        for (var _i = 0, _a = content.metadata.internal_operation_results; _i < _a.length; _i++) {
-                            var internalResult = _a[_i];
-                            if ('result' in internalResult && internalResult.result.status === status) {
-                                errors = errors.concat(internalResult.result.errors || []);
+                        try {
+                            for (var _b = (e_1 = void 0, __values(content.metadata.internal_operation_results)), _c = _b.next(); !_c.done; _c = _b.next()) {
+                                var internalResult = _c.value;
+                                if ('result' in internalResult && internalResult.result.status === status) {
+                                    errors = errors.concat(internalResult.result.errors || []);
+                                }
                             }
+                        }
+                        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                        finally {
+                            try {
+                                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+                            }
+                            finally { if (e_1) throw e_1.error; }
                         }
                     }
                 }
@@ -605,7 +641,7 @@
                             blockHeaderPromise = this.rpc.getBlockHeader();
                             blockMetaPromise = this.rpc.getBlockMetadata();
                             if (Array.isArray(operation)) {
-                                ops = __spreadArrays(operation);
+                                ops = __spread(operation);
                             }
                             else {
                                 ops = [operation];
@@ -637,7 +673,7 @@
                                 managerPromise,
                             ])];
                         case 6:
-                            _b = _d.sent(), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
+                            _b = __read.apply(void 0, [_d.sent(), 4]), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
                             if (!header) {
                                 throw new Error('Unable to latest block header');
                             }
@@ -959,9 +995,9 @@
     }(Operation));
 
     /**
-     * @description Transaction operation provide utility function to fetch newly issued transaction
+     * @description Transaction operation provides utility functions to fetch a newly issued transaction
      *
-     * @warn Currently support only one transaction per operation
+     * @warn Currently supports one transaction per operation
      */
     var TransactionOperation = /** @class */ (function (_super) {
         __extends(TransactionOperation, _super);
@@ -1108,22 +1144,31 @@
             if (params === void 0) { params = {}; }
             return this.provider.transfer(this.toTransferParams(params));
         };
+        /**
+         *
+         * @description Create transfer params to be used with TezosToolkit.contract.transfer methods
+         *
+         * @param Options generic transfer operation parameters
+         */
         ContractMethod.prototype.toTransferParams = function (_a) {
             var _b, _c;
-            var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, _e = _d.amount, amount = _e === void 0 ? 0 : _e;
-            return {
+            var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, source = _d.source, _e = _d.amount, amount = _e === void 0 ? 0 : _e, _f = _d.mutez, mutez = _f === void 0 ? false : _f;
+            var fullTransferParams = {
                 to: this.address,
                 amount: amount,
                 fee: fee,
+                mutez: mutez,
+                source: source,
                 gasLimit: gasLimit,
                 storageLimit: storageLimit,
                 parameter: {
                     entrypoint: this.isMultipleEntrypoint ? this.name : 'default',
                     value: this.isAnonymous
-                        ? (_b = this.parameterSchema).Encode.apply(_b, __spreadArrays([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, this.args),
+                        ? (_b = this.parameterSchema).Encode.apply(_b, __spread([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, __spread(this.args)),
                 },
                 rawParam: true,
             };
+            return fullTransferParams;
         };
         return ContractMethod;
     }());
@@ -1178,7 +1223,7 @@
                         for (var _i = 0; _i < arguments.length; _i++) {
                             args[_i] = arguments[_i];
                         }
-                        validateArgs(__spreadArrays([smartContractMethodName], args), parameterSchema, smartContractMethodName);
+                        validateArgs(__spread([smartContractMethodName], args), parameterSchema, smartContractMethodName);
                         return new ContractMethod(provider, address, parameterSchema, smartContractMethodName, args, false, true);
                     };
                     _this.methods[smartContractMethodName] = method;
@@ -1384,7 +1429,7 @@
          * @param contract contract address you want to get the storage from
          * @param schema optional schema can either be the contract script rpc response or a michelson-encoder schema
          *
-         * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+         * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
          */
         RpcContractProvider.prototype.getStorage = function (contract, schema) {
             return __awaiter(this, void 0, void 0, function () {
@@ -1422,7 +1467,7 @@
          *
          * @deprecated Deprecated in favor of getBigMapKeyByID
          *
-         * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+         * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
          */
         RpcContractProvider.prototype.getBigMapKey = function (contract, key, schema) {
             return __awaiter(this, void 0, void 0, function () {
@@ -1459,7 +1504,7 @@
          * @param keyToEncode key to query (will be encoded properly according to the schema)
          * @param schema Big Map schema (can be determined using your contract type)
          *
-         * @see http://tezos.gitlab.io/mainnet/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
+         * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
          */
         RpcContractProvider.prototype.getBigMapKeyByID = function (id, keyToEncode, schema) {
             return __awaiter(this, void 0, void 0, function () {
@@ -1979,7 +2024,7 @@
                             return [4 /*yield*/, this.simulate(operation)];
                         case 3:
                             opResponse = (_d.sent()).opResponse;
-                            errors = __spreadArrays(flattenErrors(opResponse, 'backtracked'), flattenErrors(opResponse));
+                            errors = __spread(flattenErrors(opResponse, 'backtracked'), flattenErrors(opResponse));
                             // Fail early in case of errors
                             if (errors.length) {
                                 throw new TezosOperationError(errors);
@@ -2052,7 +2097,7 @@
                                     isNewImplicitAccountPromise,
                                 ])];
                         case 2:
-                            _b = _c.sent(), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2];
+                            _b = __read.apply(void 0, [_c.sent(), 3]), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2];
                             requireReveal = !manager;
                             revealFee = requireReveal ? exports.DEFAULT_FEE.REVEAL : 0;
                             _storageLimit = isNewImplicitAccount ? exports.DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
@@ -2114,7 +2159,7 @@
                             managerPromise = this.rpc.getManagerKey(params.source);
                             return [4 /*yield*/, Promise.all([sourceBalancePromise, managerPromise])];
                         case 1:
-                            _a = _c.sent(), sourceBalance = _a[0], manager = _a[1];
+                            _a = __read.apply(void 0, [_c.sent(), 2]), sourceBalance = _a[0], manager = _a[1];
                             requireReveal = !manager;
                             revealFee = requireReveal ? exports.DEFAULT_FEE.REVEAL : 0;
                             DEFAULT_PARAMS = {
@@ -2141,55 +2186,70 @@
         };
         RPCEstimateProvider.prototype.batch = function (params) {
             return __awaiter(this, void 0, void 0, function () {
-                var operations, DEFAULT_PARAMS, _a, _i, params_1, param, _b, _c, _d, _e, _f, _g, _h;
-                return __generator(this, function (_j) {
-                    switch (_j.label) {
+                var operations, DEFAULT_PARAMS, _a, params_1, params_1_1, param, _b, _c, _d, _e, _f, _g, _h, e_2_1;
+                var e_2, _j;
+                return __generator(this, function (_k) {
+                    switch (_k.label) {
                         case 0:
                             operations = [];
                             _a = this.getAccountLimits;
                             return [4 /*yield*/, this.signer.publicKeyHash()];
-                        case 1: return [4 /*yield*/, _a.apply(this, [_j.sent()])];
+                        case 1: return [4 /*yield*/, _a.apply(this, [_k.sent()])];
                         case 2:
-                            DEFAULT_PARAMS = _j.sent();
-                            _i = 0, params_1 = params;
-                            _j.label = 3;
+                            DEFAULT_PARAMS = _k.sent();
+                            _k.label = 3;
                         case 3:
-                            if (!(_i < params_1.length)) return [3 /*break*/, 13];
-                            param = params_1[_i];
+                            _k.trys.push([3, 15, 16, 17]);
+                            params_1 = __values(params), params_1_1 = params_1.next();
+                            _k.label = 4;
+                        case 4:
+                            if (!!params_1_1.done) return [3 /*break*/, 14];
+                            param = params_1_1.value;
                             _b = param.kind;
                             switch (_b) {
-                                case rpc.OpKind.TRANSACTION: return [3 /*break*/, 4];
-                                case rpc.OpKind.ORIGINATION: return [3 /*break*/, 6];
-                                case rpc.OpKind.DELEGATION: return [3 /*break*/, 8];
-                                case rpc.OpKind.ACTIVATION: return [3 /*break*/, 10];
+                                case rpc.OpKind.TRANSACTION: return [3 /*break*/, 5];
+                                case rpc.OpKind.ORIGINATION: return [3 /*break*/, 7];
+                                case rpc.OpKind.DELEGATION: return [3 /*break*/, 9];
+                                case rpc.OpKind.ACTIVATION: return [3 /*break*/, 11];
                             }
-                            return [3 /*break*/, 11];
-                        case 4:
+                            return [3 /*break*/, 12];
+                        case 5:
                             _d = (_c = operations).push;
                             return [4 /*yield*/, createTransferOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                        case 5:
-                            _d.apply(_c, [_j.sent()]);
-                            return [3 /*break*/, 12];
                         case 6:
+                            _d.apply(_c, [_k.sent()]);
+                            return [3 /*break*/, 13];
+                        case 7:
                             _f = (_e = operations).push;
                             return [4 /*yield*/, createOriginationOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                        case 7:
-                            _f.apply(_e, [_j.sent()]);
-                            return [3 /*break*/, 12];
                         case 8:
+                            _f.apply(_e, [_k.sent()]);
+                            return [3 /*break*/, 13];
+                        case 9:
                             _h = (_g = operations).push;
                             return [4 /*yield*/, createSetDelegateOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                        case 9:
-                            _h.apply(_g, [_j.sent()]);
-                            return [3 /*break*/, 12];
                         case 10:
+                            _h.apply(_g, [_k.sent()]);
+                            return [3 /*break*/, 13];
+                        case 11:
                             operations.push(__assign(__assign({}, param), DEFAULT_PARAMS));
-                            return [3 /*break*/, 12];
-                        case 11: throw new Error("Unsupported operation kind: " + param.kind);
-                        case 12:
-                            _i++;
-                            return [3 /*break*/, 3];
-                        case 13: return [2 /*return*/, this.createEstimate({ operation: operations })];
+                            return [3 /*break*/, 13];
+                        case 12: throw new Error("Unsupported operation kind: " + param.kind);
+                        case 13:
+                            params_1_1 = params_1.next();
+                            return [3 /*break*/, 4];
+                        case 14: return [3 /*break*/, 17];
+                        case 15:
+                            e_2_1 = _k.sent();
+                            e_2 = { error: e_2_1 };
+                            return [3 /*break*/, 17];
+                        case 16:
+                            try {
+                                if (params_1_1 && !params_1_1.done && (_j = params_1.return)) _j.call(params_1);
+                            }
+                            finally { if (e_2) throw e_2.error; }
+                            return [7 /*endfinally*/];
+                        case 17: return [2 /*return*/, this.createEstimate({ operation: operations })];
                     }
                 });
             });
@@ -2230,17 +2290,6 @@
         };
         return RPCEstimateProvider;
     }(OperationEmitter));
-
-    var IndexerProvider = /** @class */ (function () {
-        function IndexerProvider(indexerClient) {
-            this.indexerClient = indexerClient;
-        }
-        IndexerProvider.prototype.balanceHistory = function (address, _a) {
-            var _b = _a === void 0 ? {} : _a, start = _b.start, end = _b.end, limit = _b.limit;
-            return this.indexerClient.getBalanceHistory(address, { start: start, end: end, limit: limit });
-        };
-        return IndexerProvider;
-    }());
 
     var opHashFilter = function (op, filter) { return op.hash === filter.opHash; };
     var sourceFilter = function (x, filter) {
@@ -2304,7 +2353,7 @@
             filters.push(filter);
         }
         else {
-            filters.push.apply(filters, filter);
+            filters.push.apply(filters, __spread(filter));
         }
         return filters.every(function (filterOrExp) {
             if ('and' in filterOrExp || 'or' in filterOrExp) {
@@ -2332,14 +2381,24 @@
             });
         }
         ObservableSubscription.prototype.call = function (listeners, value) {
-            for (var _i = 0, listeners_1 = listeners; _i < listeners_1.length; _i++) {
-                var l = listeners_1[_i];
+            var e_1, _a;
+            try {
+                for (var listeners_1 = __values(listeners), listeners_1_1 = listeners_1.next(); !listeners_1_1.done; listeners_1_1 = listeners_1.next()) {
+                    var l = listeners_1_1.value;
+                    try {
+                        l(value);
+                    }
+                    catch (ex) {
+                        console.error(ex);
+                    }
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
                 try {
-                    l(value);
+                    if (listeners_1_1 && !listeners_1_1.done && (_a = listeners_1.return)) _a.call(listeners_1);
                 }
-                catch (ex) {
-                    console.error(ex);
-                }
+                finally { if (e_1) throw e_1.error; }
             }
         };
         ObservableSubscription.prototype.remove = function (listeners, value) {
@@ -2390,17 +2449,45 @@
     var applyFilter = function (filter) {
         return operators.concatMap(function (block) {
             return new rxjs.Observable(function (sub) {
-                for (var _i = 0, _a = block.operations; _i < _a.length; _i++) {
-                    var ops = _a[_i];
-                    for (var _b = 0, ops_1 = ops; _b < ops_1.length; _b++) {
-                        var op = ops_1[_b];
-                        for (var _c = 0, _d = op.contents; _c < _d.length; _c++) {
-                            var content = _d[_c];
-                            if (evaluateFilter(__assign({ hash: op.hash }, content), filter)) {
-                                sub.next(__assign({ hash: op.hash }, content));
+                var e_1, _a, e_2, _b, e_3, _c;
+                try {
+                    for (var _d = __values(block.operations), _e = _d.next(); !_e.done; _e = _d.next()) {
+                        var ops = _e.value;
+                        try {
+                            for (var ops_1 = (e_2 = void 0, __values(ops)), ops_1_1 = ops_1.next(); !ops_1_1.done; ops_1_1 = ops_1.next()) {
+                                var op = ops_1_1.value;
+                                try {
+                                    for (var _f = (e_3 = void 0, __values(op.contents)), _g = _f.next(); !_g.done; _g = _f.next()) {
+                                        var content = _g.value;
+                                        if (evaluateFilter(__assign({ hash: op.hash }, content), filter)) {
+                                            sub.next(__assign({ hash: op.hash }, content));
+                                        }
+                                    }
+                                }
+                                catch (e_3_1) { e_3 = { error: e_3_1 }; }
+                                finally {
+                                    try {
+                                        if (_g && !_g.done && (_c = _f.return)) _c.call(_f);
+                                    }
+                                    finally { if (e_3) throw e_3.error; }
+                                }
                             }
                         }
+                        catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                        finally {
+                            try {
+                                if (ops_1_1 && !ops_1_1.done && (_b = ops_1.return)) _b.call(ops_1);
+                            }
+                            finally { if (e_2) throw e_2.error; }
+                        }
                     }
+                }
+                catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                finally {
+                    try {
+                        if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
+                    }
+                    finally { if (e_1) throw e_1.error; }
                 }
                 sub.complete();
             });
@@ -2609,24 +2696,34 @@
          * @param params Operations parameter
          */
         OperationBatch.prototype.with = function (params) {
-            for (var _i = 0, params_1 = params; _i < params_1.length; _i++) {
-                var param = params_1[_i];
-                switch (param.kind) {
-                    case rpc.OpKind.TRANSACTION:
-                        this.withTransfer(param);
-                        break;
-                    case rpc.OpKind.ORIGINATION:
-                        this.withOrigination(param);
-                        break;
-                    case rpc.OpKind.DELEGATION:
-                        this.withDelegation(param);
-                        break;
-                    case rpc.OpKind.ACTIVATION:
-                        this.withActivation(param);
-                        break;
-                    default:
-                        throw new Error("Unsupported operation kind: " + param.kind);
+            var e_1, _a;
+            try {
+                for (var params_1 = __values(params), params_1_1 = params_1.next(); !params_1_1.done; params_1_1 = params_1.next()) {
+                    var param = params_1_1.value;
+                    switch (param.kind) {
+                        case rpc.OpKind.TRANSACTION:
+                            this.withTransfer(param);
+                            break;
+                        case rpc.OpKind.ORIGINATION:
+                            this.withOrigination(param);
+                            break;
+                        case rpc.OpKind.DELEGATION:
+                            this.withDelegation(param);
+                            break;
+                        case rpc.OpKind.ACTIVATION:
+                            this.withActivation(param);
+                            break;
+                        default:
+                            throw new Error("Unsupported operation kind: " + param.kind);
+                    }
                 }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (params_1_1 && !params_1_1.done && (_a = params_1.return)) _a.call(params_1);
+                }
+                finally { if (e_1) throw e_1.error; }
             }
             return this;
         };
@@ -2638,58 +2735,73 @@
          */
         OperationBatch.prototype.send = function (params) {
             return __awaiter(this, void 0, void 0, function () {
-                var estimates, ops, i, _i, _a, op, estimated, _b, _c, source, _d, opBytes, _e, hash, context, forgedBytes, opResponse;
+                var estimates, ops, i, _a, _b, op, estimated, _c, _d, e_2_1, source, _e, opBytes, _f, hash, context, forgedBytes, opResponse;
+                var e_2, _g;
                 var _this = this;
-                return __generator(this, function (_f) {
-                    switch (_f.label) {
+                return __generator(this, function (_h) {
+                    switch (_h.label) {
                         case 0: return [4 /*yield*/, this.estimator.batch(this.operations)];
                         case 1:
-                            estimates = _f.sent();
+                            estimates = _h.sent();
                             ops = [];
                             i = 0;
-                            _i = 0, _a = this.operations;
-                            _f.label = 2;
+                            _h.label = 2;
                         case 2:
-                            if (!(_i < _a.length)) return [3 /*break*/, 8];
-                            op = _a[_i];
-                            if (!isOpWithFee(op)) return [3 /*break*/, 5];
+                            _h.trys.push([2, 10, 11, 12]);
+                            _a = __values(this.operations), _b = _a.next();
+                            _h.label = 3;
+                        case 3:
+                            if (!!_b.done) return [3 /*break*/, 9];
+                            op = _b.value;
+                            if (!isOpWithFee(op)) return [3 /*break*/, 6];
                             return [4 /*yield*/, this.estimate(op, function () { return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
                                     return [2 /*return*/, estimates[i]];
                                 }); }); })];
-                        case 3:
-                            estimated = _f.sent();
-                            _c = (_b = ops).push;
-                            return [4 /*yield*/, this.getRPCOp(__assign(__assign({}, op), estimated))];
                         case 4:
-                            _c.apply(_b, [_f.sent()]);
-                            return [3 /*break*/, 6];
+                            estimated = _h.sent();
+                            _d = (_c = ops).push;
+                            return [4 /*yield*/, this.getRPCOp(__assign(__assign({}, op), estimated))];
                         case 5:
-                            ops.push(__assign({}, op));
-                            _f.label = 6;
+                            _d.apply(_c, [_h.sent()]);
+                            return [3 /*break*/, 7];
                         case 6:
-                            i++;
-                            _f.label = 7;
+                            ops.push(__assign({}, op));
+                            _h.label = 7;
                         case 7:
-                            _i++;
-                            return [3 /*break*/, 2];
+                            i++;
+                            _h.label = 8;
                         case 8:
-                            _d = (params && params.source);
-                            if (_d) return [3 /*break*/, 10];
-                            return [4 /*yield*/, this.signer.publicKeyHash()];
-                        case 9:
-                            _d = (_f.sent());
-                            _f.label = 10;
+                            _b = _a.next();
+                            return [3 /*break*/, 3];
+                        case 9: return [3 /*break*/, 12];
                         case 10:
-                            source = _d;
+                            e_2_1 = _h.sent();
+                            e_2 = { error: e_2_1 };
+                            return [3 /*break*/, 12];
+                        case 11:
+                            try {
+                                if (_b && !_b.done && (_g = _a.return)) _g.call(_a);
+                            }
+                            finally { if (e_2) throw e_2.error; }
+                            return [7 /*endfinally*/];
+                        case 12:
+                            _e = (params && params.source);
+                            if (_e) return [3 /*break*/, 14];
+                            return [4 /*yield*/, this.signer.publicKeyHash()];
+                        case 13:
+                            _e = (_h.sent());
+                            _h.label = 14;
+                        case 14:
+                            source = _e;
                             return [4 /*yield*/, this.prepareAndForge({
                                     operation: ops,
                                     source: source,
                                 })];
-                        case 11:
-                            opBytes = _f.sent();
+                        case 15:
+                            opBytes = _h.sent();
                             return [4 /*yield*/, this.signAndInject(opBytes)];
-                        case 12:
-                            _e = _f.sent(), hash = _e.hash, context = _e.context, forgedBytes = _e.forgedBytes, opResponse = _e.opResponse;
+                        case 16:
+                            _f = _h.sent(), hash = _f.hash, context = _f.context, forgedBytes = _f.forgedBytes, opResponse = _f.opResponse;
                             return [2 /*return*/, new BatchOperation(hash, ops, source, forgedBytes, opResponse, context)];
                     }
                 });
@@ -2840,7 +2952,6 @@
     var TezosToolkit = /** @class */ (function () {
         function TezosToolkit() {
             this._rpcClient = new rpc.RpcClient();
-            this._indexerClient = new indexer.IndexerClient();
             this._options = {};
             this._context = new Context();
             this._tz = new RpcTzProvider(this._context);
@@ -2852,13 +2963,17 @@
             this.setProvider({ rpc: this._rpcClient });
         }
         /**
+         * @description Sets configuration on the Tezos Taquito instance. Allows user to choose which signer, rpc client, rpc url, forger and so forth
          *
-         * @param options rpc url or rpcClient to use to interact with the Tezos network and indexer url to use to interact with the Tezos network
+         * @param options rpc url or rpcClient to use to interact with the Tezos network and  url to use to interact with the Tezos network
+         *
+         * @example Tezos.setProvider({signer: new InMemorySigner(“edsk...”)})
+         * @example Tezos.setProvider({config: {confirmationPollingTimeoutSecond: 300}})
+         *
          */
         TezosToolkit.prototype.setProvider = function (_a) {
-            var rpc = _a.rpc, indexer = _a.indexer, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger;
+            var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger;
             this.setRpcProvider(rpc);
-            this.setIndexerProvider(indexer);
             this.setStreamProvider(stream);
             this.setSignerProvider(signer);
             this.setForgerProvider(forger);
@@ -2892,19 +3007,6 @@
             var f = typeof forger === 'undefined' ? new RpcForger(this._context) : forger;
             this._options.forger = f;
             this._context.forger = f;
-        };
-        TezosToolkit.prototype.setIndexerProvider = function (indexer$1) {
-            if (typeof indexer$1 === 'string') {
-                this._indexerClient = new indexer.IndexerClient(indexer$1);
-            }
-            else if (indexer$1 instanceof indexer.IndexerClient) {
-                this._indexerClient = indexer$1;
-            }
-            else if (this._options.indexer === undefined) {
-                this._indexerClient = new indexer.IndexerClient();
-            }
-            this._query = new IndexerProvider(this._indexerClient);
-            this._options.indexer = indexer$1;
         };
         TezosToolkit.prototype.setStreamProvider = function (stream) {
             if (typeof stream === 'string') {
@@ -2944,16 +3046,6 @@
              */
             get: function () {
                 return this._estimate;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TezosToolkit.prototype, "query", {
-            /**
-             * @description Provide access to querying utilities backed by an indexer implementation
-             */
-            get: function () {
-                return this._query;
             },
             enumerable: true,
             configurable: true
@@ -3048,7 +3140,7 @@
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i] = arguments[_i];
                 }
-                return new (ctor.bind.apply(ctor, __spreadArrays([void 0, _this._context], args)))();
+                return new (ctor.bind.apply(ctor, __spread([void 0, _this._context], args)))();
             };
         };
         return TezosToolkit;
@@ -3062,6 +3154,18 @@
         enumerable: true,
         get: function () {
             return rpc.OpKind;
+        }
+    });
+    Object.defineProperty(exports, 'MapTypecheckError', {
+        enumerable: true,
+        get: function () {
+            return michelsonEncoder.MapTypecheckError;
+        }
+    });
+    Object.defineProperty(exports, 'MichelsonMap', {
+        enumerable: true,
+        get: function () {
+            return michelsonEncoder.MichelsonMap;
         }
     });
     Object.defineProperty(exports, 'UnitValue', {

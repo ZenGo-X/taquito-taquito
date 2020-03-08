@@ -6,7 +6,9 @@ interface SendParams {
     fee?: number;
     storageLimit?: number;
     gasLimit?: number;
-    amount?: number;
+    amount: number;
+    source?: string;
+    mutez?: boolean;
 }
 /**
  * @description Utility class to send smart contract operation
@@ -31,7 +33,13 @@ export declare class ContractMethod {
      * @param Options generic operation parameter
      */
     send(params?: Partial<SendParams>): Promise<import("../operations/transaction-operation").TransactionOperation>;
-    toTransferParams({ fee, gasLimit, storageLimit, amount, }?: Partial<SendParams>): TransferParams;
+    /**
+     *
+     * @description Create transfer params to be used with TezosToolkit.contract.transfer methods
+     *
+     * @param Options generic transfer operation parameters
+     */
+    toTransferParams({ fee, gasLimit, storageLimit, source, amount, mutez, }?: Partial<SendParams>): TransferParams;
 }
 /**
  * @description Smart contract abstraction

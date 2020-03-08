@@ -35,25 +35,36 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __spreadArrays = (this && this.__spreadArrays) || function () {
-    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-    for (var r = Array(s), k = 0, i = 0; i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-            r[k] = a[j];
-    return r;
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spread = (this && this.__spread) || function () {
+    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+    return ar;
 };
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-var indexer_1 = require("@taquito/indexer");
 var rpc_1 = require("@taquito/rpc");
 var signer_1 = require("@taquito/signer");
 var context_1 = require("./context");
 var rpc_contract_provider_1 = require("./contract/rpc-contract-provider");
 var rpc_estimate_provider_1 = require("./contract/rpc-estimate-provider");
 var format_1 = require("./format");
-var indexer_provider_1 = require("./query/indexer-provider");
 var noop_1 = require("./signer/noop");
 var polling_provider_1 = require("./subscribe/polling-provider");
 var rpc_tz_provider_1 = require("./tz/rpc-tz-provider");
@@ -70,6 +81,10 @@ var rpc_forger_2 = require("./forger/rpc-forger");
 exports.RpcForger = rpc_forger_2.RpcForger;
 var composite_forger_1 = require("./forger/composite-forger");
 exports.CompositeForger = composite_forger_1.CompositeForger;
+var michelson_encoder_1 = require("@taquito/michelson-encoder");
+exports.MichelsonMap = michelson_encoder_1.MichelsonMap;
+exports.MapTypecheckError = michelson_encoder_1.MapTypecheckError;
+exports.UnitValue = michelson_encoder_1.UnitValue;
 var operation_errors_1 = require("./operations/operation-errors");
 exports.TezosOperationError = operation_errors_1.TezosOperationError;
 exports.TezosPreapplyFailureError = operation_errors_1.TezosPreapplyFailureError;
@@ -79,7 +94,6 @@ exports.TezosPreapplyFailureError = operation_errors_1.TezosPreapplyFailureError
 var TezosToolkit = /** @class */ (function () {
     function TezosToolkit() {
         this._rpcClient = new rpc_1.RpcClient();
-        this._indexerClient = new indexer_1.IndexerClient();
         this._options = {};
         this._context = new context_1.Context();
         this._tz = new rpc_tz_provider_1.RpcTzProvider(this._context);
@@ -91,13 +105,17 @@ var TezosToolkit = /** @class */ (function () {
         this.setProvider({ rpc: this._rpcClient });
     }
     /**
+     * @description Sets configuration on the Tezos Taquito instance. Allows user to choose which signer, rpc client, rpc url, forger and so forth
      *
-     * @param options rpc url or rpcClient to use to interact with the Tezos network and indexer url to use to interact with the Tezos network
+     * @param options rpc url or rpcClient to use to interact with the Tezos network and  url to use to interact with the Tezos network
+     *
+     * @example Tezos.setProvider({signer: new InMemorySigner(“edsk...”)})
+     * @example Tezos.setProvider({config: {confirmationPollingTimeoutSecond: 300}})
+     *
      */
     TezosToolkit.prototype.setProvider = function (_a) {
-        var rpc = _a.rpc, indexer = _a.indexer, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger;
+        var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger;
         this.setRpcProvider(rpc);
-        this.setIndexerProvider(indexer);
         this.setStreamProvider(stream);
         this.setSignerProvider(signer);
         this.setForgerProvider(forger);
@@ -131,19 +149,6 @@ var TezosToolkit = /** @class */ (function () {
         var f = typeof forger === 'undefined' ? new rpc_forger_1.RpcForger(this._context) : forger;
         this._options.forger = f;
         this._context.forger = f;
-    };
-    TezosToolkit.prototype.setIndexerProvider = function (indexer) {
-        if (typeof indexer === 'string') {
-            this._indexerClient = new indexer_1.IndexerClient(indexer);
-        }
-        else if (indexer instanceof indexer_1.IndexerClient) {
-            this._indexerClient = indexer;
-        }
-        else if (this._options.indexer === undefined) {
-            this._indexerClient = new indexer_1.IndexerClient();
-        }
-        this._query = new indexer_provider_1.IndexerProvider(this._indexerClient);
-        this._options.indexer = indexer;
     };
     TezosToolkit.prototype.setStreamProvider = function (stream) {
         if (typeof stream === 'string') {
@@ -183,16 +188,6 @@ var TezosToolkit = /** @class */ (function () {
          */
         get: function () {
             return this._estimate;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(TezosToolkit.prototype, "query", {
-        /**
-         * @description Provide access to querying utilities backed by an indexer implementation
-         */
-        get: function () {
-            return this._query;
         },
         enumerable: true,
         configurable: true
@@ -287,7 +282,7 @@ var TezosToolkit = /** @class */ (function () {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            return new (ctor.bind.apply(ctor, __spreadArrays([void 0, _this._context], args)))();
+            return new (ctor.bind.apply(ctor, __spread([void 0, _this._context], args)))();
         };
     };
     return TezosToolkit;

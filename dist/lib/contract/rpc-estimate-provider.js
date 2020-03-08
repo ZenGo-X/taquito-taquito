@@ -70,12 +70,36 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
-var __spreadArrays = (this && this.__spreadArrays) || function () {
-    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-    for (var r = Array(s), k = 0, i = 0; i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-            r[k] = a[j];
-    return r;
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spread = (this && this.__spread) || function () {
+    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+    return ar;
+};
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var rpc_1 = require("@taquito/rpc");
@@ -159,7 +183,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.simulate(operation)];
                     case 3:
                         opResponse = (_d.sent()).opResponse;
-                        errors = __spreadArrays(operation_errors_1.flattenErrors(opResponse, 'backtracked'), operation_errors_1.flattenErrors(opResponse));
+                        errors = __spread(operation_errors_1.flattenErrors(opResponse, 'backtracked'), operation_errors_1.flattenErrors(opResponse));
                         // Fail early in case of errors
                         if (errors.length) {
                             throw new operation_errors_1.TezosOperationError(errors);
@@ -232,7 +256,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                                 isNewImplicitAccountPromise,
                             ])];
                     case 2:
-                        _b = _c.sent(), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2];
+                        _b = __read.apply(void 0, [_c.sent(), 3]), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2];
                         requireReveal = !manager;
                         revealFee = requireReveal ? constants_1.DEFAULT_FEE.REVEAL : 0;
                         _storageLimit = isNewImplicitAccount ? constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
@@ -294,7 +318,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         managerPromise = this.rpc.getManagerKey(params.source);
                         return [4 /*yield*/, Promise.all([sourceBalancePromise, managerPromise])];
                     case 1:
-                        _a = _c.sent(), sourceBalance = _a[0], manager = _a[1];
+                        _a = __read.apply(void 0, [_c.sent(), 2]), sourceBalance = _a[0], manager = _a[1];
                         requireReveal = !manager;
                         revealFee = requireReveal ? constants_1.DEFAULT_FEE.REVEAL : 0;
                         DEFAULT_PARAMS = {
@@ -321,55 +345,70 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     };
     RPCEstimateProvider.prototype.batch = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var operations, DEFAULT_PARAMS, _a, _i, params_1, param, _b, _c, _d, _e, _f, _g, _h;
-            return __generator(this, function (_j) {
-                switch (_j.label) {
+            var operations, DEFAULT_PARAMS, _a, params_1, params_1_1, param, _b, _c, _d, _e, _f, _g, _h, e_2_1;
+            var e_2, _j;
+            return __generator(this, function (_k) {
+                switch (_k.label) {
                     case 0:
                         operations = [];
                         _a = this.getAccountLimits;
                         return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1: return [4 /*yield*/, _a.apply(this, [_j.sent()])];
+                    case 1: return [4 /*yield*/, _a.apply(this, [_k.sent()])];
                     case 2:
-                        DEFAULT_PARAMS = _j.sent();
-                        _i = 0, params_1 = params;
-                        _j.label = 3;
+                        DEFAULT_PARAMS = _k.sent();
+                        _k.label = 3;
                     case 3:
-                        if (!(_i < params_1.length)) return [3 /*break*/, 13];
-                        param = params_1[_i];
+                        _k.trys.push([3, 15, 16, 17]);
+                        params_1 = __values(params), params_1_1 = params_1.next();
+                        _k.label = 4;
+                    case 4:
+                        if (!!params_1_1.done) return [3 /*break*/, 14];
+                        param = params_1_1.value;
                         _b = param.kind;
                         switch (_b) {
-                            case rpc_1.OpKind.TRANSACTION: return [3 /*break*/, 4];
-                            case rpc_1.OpKind.ORIGINATION: return [3 /*break*/, 6];
-                            case rpc_1.OpKind.DELEGATION: return [3 /*break*/, 8];
-                            case rpc_1.OpKind.ACTIVATION: return [3 /*break*/, 10];
+                            case rpc_1.OpKind.TRANSACTION: return [3 /*break*/, 5];
+                            case rpc_1.OpKind.ORIGINATION: return [3 /*break*/, 7];
+                            case rpc_1.OpKind.DELEGATION: return [3 /*break*/, 9];
+                            case rpc_1.OpKind.ACTIVATION: return [3 /*break*/, 11];
                         }
-                        return [3 /*break*/, 11];
-                    case 4:
+                        return [3 /*break*/, 12];
+                    case 5:
                         _d = (_c = operations).push;
                         return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                    case 5:
-                        _d.apply(_c, [_j.sent()]);
-                        return [3 /*break*/, 12];
                     case 6:
+                        _d.apply(_c, [_k.sent()]);
+                        return [3 /*break*/, 13];
+                    case 7:
                         _f = (_e = operations).push;
                         return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                    case 7:
-                        _f.apply(_e, [_j.sent()]);
-                        return [3 /*break*/, 12];
                     case 8:
+                        _f.apply(_e, [_k.sent()]);
+                        return [3 /*break*/, 13];
+                    case 9:
                         _h = (_g = operations).push;
                         return [4 /*yield*/, prepare_1.createSetDelegateOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                    case 9:
-                        _h.apply(_g, [_j.sent()]);
-                        return [3 /*break*/, 12];
                     case 10:
+                        _h.apply(_g, [_k.sent()]);
+                        return [3 /*break*/, 13];
+                    case 11:
                         operations.push(__assign(__assign({}, param), DEFAULT_PARAMS));
-                        return [3 /*break*/, 12];
-                    case 11: throw new Error("Unsupported operation kind: " + param.kind);
-                    case 12:
-                        _i++;
-                        return [3 /*break*/, 3];
-                    case 13: return [2 /*return*/, this.createEstimate({ operation: operations })];
+                        return [3 /*break*/, 13];
+                    case 12: throw new Error("Unsupported operation kind: " + param.kind);
+                    case 13:
+                        params_1_1 = params_1.next();
+                        return [3 /*break*/, 4];
+                    case 14: return [3 /*break*/, 17];
+                    case 15:
+                        e_2_1 = _k.sent();
+                        e_2 = { error: e_2_1 };
+                        return [3 /*break*/, 17];
+                    case 16:
+                        try {
+                            if (params_1_1 && !params_1_1.done && (_j = params_1.return)) _j.call(params_1);
+                        }
+                        finally { if (e_2) throw e_2.error; }
+                        return [7 /*endfinally*/];
+                    case 17: return [2 /*return*/, this.createEstimate({ operation: operations })];
                 }
             });
         });

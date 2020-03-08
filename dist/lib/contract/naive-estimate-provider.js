@@ -35,6 +35,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var constants_1 = require("../constants");
 var estimate_1 = require("./estimate");
@@ -110,50 +121,65 @@ var NaiveEstimateProvider = /** @class */ (function () {
     };
     NaiveEstimateProvider.prototype.batch = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var estimates, _i, params_1, param, _a, _b, _c, _d, _e, _f, _g;
-            return __generator(this, function (_h) {
-                switch (_h.label) {
+            var estimates, params_1, params_1_1, param, _a, _b, _c, _d, _e, _f, _g, e_1_1;
+            var e_1, _h;
+            return __generator(this, function (_j) {
+                switch (_j.label) {
                     case 0:
                         estimates = [];
-                        _i = 0, params_1 = params;
-                        _h.label = 1;
+                        _j.label = 1;
                     case 1:
-                        if (!(_i < params_1.length)) return [3 /*break*/, 11];
-                        param = params_1[_i];
+                        _j.trys.push([1, 13, 14, 15]);
+                        params_1 = __values(params), params_1_1 = params_1.next();
+                        _j.label = 2;
+                    case 2:
+                        if (!!params_1_1.done) return [3 /*break*/, 12];
+                        param = params_1_1.value;
                         _a = param.kind;
                         switch (_a) {
-                            case 'transaction': return [3 /*break*/, 2];
-                            case 'origination': return [3 /*break*/, 4];
-                            case 'delegation': return [3 /*break*/, 6];
-                            case 'activate_account': return [3 /*break*/, 8];
+                            case 'transaction': return [3 /*break*/, 3];
+                            case 'origination': return [3 /*break*/, 5];
+                            case 'delegation': return [3 /*break*/, 7];
+                            case 'activate_account': return [3 /*break*/, 9];
                         }
-                        return [3 /*break*/, 9];
-                    case 2:
+                        return [3 /*break*/, 10];
+                    case 3:
                         _c = (_b = estimates).push;
                         return [4 /*yield*/, this.transfer(param)];
-                    case 3:
-                        _c.apply(_b, [_h.sent()]);
-                        return [3 /*break*/, 10];
                     case 4:
+                        _c.apply(_b, [_j.sent()]);
+                        return [3 /*break*/, 11];
+                    case 5:
                         _e = (_d = estimates).push;
                         return [4 /*yield*/, this.originate(param)];
-                    case 5:
-                        _e.apply(_d, [_h.sent()]);
-                        return [3 /*break*/, 10];
                     case 6:
+                        _e.apply(_d, [_j.sent()]);
+                        return [3 /*break*/, 11];
+                    case 7:
                         _g = (_f = estimates).push;
                         return [4 /*yield*/, this.setDelegate(param)];
-                    case 7:
-                        _g.apply(_f, [_h.sent()]);
-                        return [3 /*break*/, 10];
                     case 8:
+                        _g.apply(_f, [_j.sent()]);
+                        return [3 /*break*/, 11];
+                    case 9:
                         estimates.push(new estimate_1.Estimate(0, 0, 0, 0));
-                        return [3 /*break*/, 10];
-                    case 9: throw new Error("Unsupported operation kind: " + param.kind);
-                    case 10:
-                        _i++;
-                        return [3 /*break*/, 1];
-                    case 11: return [2 /*return*/, estimates];
+                        return [3 /*break*/, 11];
+                    case 10: throw new Error("Unsupported operation kind: " + param.kind);
+                    case 11:
+                        params_1_1 = params_1.next();
+                        return [3 /*break*/, 2];
+                    case 12: return [3 /*break*/, 15];
+                    case 13:
+                        e_1_1 = _j.sent();
+                        e_1 = { error: e_1_1 };
+                        return [3 /*break*/, 15];
+                    case 14:
+                        try {
+                            if (params_1_1 && !params_1_1.done && (_h = params_1.return)) _h.call(params_1);
+                        }
+                        finally { if (e_1) throw e_1.error; }
+                        return [7 /*endfinally*/];
+                    case 15: return [2 /*return*/, estimates];
                 }
             });
         });
