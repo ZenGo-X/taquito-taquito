@@ -148,11 +148,13 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     const sourceBalancePromise = this.rpc.getBalance(pkh);
     const managerPromise = this.rpc.getManagerKey(pkh);
     const isNewImplicitAccountPromise = this.isNewImplicitAccount(rest.to);
+    let isDelegatedPromise = this.isDelegated(pkh);
 
-    const [sourceBalance, manager, isNewImplicitAccount] = await Promise.all([
+    const [sourceBalance, manager, isNewImplicitAccount, isDelegated] = await Promise.all([
       sourceBalancePromise,
       managerPromise,
       isNewImplicitAccountPromise,
+      isDelegatedPromise,
     ]);
 
     // A transfer from an unrevealed account will require a an additional fee of 0.00142tz (reveal operation)
@@ -163,7 +165,9 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
        https://tezos.stackexchange.com/questions/956/burn-fee-for-empty-account */
     const _storageLimit = isNewImplicitAccount ? DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
     const DEFAULT_PARAMS = {
-      fee: sourceBalance.minus(Number(mutezAmount) + revealFee + _storageLimit * 1000).toNumber(), // maximum possible
+      fee: sourceBalance
+        .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + (isDelegated ? 1 : 0))
+        .toNumber(), // maximum possible, +1 to avoid emptying a delegated account
       storageLimit: _storageLimit,
       gasLimit: DEFAULT_GAS_LIMIT.TRANSFER,
     };
@@ -173,6 +177,19 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
       ...DEFAULT_PARAMS,
     });
     return (await this.createEstimate({ operation: op, source: pkh }))[0];
+  }
+
+  async isDelegated(address: string) {
+    let isDelegated;
+    try {
+      const delegate = await this.rpc.getDelegate(address);
+      isDelegated = !!delegate;
+    } catch (err) {
+      // getDelegate returns 404 if no delegate
+      isDelegated = false;
+    }
+
+    return isDelegated;
   }
 
   async isNewImplicitAccount(address: string) {

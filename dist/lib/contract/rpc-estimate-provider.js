@@ -238,7 +238,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     RPCEstimateProvider.prototype.transfer = function (_a) {
         var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
         return __awaiter(this, void 0, void 0, function () {
-            var pkh, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, _b, sourceBalance, manager, isNewImplicitAccount, requireReveal, revealFee, _storageLimit, DEFAULT_PARAMS, op;
+            var pkh, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, isDelegatedPromise, _b, sourceBalance, manager, isNewImplicitAccount, isDelegated, requireReveal, revealFee, _storageLimit, DEFAULT_PARAMS, op;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
@@ -250,18 +250,22 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         sourceBalancePromise = this.rpc.getBalance(pkh);
                         managerPromise = this.rpc.getManagerKey(pkh);
                         isNewImplicitAccountPromise = this.isNewImplicitAccount(rest.to);
+                        isDelegatedPromise = this.isDelegated(pkh);
                         return [4 /*yield*/, Promise.all([
                                 sourceBalancePromise,
                                 managerPromise,
                                 isNewImplicitAccountPromise,
+                                isDelegatedPromise,
                             ])];
                     case 2:
-                        _b = __read.apply(void 0, [_c.sent(), 3]), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2];
+                        _b = __read.apply(void 0, [_c.sent(), 4]), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2], isDelegated = _b[3];
                         requireReveal = !manager;
                         revealFee = requireReveal ? constants_1.DEFAULT_FEE.REVEAL : 0;
                         _storageLimit = isNewImplicitAccount ? constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
                         DEFAULT_PARAMS = {
-                            fee: sourceBalance.minus(Number(mutezAmount) + revealFee + _storageLimit * 1000).toNumber(),
+                            fee: sourceBalance
+                                .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + (isDelegated ? 1 : 0))
+                                .toNumber(),
                             storageLimit: _storageLimit,
                             gasLimit: constants_1.DEFAULT_GAS_LIMIT.TRANSFER,
                         };
@@ -270,6 +274,28 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         op = _c.sent();
                         return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
                     case 4: return [2 /*return*/, (_c.sent())[0]];
+                }
+            });
+        });
+    };
+    RPCEstimateProvider.prototype.isDelegated = function (address) {
+        return __awaiter(this, void 0, void 0, function () {
+            var isDelegated, delegate, err_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        return [4 /*yield*/, this.rpc.getDelegate(address)];
+                    case 1:
+                        delegate = _a.sent();
+                        isDelegated = !!delegate;
+                        return [3 /*break*/, 3];
+                    case 2:
+                        err_1 = _a.sent();
+                        // getDelegate returns 404 if no delegate
+                        isDelegated = false;
+                        return [3 /*break*/, 3];
+                    case 3: return [2 /*return*/, isDelegated];
                 }
             });
         });
