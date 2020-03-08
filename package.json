@@ -73,11 +73,11 @@
     ]
   },
   "dependencies": {
-    "@taquito/indexer": "^6.1.0-beta.",
-    "@taquito/michelson-encoder": "^6.1.0-beta.",
-    "@taquito/rpc": "^6.1.0-beta.",
-    "@taquito/signer": "^6.1.0-beta.",
-    "@taquito/utils": "^6.1.0-beta.",
+    "@taquito/indexer": "^6.0.3-beta.1",
+    "@taquito/michelson-encoder": "^6.0.3-beta.1",
+    "@taquito/rpc": "^6.0.3-beta.1",
+    "@taquito/signer": "^6.0.3-beta.1",
+    "@taquito/utils": "^6.0.3-beta.1",
     "bignumber.js": "^9.0.0",
     "rxjs": "^6.5.3"
   },
