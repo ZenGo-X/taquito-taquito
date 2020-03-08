@@ -1,11 +1,22 @@
 "use strict";
+/*
+ * Some code in this file is originally from sotez and eztz
+ * Copyright (c) 2018 Andrew Kishino
+ * Copyright (c) 2017 Stephen Andrews
+ */
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
 Object.defineProperty(exports, "__esModule", { value: true });
 var buffer_1 = require("buffer");
 var constants_1 = require("./constants");
 var blake = require('blakejs');
 var bs58check = require('bs58check');
+__export(require("./validators"));
 var constants_2 = require("./constants");
 exports.prefix = constants_2.prefix;
+exports.Prefix = constants_2.Prefix;
+exports.prefixLength = constants_2.prefixLength;
 function encodeExpr(value) {
     var blakeHash = blake.blake2b(exports.hex2buf(value), null, 32);
     return b58cencode(blakeHash, constants_1.prefix['expr']);

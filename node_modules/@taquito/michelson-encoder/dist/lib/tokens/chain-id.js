@@ -14,6 +14,19 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("./token");
+var utils_1 = require("@taquito/utils");
+var ChainIDValidationError = /** @class */ (function (_super) {
+    __extends(ChainIDValidationError, _super);
+    function ChainIDValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'ChainIDValidationError';
+        return _this;
+    }
+    return ChainIDValidationError;
+}(token_1.TokenValidationError));
+exports.ChainIDValidationError = ChainIDValidationError;
 var ChainIDToken = /** @class */ (function (_super) {
     __extends(ChainIDToken, _super);
     function ChainIDToken(val, idx, fac) {
@@ -23,6 +36,12 @@ var ChainIDToken = /** @class */ (function (_super) {
         _this.fac = fac;
         return _this;
     }
+    ChainIDToken.prototype.isValid = function (value) {
+        if (utils_1.validateChain(value) !== utils_1.ValidationResult.VALID) {
+            return new ChainIDValidationError(value, this, 'ChainID is not valid');
+        }
+        return null;
+    };
     ChainIDToken.prototype.Execute = function (val) {
         return val[Object.keys(val)[0]];
     };
@@ -31,9 +50,17 @@ var ChainIDToken = /** @class */ (function (_super) {
     };
     ChainIDToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     ChainIDToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     // tslint:disable-next-line: variable-name
@@ -49,6 +76,6 @@ var ChainIDToken = /** @class */ (function (_super) {
     };
     ChainIDToken.prim = 'chain_id';
     return ChainIDToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.ChainIDToken = ChainIDToken;
 //# sourceMappingURL=chain-id.js.map

@@ -15,6 +15,18 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("../token");
 var bignumber_js_1 = require("bignumber.js");
+var NatValidationError = /** @class */ (function (_super) {
+    __extends(NatValidationError, _super);
+    function NatValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'NatValidationError';
+        return _this;
+    }
+    return NatValidationError;
+}(token_1.TokenValidationError));
+exports.NatValidationError = NatValidationError;
 var NatToken = /** @class */ (function (_super) {
     __extends(NatToken, _super);
     function NatToken(val, idx, fac) {
@@ -29,9 +41,29 @@ var NatToken = /** @class */ (function (_super) {
     };
     NatToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { int: String(val).toString() };
     };
+    NatToken.prototype.isValid = function (val) {
+        var bigNumber = new bignumber_js_1.default(val);
+        if (bigNumber.isNaN()) {
+            return new NatValidationError(val, this, "Value is not a number: " + val);
+        }
+        else if (bigNumber.isNegative()) {
+            return new NatValidationError(val, this, "Value cannot be negative: " + val);
+        }
+        else {
+            return null;
+        }
+    };
     NatToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { int: String(val).toString() };
     };
     NatToken.prototype.ExtractSchema = function () {
@@ -49,6 +81,6 @@ var NatToken = /** @class */ (function (_super) {
     };
     NatToken.prim = 'nat';
     return NatToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.NatToken = NatToken;
 //# sourceMappingURL=nat.js.map

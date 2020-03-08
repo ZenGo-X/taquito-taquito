@@ -329,6 +329,15 @@ var HttpResponseError = /** @class */ (function () {
     }
     return HttpResponseError;
 }());
+var HttpRequestFailed = /** @class */ (function () {
+    function HttpRequestFailed(url, innerEvent) {
+        this.url = url;
+        this.innerEvent = innerEvent;
+        this.name = 'HttpRequestFailed';
+        this.message = "Request to " + url + " failed";
+    }
+    return HttpRequestFailed;
+}());
 var HttpBackend = /** @class */ (function () {
     function HttpBackend() {
     }
@@ -411,8 +420,8 @@ var HttpBackend = /** @class */ (function () {
             request.ontimeout = function () {
                 reject(new Error("Request timed out after: " + request.timeout + "ms"));
             };
-            request.onerror = function () {
-                reject(new HttpResponseError("Http error response: (" + this.status + ") " + request.response, this.status, request.statusText, request.response));
+            request.onerror = function (err) {
+                reject(new HttpRequestFailed(url, err));
             };
             if (data) {
                 var dataStr = JSON.stringify(data);
@@ -426,5 +435,5 @@ var HttpBackend = /** @class */ (function () {
     return HttpBackend;
 }());
 
-export { HttpBackend, HttpResponseError, STATUS_CODE };
+export { HttpBackend, HttpRequestFailed, HttpResponseError, STATUS_CODE };
 //# sourceMappingURL=taquito-http-utils.es5.js.map

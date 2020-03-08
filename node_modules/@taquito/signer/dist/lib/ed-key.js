@@ -51,7 +51,11 @@ var Tz1 = /** @class */ (function () {
      */
     function Tz1(key, encrypted, decrypt) {
         this.key = key;
-        this._key = decrypt(utils_1.b58cdecode(this.key, utils_1.prefix[key.substr(0, encrypted ? 5 : 4)]));
+        var keyPrefix = key.substr(0, encrypted ? 5 : 4);
+        if (!utils_1.isValidPrefix(keyPrefix)) {
+            throw new Error('key contains invalid prefix');
+        }
+        this._key = decrypt(utils_1.b58cdecode(this.key, utils_1.prefix[keyPrefix]));
         this._publicKey = this._key.slice(32);
         if (!this._key) {
             throw new Error('Unable to decode key');

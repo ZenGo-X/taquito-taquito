@@ -1,7 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { BlockMetadata004, ConstantsResponse004, ContractResponse004, EntrypointsResponse004, OperationContentsAndResultOrigination004, RPCRunOperationParam004 } from './types.004';
-import { BlockMetadata005, ConstantsResponse005, ContractResponse005, EntrypointsResponse005, OperationContentsAndResultOrigination005, RPCRunOperationParam005 } from './types.005';
-import { InternalOperationResult, MichelsonV1Expression, OperationMetadataBalanceUpdates, OperationObject, OperationResultDelegation, OperationResultReveal, OperationResultTransaction, ScriptedContracts, TimeStampMixed } from './types.common';
+import { OpKind } from './opkind';
 export declare type BalanceResponse = BigNumber;
 export declare type StorageResponse = ScriptedContracts['storage'];
 export declare type ScriptResponse = ScriptedContracts;
@@ -14,7 +12,6 @@ export declare type ManagerKeyResponse = string | {
 };
 export declare type DelegateResponse = string | null;
 export declare type OperationHash = string;
-export declare type RPCRunOperationParam = RPCRunOperationParam004 | RPCRunOperationParam005;
 export interface DelegatesResponse {
     balance: BigNumber;
     frozen_balance: BigNumber;
@@ -39,8 +36,6 @@ export declare type BigMapKey = {
         prim: string;
     };
 };
-export declare type ContractResponse = ContractResponse004 | ContractResponse005;
-export declare type ConstantsResponse = ConstantsResponse004 | ConstantsResponse005;
 export interface BlockFullHeader {
     level: number;
     proto: number;
@@ -55,7 +50,7 @@ export interface BlockFullHeader {
     seed_nonce_hash?: string;
     signature: string;
 }
-export declare type InlinedEndorsementKindEnum = 'endorsement';
+export declare type InlinedEndorsementKindEnum = OpKind.ENDORSEMENT;
 export interface InlinedEndorsementContents {
     kind: InlinedEndorsementKindEnum;
     level: number;
@@ -67,44 +62,44 @@ export interface InlinedEndorsement {
 }
 export declare type OperationContentsBallotEnum = 'nay' | 'yay' | 'pass';
 export interface OperationContentsEndorsement {
-    kind: 'endorsement';
+    kind: OpKind.ENDORSEMENT;
     level: number;
 }
 export interface OperationContentsRevelation {
-    kind: 'seed_nonce_revelation';
+    kind: OpKind.SEED_NONCE_REVELATION;
     level: number;
     nonce: string;
 }
 export interface OperationContentsDoubleEndorsement {
-    kind: 'double_endorsement_evidence';
+    kind: OpKind.DOUBLE_ENDORSEMENT_EVIDENCE;
     op1: InlinedEndorsement;
     op2: InlinedEndorsement;
 }
 export interface OperationContentsDoubleBaking {
-    kind: 'double_baking_evidence';
+    kind: OpKind.DOUBLE_BAKING_EVIDENCE;
     bh1: BlockFullHeader;
     bh2: BlockFullHeader;
 }
 export interface OperationContentsActivateAccount {
-    kind: 'activate_account';
+    kind: OpKind.ACTIVATION;
     pkh: string;
     secret: string;
 }
 export interface OperationContentsProposals {
-    kind: 'proposals';
+    kind: OpKind.PROPOSALS;
     source: string;
     period: number;
     proposals: string[];
 }
 export interface OperationContentsBallot {
-    kind: 'ballot';
+    kind: OpKind.BALLOT;
     source: string;
     period: number;
     proposal: string;
     ballot: OperationContentsBallotEnum;
 }
 export interface OperationContentsReveal {
-    kind: 'reveal';
+    kind: OpKind.REVEAL;
     source: string;
     fee: string;
     counter: string;
@@ -113,7 +108,7 @@ export interface OperationContentsReveal {
     public_key: string;
 }
 export interface OperationContentsTransaction {
-    kind: 'transaction';
+    kind: OpKind.TRANSACTION;
     source: string;
     fee: string;
     counter: string;
@@ -124,21 +119,18 @@ export interface OperationContentsTransaction {
     parameters?: MichelsonV1Expression;
 }
 export interface OperationContentsOrigination {
-    kind: 'origination';
+    kind: OpKind.ORIGINATION;
     source: string;
     fee: string;
     counter: string;
     gas_limit: string;
     storage_limit: string;
-    manager_pubkey: string;
     balance: string;
-    spendable?: boolean;
-    delegatable?: boolean;
     delegate?: string;
     script?: ScriptedContracts;
 }
 export interface OperationContentsDelegation {
-    kind: 'delegation';
+    kind: OpKind.DELEGATION;
     source: string;
     fee: string;
     counter: string;
@@ -171,43 +163,43 @@ export interface OperationContentsAndResultMetadata {
     balance_updates: OperationMetadataBalanceUpdates[];
 }
 export interface OperationContentsAndResultEndorsement {
-    kind: 'endorsement';
+    kind: OpKind.ENDORSEMENT;
     level: number;
     metadata: OperationContentsAndResultMetadataExtended;
 }
 export interface OperationContentsAndResultRevelation {
-    kind: 'seed_nonce_revelation';
+    kind: OpKind.SEED_NONCE_REVELATION;
     level: number;
     nonce: string;
     metadata: OperationContentsAndResultMetadata;
 }
 export interface OperationContentsAndResultDoubleEndorsement {
-    kind: 'double_endorsement_evidence';
+    kind: OpKind.DOUBLE_ENDORSEMENT_EVIDENCE;
     op1: InlinedEndorsement;
     op2: InlinedEndorsement;
     metadata: OperationContentsAndResultMetadata;
 }
 export interface OperationContentsAndResultDoubleBaking {
-    kind: 'double_baking_evidence';
+    kind: OpKind.DOUBLE_BAKING_EVIDENCE;
     bh1: BlockFullHeader;
     bh2: BlockFullHeader;
     metadata: OperationContentsAndResultMetadata;
 }
 export interface OperationContentsAndResultActivateAccount {
-    kind: 'activate_account';
+    kind: OpKind.ACTIVATION;
     pkh: string;
     secret: string;
     metadata: OperationContentsAndResultMetadata;
 }
 export interface OperationContentsAndResultProposals {
-    kind: 'proposals';
+    kind: OpKind.PROPOSALS;
     source: string;
     period: number;
     proposals: string[];
     metadata: any;
 }
 export interface OperationContentsAndResultBallot {
-    kind: 'ballot';
+    kind: OpKind.BALLOT;
     source: string;
     period: number;
     proposal: string;
@@ -215,7 +207,7 @@ export interface OperationContentsAndResultBallot {
     metadata: any;
 }
 export interface OperationContentsAndResultReveal {
-    kind: 'reveal';
+    kind: OpKind.REVEAL;
     source: string;
     fee: string;
     counter: string;
@@ -225,7 +217,7 @@ export interface OperationContentsAndResultReveal {
     metadata: OperationContentsAndResultMetadataReveal;
 }
 export interface OperationContentsAndResultTransaction {
-    kind: 'transaction';
+    kind: OpKind.TRANSACTION;
     source: string;
     fee: string;
     counter: string;
@@ -237,7 +229,7 @@ export interface OperationContentsAndResultTransaction {
     metadata: OperationContentsAndResultMetadataTransaction;
 }
 export interface OperationContentsAndResultDelegation {
-    kind: 'delegation';
+    kind: OpKind.DELEGATION;
     source: string;
     fee: string;
     counter: string;
@@ -246,7 +238,6 @@ export interface OperationContentsAndResultDelegation {
     delegate?: string;
     metadata: OperationContentsAndResultMetadataDelegation;
 }
-export declare type OperationContentsAndResultOrigination = OperationContentsAndResultOrigination004 | OperationContentsAndResultOrigination005;
 export declare type OperationContentsAndResult = OperationContentsAndResultEndorsement | OperationContentsAndResultRevelation | OperationContentsAndResultDoubleEndorsement | OperationContentsAndResultDoubleBaking | OperationContentsAndResultActivateAccount | OperationContentsAndResultProposals | OperationContentsAndResultBallot | OperationContentsAndResultReveal | OperationContentsAndResultTransaction | OperationContentsAndResultOrigination | OperationContentsAndResultDelegation;
 export interface OperationEntry {
     protocol: string;
@@ -256,7 +247,6 @@ export interface OperationEntry {
     contents: (OperationContents | OperationContentsAndResult)[];
     signature?: string;
 }
-export declare type BlockMetadata = BlockMetadata004 | BlockMetadata005;
 export interface BlockResponse {
     protocol: string;
     chain_id: string;
@@ -365,6 +355,202 @@ export declare type PreapplyParams = OperationObject[];
 export declare type PreapplyResponse = {
     contents: OperationContentsAndResult[];
 };
-export declare type EntrypointsResponse = EntrypointsResponse004 | EntrypointsResponse005;
 export declare type ForgeOperationsParams = Pick<OperationObject, 'branch' | 'contents'>;
+export declare type TimeStampMixed = Date | string;
+export declare type BalanceUpdateKindEnum = 'contract' | 'freezer';
+export declare type BalanceUpdateCategoryEnum = 'rewards' | 'fees' | 'deposits';
+export interface MichelsonV1ExpressionBase {
+    int?: string;
+    string?: string;
+    bytes?: string;
+}
+export interface MichelsonV1ExpressionExtended {
+    prim: string;
+    args?: MichelsonV1Expression[];
+    annots?: string[];
+}
+export declare type MichelsonV1Expression = MichelsonV1ExpressionBase | MichelsonV1ExpressionExtended;
+export interface ScriptedContracts {
+    code: MichelsonV1Expression[];
+    storage: MichelsonV1Expression;
+}
+export interface OperationBalanceUpdatesItem {
+    kind: BalanceUpdateKindEnum;
+    category?: BalanceUpdateCategoryEnum;
+    delegate?: string;
+    cycle?: number;
+    contract?: string;
+    change: string;
+}
+export declare type OperationBalanceUpdates = OperationBalanceUpdatesItem[];
+export interface OperationObject {
+    branch?: string;
+    contents?: OperationContents[];
+    protocol?: string;
+    signature?: string;
+}
+export declare type InternalOperationResultKindEnum = OpKind.REVEAL | OpKind.TRANSACTION | OpKind.ORIGINATION | OpKind.DELEGATION;
+export declare type InternalOperationResultEnum = OperationResultReveal | OperationResultTransaction | OperationResultDelegation | OperationResultOrigination;
+export interface OperationResultDelegation {
+    status: OperationResultStatusEnum;
+    consumed_gas?: string;
+    errors?: TezosGenericOperationError[];
+}
+export interface ContractBigMapDiffItem {
+    key_hash: string;
+    key: MichelsonV1Expression;
+    value?: MichelsonV1Expression;
+}
+export declare type ContractBigMapDiff = ContractBigMapDiffItem[];
+export interface TezosGenericOperationError {
+    kind: string;
+    id: string;
+}
+export interface OperationResultTransaction {
+    status: OperationResultStatusEnum;
+    storage?: MichelsonV1Expression;
+    big_map_diff?: ContractBigMapDiff;
+    balance_updates?: OperationBalanceUpdates;
+    originated_contracts?: string[];
+    consumed_gas?: string;
+    storage_size?: string;
+    paid_storage_size_diff?: string;
+    allocated_destination_contract?: boolean;
+    errors?: TezosGenericOperationError[];
+}
+export interface OperationResultReveal {
+    status: OperationResultStatusEnum;
+    consumed_gas?: string;
+    errors?: TezosGenericOperationError[];
+}
+export interface InternalOperationResult {
+    kind: InternalOperationResultKindEnum;
+    source: string;
+    nonce: number;
+    amount?: string;
+    destination?: string;
+    parameters?: MichelsonV1Expression;
+    public_key?: string;
+    balance?: string;
+    delegate?: string;
+    script?: ScriptedContracts;
+    result: InternalOperationResultEnum;
+}
+export declare type MetadataBalanceUpdatesKindEnum = 'contract' | 'freezer';
+export declare type MetadataBalanceUpdatesCategoryEnum = 'rewards' | 'fees' | 'deposits';
+export interface OperationMetadataBalanceUpdates {
+    kind: MetadataBalanceUpdatesKindEnum;
+    category?: MetadataBalanceUpdatesCategoryEnum;
+    contract?: string;
+    delegate?: string;
+    cycle?: number;
+    change: string;
+}
+export declare type OperationResultStatusEnum = 'applied' | 'failed' | 'skipped' | 'backtracked';
+export interface OperationResultOrigination {
+    status: OperationResultStatusEnum;
+    balance_updates?: OperationBalanceUpdates;
+    originated_contracts?: string[];
+    consumed_gas?: string;
+    storage_size?: string;
+    paid_storage_size_diff?: string;
+    errors?: TezosGenericOperationError[];
+}
+export interface OperationContentsAndResultMetadataOrigination {
+    balance_updates: OperationMetadataBalanceUpdates[];
+    operation_result: OperationResultOrigination;
+    internal_operation_results?: InternalOperationResult[];
+}
+export interface ConstantsResponse {
+    proof_of_work_nonce_size: number;
+    nonce_length: number;
+    max_revelations_per_block: number;
+    max_operation_data_length: number;
+    preserved_cycles: number;
+    blocks_per_cycle: number;
+    blocks_per_commitment: number;
+    blocks_per_roll_snapshot: number;
+    blocks_per_voting_period: number;
+    time_between_blocks: BigNumber[];
+    endorsers_per_block: number;
+    hard_gas_limit_per_operation: BigNumber;
+    hard_gas_limit_per_block: BigNumber;
+    proof_of_work_threshold: BigNumber;
+    tokens_per_roll: BigNumber;
+    michelson_maximum_type_size: number;
+    seed_nonce_revelation_tip: string;
+    origination_burn: string;
+    block_security_deposit: BigNumber;
+    endorsement_security_deposit: BigNumber;
+    block_reward: BigNumber;
+    endorsement_reward: BigNumber;
+    cost_per_byte: BigNumber;
+    hard_storage_limit_per_operation: BigNumber;
+    min_proposal_quorum?: number;
+    quorum_max?: number;
+    quorum_min?: number;
+    delay_per_missing_endorsement?: number;
+    initial_endorsers?: string[];
+}
+export interface ContractResponse {
+    balance: BigNumber;
+    script: ScriptedContracts;
+    counter?: string;
+}
+export interface TestChainStatus {
+    status: string;
+}
+export interface MaxOperationListLength {
+    max_size: number;
+    max_op: number;
+}
+export interface Level {
+    level: number;
+    level_position: number;
+    cycle: number;
+    cycle_position: number;
+    voting_period: number;
+    voting_period_position: number;
+    expected_commitment: boolean;
+}
+export interface BlockMetadata {
+    protocol: string;
+    next_protocol: string;
+    test_chain_status: TestChainStatus;
+    max_operations_ttl: number;
+    max_operation_data_length: number;
+    max_block_header_length: number;
+    max_operation_list_length: MaxOperationListLength[];
+    baker: string;
+    level: Level;
+    voting_period_kind: string;
+    nonce_hash?: any;
+    consumed_gas: string;
+    deactivated: any[];
+    balance_updates: OperationBalanceUpdates;
+}
+export declare type RPCRunOperationParam = {
+    operation: OperationObject;
+    chain_id: string;
+};
+export declare type EntrypointsResponse = {
+    entrypoints: {
+        [key: string]: Object;
+    };
+    unreachable?: {
+        path: ('Left' | 'Right')[];
+    };
+};
+export interface OperationContentsAndResultOrigination {
+    kind: OpKind.ORIGINATION;
+    source: string;
+    fee: string;
+    counter: string;
+    gas_limit: string;
+    storage_limit: string;
+    balance: string;
+    delegate?: string;
+    script?: ScriptedContracts;
+    metadata: OperationContentsAndResultMetadataOrigination;
+}
 export {};

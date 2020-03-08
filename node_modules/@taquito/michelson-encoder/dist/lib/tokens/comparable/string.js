@@ -49,6 +49,6 @@ var StringToken = /** @class */ (function (_super) {
     };
     StringToken.prim = 'string';
     return StringToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.StringToken = StringToken;
 //# sourceMappingURL=string.js.map

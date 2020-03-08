@@ -1,5 +1,5 @@
-import { Token, TokenFactory, ComparableToken } from '../token';
-export declare class TimestampToken extends Token implements ComparableToken {
+import { TokenFactory, ComparableToken } from '../token';
+export declare class TimestampToken extends ComparableToken {
     protected val: {
         prim: string;
         args: any[];

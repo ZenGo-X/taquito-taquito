@@ -16,6 +16,13 @@ export declare class HttpResponseError implements Error {
     name: string;
     constructor(message: string, status: STATUS_CODE, statusText: string, body: string);
 }
+export declare class HttpRequestFailed implements Error {
+    url: string;
+    innerEvent: any;
+    name: string;
+    message: string;
+    constructor(url: string, innerEvent: any);
+}
 export declare class HttpBackend {
     private serialize;
     private createXHR;

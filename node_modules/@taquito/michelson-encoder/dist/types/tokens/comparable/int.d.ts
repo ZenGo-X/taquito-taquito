@@ -1,5 +1,11 @@
-import { Token, TokenFactory, ComparableToken } from '../token';
-export declare class IntToken extends Token implements ComparableToken {
+import { TokenFactory, ComparableToken, TokenValidationError } from '../token';
+export declare class IntValidationError extends TokenValidationError {
+    value: any;
+    token: IntToken;
+    name: string;
+    constructor(value: any, token: IntToken, message: string);
+}
+export declare class IntToken extends ComparableToken {
     protected val: {
         prim: string;
         args: any[];
@@ -19,6 +25,7 @@ export declare class IntToken extends Token implements ComparableToken {
         [key: string]: any;
     };
     ExtractSchema(): string;
+    private isValid;
     Encode(args: any[]): any;
     EncodeObject(val: any): any;
     ToBigMapKey(val: string): {

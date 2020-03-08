@@ -1,4 +1,10 @@
-import { Token, TokenFactory } from './token';
+import { Token, TokenFactory, TokenValidationError } from './token';
+export declare class KeyValidationError extends TokenValidationError {
+    value: any;
+    token: KeyToken;
+    name: string;
+    constructor(value: any, token: KeyToken, message: string);
+}
 export declare class KeyToken extends Token {
     protected val: {
         prim: string;
@@ -17,6 +23,7 @@ export declare class KeyToken extends Token {
         bytes: string;
         string: string;
     }): string;
+    private isValid;
     Encode(args: any[]): any;
     EncodeObject(val: any): any;
     ExtractSchema(): string;

@@ -14,6 +14,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("./token");
+var taquito_michelson_encoder_1 = require("../taquito-michelson-encoder");
 var UnitToken = /** @class */ (function (_super) {
     __extends(UnitToken, _super);
     function UnitToken(val, idx, fac) {
@@ -31,7 +32,7 @@ var UnitToken = /** @class */ (function (_super) {
         return { prim: 'Unit' };
     };
     UnitToken.prototype.Execute = function () {
-        return null;
+        return taquito_michelson_encoder_1.UnitValue;
     };
     UnitToken.prototype.ExtractSchema = function () {
         return UnitToken.prim;

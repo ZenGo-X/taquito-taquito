@@ -1,4 +1,10 @@
-import { Token, TokenFactory, Semantic } from './token';
+import { Token, TokenFactory, Semantic, TokenValidationError } from './token';
+export declare class ListValidationError extends TokenValidationError {
+    value: any;
+    token: ListToken;
+    name: string;
+    constructor(value: any, token: ListToken, message: string);
+}
 export declare class ListToken extends Token {
     protected val: {
         prim: string;
@@ -13,6 +19,7 @@ export declare class ListToken extends Token {
         args: any[];
         annots: any[];
     }, idx: number, fac: TokenFactory);
+    private isValid;
     Encode(args: any[]): any;
     Execute(val: any, semantics?: Semantic): any;
     EncodeObject(args: any): any;

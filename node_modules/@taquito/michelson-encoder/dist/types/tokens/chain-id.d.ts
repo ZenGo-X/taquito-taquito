@@ -1,5 +1,11 @@
-import { Token, TokenFactory, ComparableToken } from './token';
-export declare class ChainIDToken extends Token implements ComparableToken {
+import { TokenFactory, ComparableToken, TokenValidationError } from './token';
+export declare class ChainIDValidationError extends TokenValidationError {
+    value: any;
+    token: ChainIDToken;
+    name: string;
+    constructor(value: any, token: ChainIDToken, message: string);
+}
+export declare class ChainIDToken extends ComparableToken {
     protected val: {
         prim: string;
         args: any[];
@@ -13,6 +19,7 @@ export declare class ChainIDToken extends Token implements ComparableToken {
         args: any[];
         annots: any[];
     }, idx: number, fac: TokenFactory);
+    private isValid;
     Execute(val: any): string;
     ExtractSchema(): string;
     Encode(args: any[]): any;
