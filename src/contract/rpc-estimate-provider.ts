@@ -161,12 +161,13 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     const requireReveal = !manager;
     const revealFee = requireReveal ? DEFAULT_FEE.REVEAL : 0;
 
+    console.log("isDelegated=", isDelegated)
     /* A transfer to a new implicit account would require burning funds for its storage
        https://tezos.stackexchange.com/questions/956/burn-fee-for-empty-account */
     const _storageLimit = isNewImplicitAccount ? DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
     const DEFAULT_PARAMS = {
       fee: sourceBalance
-        .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + (isDelegated ? 1 : 0))
+        .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + 1)
         .toNumber(), // maximum possible, +1 to avoid emptying a delegated account
       storageLimit: _storageLimit,
       gasLimit: DEFAULT_GAS_LIMIT.TRANSFER,

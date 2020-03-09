@@ -2102,10 +2102,11 @@
                             _b = __read.apply(void 0, [_c.sent(), 4]), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2], isDelegated = _b[3];
                             requireReveal = !manager;
                             revealFee = requireReveal ? exports.DEFAULT_FEE.REVEAL : 0;
+                            console.log("isDelegated=", isDelegated);
                             _storageLimit = isNewImplicitAccount ? exports.DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
                             DEFAULT_PARAMS = {
                                 fee: sourceBalance
-                                    .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + (isDelegated ? 1 : 0))
+                                    .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + 1)
                                     .toNumber(),
                                 storageLimit: _storageLimit,
                                 gasLimit: exports.DEFAULT_GAS_LIMIT.TRANSFER,
