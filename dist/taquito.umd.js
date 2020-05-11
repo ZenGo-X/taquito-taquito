@@ -631,9 +631,9 @@
         OperationEmitter.prototype.prepareOperation = function (_a) {
             var operation = _a.operation, source = _a.source;
             return __awaiter(this, void 0, void 0, function () {
-                var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, _b, counterPromise, managerPromise, i, counter_1, _c, header, metadata, headCounter, manager, haveManager, reveal, _d, getFee, getSource, constructOps, branch, contents, protocol;
-                return __generator(this, function (_e) {
-                    switch (_e.label) {
+                var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, _b, counterPromise, managerPromise, i, counter_1, _c, header, metadata, headCounter, manager, haveManager, reveal, getFee, getSource, constructOps, branch, contents, protocol;
+                return __generator(this, function (_d) {
+                    switch (_d.label) {
                         case 0:
                             counters = {};
                             requiresReveal = false;
@@ -650,21 +650,21 @@
                             if (_b) return [3 /*break*/, 2];
                             return [4 /*yield*/, this.signer.publicKeyHash()];
                         case 1:
-                            _b = (_e.sent());
-                            _e.label = 2;
+                            _b = (_d.sent());
+                            _d.label = 2;
                         case 2:
                             publicKeyHash = _b;
                             counterPromise = Promise.resolve(undefined);
                             managerPromise = Promise.resolve(undefined);
                             i = 0;
-                            _e.label = 3;
+                            _d.label = 3;
                         case 3:
                             if (!(i < ops.length)) return [3 /*break*/, 6];
                             if (!isOpRequireReveal(ops[i])) return [3 /*break*/, 5];
                             requiresReveal = true;
                             return [4 /*yield*/, this.rpc.getContract(publicKeyHash)];
                         case 4:
-                            counter_1 = (_e.sent()).counter;
+                            counter_1 = (_d.sent()).counter;
                             counterPromise = Promise.resolve(counter_1);
                             managerPromise = this.rpc.getManagerKey(publicKeyHash);
                             return [3 /*break*/, 6];
@@ -678,7 +678,7 @@
                                 managerPromise,
                             ])];
                         case 7:
-                            _c = __read.apply(void 0, [_e.sent(), 4]), header = _c[0], metadata = _c[1], headCounter = _c[2], manager = _c[3];
+                            _c = __read.apply(void 0, [_d.sent(), 4]), header = _c[0], metadata = _c[1], headCounter = _c[2], manager = _c[3];
                             if (!header) {
                                 throw new Error('Unable to latest block header');
                             }
@@ -686,23 +686,20 @@
                                 throw new Error('Unable to fetch latest metadata');
                             }
                             head = header;
-                            if (!requiresReveal) return [3 /*break*/, 9];
-                            haveManager = manager && typeof manager === 'object' ? !!manager.key : !!manager;
-                            if (!!haveManager) return [3 /*break*/, 9];
-                            _d = {
-                                kind: rpc.OpKind.REVEAL,
-                                fee: exports.DEFAULT_FEE.REVEAL
-                            };
-                            return [4 /*yield*/, this.signer.publicKey()];
-                        case 8:
-                            reveal = (_d.public_key = _e.sent(),
-                                _d.source = publicKeyHash,
-                                _d.gas_limit = exports.DEFAULT_GAS_LIMIT.REVEAL,
-                                _d.storage_limit = exports.DEFAULT_STORAGE_LIMIT.REVEAL,
-                                _d);
-                            ops.unshift(reveal);
-                            _e.label = 9;
-                        case 9:
+                            if (requiresReveal) {
+                                haveManager = manager && typeof manager === 'object' ? !!manager.key : !!manager;
+                                if (!haveManager) {
+                                    reveal = {
+                                        kind: rpc.OpKind.REVEAL,
+                                        fee: exports.DEFAULT_FEE.REVEAL,
+                                        public_key: publicKeyHash,
+                                        source: publicKeyHash,
+                                        gas_limit: exports.DEFAULT_GAS_LIMIT.REVEAL,
+                                        storage_limit: exports.DEFAULT_STORAGE_LIMIT.REVEAL,
+                                    };
+                                    ops.unshift(reveal);
+                                }
+                            }
                             counter = parseInt(headCounter || '0', 10);
                             if (!counters[publicKeyHash] || counters[publicKeyHash] < counter) {
                                 counters[publicKeyHash] = counter;

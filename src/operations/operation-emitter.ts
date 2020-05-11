@@ -99,7 +99,7 @@ export abstract class OperationEmitter {
         const reveal: RPCRevealOperation = {
           kind: OpKind.REVEAL,
           fee: DEFAULT_FEE.REVEAL,
-          public_key: await this.signer.publicKey(),
+          public_key: publicKeyHash,
           source: publicKeyHash,
           gas_limit: DEFAULT_GAS_LIMIT.REVEAL,
           storage_limit: DEFAULT_STORAGE_LIMIT.REVEAL,
