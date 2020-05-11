@@ -119,14 +119,15 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
    *
    * @param OriginationOperation Originate operation parameter
    */
-  async originate({ fee, storageLimit, gasLimit, source, ...rest }: OriginateParams) {
+  async originate({ fee, storageLimit, gasLimit, source, publicKey, ...rest }: OriginateParams) {
     const pkh = source || (await this.signer.publicKeyHash());
     const DEFAULT_PARAMS = await this.getAccountLimits(pkh);
     const op = await createOriginationOperation({
       ...rest,
       ...DEFAULT_PARAMS,
+      publicKey: publicKey
     });
-    return (await this.createEstimate({ operation: op, source: pkh }))[0];
+    return (await this.createEstimate({ operation: op, source: pkh, publicKey: publicKey }))[0];
   }
   /**
    *
@@ -136,7 +137,7 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
    *
    * @param TransferOperation Originate operation parameter
    */
-  async transfer({ storageLimit, gasLimit, source, ...rest }: TransferParams) {
+  async transfer({ storageLimit, gasLimit, source, publicKey, ...rest }: TransferParams) {
     // TODO - gather all promises into one Promise.all
     const pkh = source || (await this.signer.publicKeyHash());
 
@@ -178,8 +179,9 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     const op = await createTransferOperation({
       ...rest,
       ...DEFAULT_PARAMS,
+      publicKey
     });
-    return (await this.createEstimate({ operation: op, source: pkh }))[0];
+    return (await this.createEstimate({ operation: op, source: pkh, publicKey: publicKey }))[0];
   }
 
   async isDelegated(address: string) {
@@ -235,10 +237,10 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     };
     const op = await createSetDelegateOperation({ ...params, ...DEFAULT_PARAMS });
     const sourceOrDefault = params.source || (await this.signer.publicKeyHash());
-    return (await this.createEstimate({ operation: op, source: sourceOrDefault }))[0];
+    return (await this.createEstimate({ operation: op, source: sourceOrDefault, publicKey: params.publicKey }))[0];
   }
 
-  async batch(params: ParamsWithKind[]) {
+  async batch(params: ParamsWithKind[], publicKey?: string) {
     const operations: RPCOperation[] = [];
     const DEFAULT_PARAMS = await this.getAccountLimits(await this.signer.publicKeyHash());
     for (const param of params) {
@@ -277,7 +279,7 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
           throw new Error(`Unsupported operation kind: ${(param as any).kind}`);
       }
     }
-    return this.createEstimate({ operation: operations });
+    return this.createEstimate({ operation: operations, publicKey: publicKey! });
   }
 
   /**
@@ -293,8 +295,9 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     const DEFAULT_PARAMS = await this.getAccountLimits(sourceOrDefault);
     const op = await createRegisterDelegateOperation(
       { ...params, ...DEFAULT_PARAMS },
-      sourceOrDefault
+      sourceOrDefault,
+      params.publicKey
     );
-    return (await this.createEstimate({ operation: op, source: sourceOrDefault }))[0];
+    return (await this.createEstimate({ operation: op, source: sourceOrDefault, publicKey: params.publicKey }))[0];
   }
 }

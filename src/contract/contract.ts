@@ -10,6 +10,7 @@ interface SendParams {
   gasLimit?: number;
   amount: number;
   source?: string;
+  publicKey?: string;
   mutez?: boolean;
 }
 
@@ -62,6 +63,7 @@ export class ContractMethod {
     gasLimit,
     storageLimit,
     source,
+    publicKey,
     amount = 0,
     mutez = false,
   }: Partial<SendParams> = {}): TransferParams {
@@ -71,6 +73,7 @@ export class ContractMethod {
       fee,
       mutez,
       source,
+      publicKey,
       gasLimit,
       storageLimit,
       parameter: {

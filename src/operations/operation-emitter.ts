@@ -45,6 +45,7 @@ export abstract class OperationEmitter {
   protected async prepareOperation({
     operation,
     source,
+    publicKey
   }: PrepareOperationParams): Promise<PreparedOperation> {
     let counter;
     const counters: { [key: string]: number } = {};
@@ -99,7 +100,7 @@ export abstract class OperationEmitter {
         const reveal: RPCRevealOperation = {
           kind: OpKind.REVEAL,
           fee: DEFAULT_FEE.REVEAL,
-          public_key: publicKeyHash,
+          public_key: publicKey,
           source: publicKeyHash,
           gas_limit: DEFAULT_GAS_LIMIT.REVEAL,
           storage_limit: DEFAULT_STORAGE_LIMIT.REVEAL,
@@ -135,6 +136,7 @@ export abstract class OperationEmitter {
 
     const constructOps = (cOps: RPCOperation[]): OperationContents[] =>
       // tslint:disable strict-type-predicates
+      // @ts-ignore
       cOps.map((op: RPCOperation) => {
         switch (op.kind) {
           case OpKind.ACTIVATION:

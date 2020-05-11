@@ -629,7 +629,7 @@
         });
         // Originally from sotez (Copyright (c) 2018 Andrew Kishino)
         OperationEmitter.prototype.prepareOperation = function (_a) {
-            var operation = _a.operation, source = _a.source;
+            var operation = _a.operation, source = _a.source, publicKey = _a.publicKey;
             return __awaiter(this, void 0, void 0, function () {
                 var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, _b, counterPromise, managerPromise, i, counter_1, _c, header, metadata, headCounter, manager, haveManager, reveal, getFee, getSource, constructOps, branch, contents, protocol;
                 return __generator(this, function (_d) {
@@ -692,7 +692,7 @@
                                     reveal = {
                                         kind: rpc.OpKind.REVEAL,
                                         fee: exports.DEFAULT_FEE.REVEAL,
-                                        public_key: publicKeyHash,
+                                        public_key: publicKey,
                                         source: publicKeyHash,
                                         gas_limit: exports.DEFAULT_GAS_LIMIT.REVEAL,
                                         storage_limit: exports.DEFAULT_STORAGE_LIMIT.REVEAL,
@@ -723,6 +723,7 @@
                             };
                             constructOps = function (cOps) {
                                 // tslint:disable strict-type-predicates
+                                // @ts-ignore
                                 return cOps.map(function (op) {
                                     switch (op.kind) {
                                         case rpc.OpKind.ACTIVATION:
@@ -1154,13 +1155,14 @@
          */
         ContractMethod.prototype.toTransferParams = function (_a) {
             var _b, _c;
-            var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, source = _d.source, _e = _d.amount, amount = _e === void 0 ? 0 : _e, _f = _d.mutez, mutez = _f === void 0 ? false : _f;
+            var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, source = _d.source, publicKey = _d.publicKey, _e = _d.amount, amount = _e === void 0 ? 0 : _e, _f = _d.mutez, mutez = _f === void 0 ? false : _f;
             var fullTransferParams = {
                 to: this.address,
                 amount: amount,
                 fee: fee,
                 mutez: mutez,
                 source: source,
+                publicKey: publicKey,
                 gasLimit: gasLimit,
                 storageLimit: storageLimit,
                 parameter: {
@@ -1349,7 +1351,7 @@
         });
     };
     var createSetDelegateOperation = function (_a) {
-        var delegate = _a.delegate, source = _a.source, _b = _a.fee, fee = _b === void 0 ? exports.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? exports.DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? exports.DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
+        var delegate = _a.delegate, source = _a.source, publicKey = _a.publicKey, _b = _a.fee, fee = _b === void 0 ? exports.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? exports.DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? exports.DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
         return __awaiter(void 0, void 0, void 0, function () {
             var operation;
             return __generator(this, function (_e) {
@@ -1360,12 +1362,13 @@
                     gas_limit: gasLimit,
                     storage_limit: storageLimit,
                     delegate: delegate,
+                    publicKey: publicKey
                 };
                 return [2 /*return*/, operation];
             });
         });
     };
-    var createRegisterDelegateOperation = function (_a, source) {
+    var createRegisterDelegateOperation = function (_a, source, publicKey) {
         var _b = _a.fee, fee = _b === void 0 ? exports.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? exports.DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? exports.DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
         return __awaiter(void 0, void 0, void 0, function () {
             return __generator(this, function (_e) {
@@ -1375,6 +1378,7 @@
                         gas_limit: gasLimit,
                         storage_limit: storageLimit,
                         delegate: source,
+                        publicKey: publicKey
                     }];
             });
         });
@@ -1551,7 +1555,7 @@
                             return [4 /*yield*/, createOriginationOperation(__assign(__assign({}, params), estimate))];
                         case 3:
                             operation = _b.sent();
-                            return [4 /*yield*/, this.prepareOperation({ operation: operation, source: publicKeyHash })];
+                            return [4 /*yield*/, this.prepareOperation({ operation: operation, source: publicKeyHash, publicKey: params.publicKey })];
                         case 4:
                             preparedOrigination = _b.sent();
                             return [4 /*yield*/, this.forge(preparedOrigination)];
@@ -1600,6 +1604,7 @@
                             return [4 /*yield*/, this.prepareAndForge({
                                     operation: operation,
                                     source: sourceOrDefault,
+                                    publicKey: params.publicKey
                                 })];
                         case 5:
                             opBytes = _c.sent();
@@ -1647,6 +1652,7 @@
                             return [4 /*yield*/, this.prepareAndForge({
                                     operation: operation,
                                     source: sourceOrDefault,
+                                    publicKey: params.publicKey
                                 })];
                         case 6:
                             forgedBytes = _b.sent();
@@ -1719,10 +1725,10 @@
                             _c.label = 3;
                         case 3:
                             sourceOrDefault = _a;
-                            return [4 /*yield*/, createRegisterDelegateOperation(__assign(__assign({}, params), estimate), sourceOrDefault)];
+                            return [4 /*yield*/, createRegisterDelegateOperation(__assign(__assign({}, params), estimate), sourceOrDefault, params.publicKey)];
                         case 4:
                             operation = _c.sent();
-                            return [4 /*yield*/, this.prepareAndForge({ operation: operation })];
+                            return [4 /*yield*/, this.prepareAndForge({ operation: operation, publicKey: params.publicKey })];
                         case 5:
                             opBytes = _c.sent();
                             return [4 /*yield*/, this.signAndInject(opBytes)];
@@ -1760,7 +1766,7 @@
                             _c.label = 4;
                         case 4:
                             source = _a;
-                            return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: params.source })];
+                            return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: params.source, publicKey: params.publicKey })];
                         case 5:
                             opBytes = _c.sent();
                             return [4 /*yield*/, this.signAndInject(opBytes)];
@@ -1798,7 +1804,7 @@
                             _b.label = 4;
                         case 4:
                             source = _a;
-                            return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: source })];
+                            return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: source, publicKey: params.publicKey })];
                         case 5:
                             forgedBytes = _b.sent();
                             fees = this.calculateTotalFees(forgedBytes);
@@ -2069,7 +2075,7 @@
          * @param OriginationOperation Originate operation parameter
          */
         RPCEstimateProvider.prototype.originate = function (_a) {
-            var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, rest = __rest(_a, ["fee", "storageLimit", "gasLimit", "source"]);
+            var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, publicKey = _a.publicKey, rest = __rest(_a, ["fee", "storageLimit", "gasLimit", "source", "publicKey"]);
             return __awaiter(this, void 0, void 0, function () {
                 var pkh, _b, DEFAULT_PARAMS, op;
                 return __generator(this, function (_c) {
@@ -2086,10 +2092,10 @@
                             return [4 /*yield*/, this.getAccountLimits(pkh)];
                         case 3:
                             DEFAULT_PARAMS = _c.sent();
-                            return [4 /*yield*/, createOriginationOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
+                            return [4 /*yield*/, createOriginationOperation(__assign(__assign(__assign({}, rest), DEFAULT_PARAMS), { publicKey: publicKey }))];
                         case 4:
                             op = _c.sent();
-                            return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
+                            return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh, publicKey: publicKey })];
                         case 5: return [2 /*return*/, (_c.sent())[0]];
                     }
                 });
@@ -2104,7 +2110,7 @@
          * @param TransferOperation Originate operation parameter
          */
         RPCEstimateProvider.prototype.transfer = function (_a) {
-            var storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, rest = __rest(_a, ["storageLimit", "gasLimit", "source"]);
+            var storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, publicKey = _a.publicKey, rest = __rest(_a, ["storageLimit", "gasLimit", "source", "publicKey"]);
             return __awaiter(this, void 0, void 0, function () {
                 var pkh, _b, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, isDelegatedPromise, _c, sourceBalance, manager, isNewImplicitAccount, isDelegated, requireReveal, revealFee, _storageLimit, required, fee, DEFAULT_PARAMS, op;
                 return __generator(this, function (_d) {
@@ -2143,10 +2149,10 @@
                                 storageLimit: _storageLimit,
                                 gasLimit: exports.DEFAULT_GAS_LIMIT.TRANSFER,
                             };
-                            return [4 /*yield*/, createTransferOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
+                            return [4 /*yield*/, createTransferOperation(__assign(__assign(__assign({}, rest), DEFAULT_PARAMS), { publicKey: publicKey }))];
                         case 4:
                             op = _d.sent();
-                            return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
+                            return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh, publicKey: publicKey })];
                         case 5: return [2 /*return*/, (_d.sent())[0]];
                     }
                 });
@@ -2237,13 +2243,13 @@
                             _c.label = 4;
                         case 4:
                             sourceOrDefault = _b;
-                            return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
+                            return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault, publicKey: params.publicKey })];
                         case 5: return [2 /*return*/, (_c.sent())[0]];
                     }
                 });
             });
         };
-        RPCEstimateProvider.prototype.batch = function (params) {
+        RPCEstimateProvider.prototype.batch = function (params, publicKey) {
             return __awaiter(this, void 0, void 0, function () {
                 var operations, DEFAULT_PARAMS, _a, params_1, params_1_1, param, _b, _c, _d, _e, _f, _g, _h, e_2_1;
                 var e_2, _j;
@@ -2308,7 +2314,7 @@
                             }
                             finally { if (e_2) throw e_2.error; }
                             return [7 /*endfinally*/];
-                        case 17: return [2 /*return*/, this.createEstimate({ operation: operations })];
+                        case 17: return [2 /*return*/, this.createEstimate({ operation: operations, publicKey: publicKey })];
                     }
                 });
             });
@@ -2338,10 +2344,10 @@
                             return [4 /*yield*/, this.getAccountLimits(sourceOrDefault)];
                         case 3:
                             DEFAULT_PARAMS = _b.sent();
-                            return [4 /*yield*/, createRegisterDelegateOperation(__assign(__assign({}, params), DEFAULT_PARAMS), sourceOrDefault)];
+                            return [4 /*yield*/, createRegisterDelegateOperation(__assign(__assign({}, params), DEFAULT_PARAMS), sourceOrDefault, params.publicKey)];
                         case 4:
                             op = _b.sent();
-                            return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
+                            return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault, publicKey: params.publicKey })];
                         case 5: return [2 /*return*/, (_b.sent())[0]];
                     }
                 });

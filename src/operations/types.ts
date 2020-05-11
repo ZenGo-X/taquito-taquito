@@ -62,6 +62,7 @@ export interface FeeConsumingOperation {
 }
 
 export type OriginateParamsBase = {
+  publicKey?: string;
   balance?: string;
   code: string | object[];
   delegate?: string;
@@ -114,7 +115,7 @@ export interface RPCOriginationOperation {
 export interface RPCRevealOperation {
   kind: OpKind.REVEAL;
   fee: number;
-  public_key: string;
+  public_key?: string;
   source?: string;
   gas_limit: number;
   storage_limit: number;
@@ -134,6 +135,7 @@ export interface ForgedBytes {
  */
 export interface DelegateParams {
   source: string;
+  publicKey?: string;
   delegate: string;
   fee?: number;
   gasLimit?: number;
@@ -144,6 +146,7 @@ export interface DelegateParams {
  * @description Parameters for registerDelegate method
  */
 export interface RegisterDelegateParams {
+  publicKey?: string;
   fee?: number;
   gasLimit?: number;
   storageLimit?: number;
@@ -155,6 +158,7 @@ export interface RegisterDelegateParams {
  */
 export interface RPCDelegateOperation {
   kind: OpKind.DELEGATION;
+  publicKey?: string;
   source?: string;
   fee: number;
   gas_limit: number;
@@ -167,6 +171,7 @@ export interface RPCDelegateOperation {
  */
 export interface TransferParams {
   to: string;
+  publicKey?: string;
   source?: string;
   amount: number;
   fee?: number;
@@ -187,6 +192,7 @@ export interface RPCTransferOperation {
   storage_limit: number;
   amount: string;
   source?: string;
+  publicKey?: string;
   destination: string;
   parameters?: any;
 }
@@ -198,6 +204,7 @@ export interface RPCActivateOperation {
   kind: OpKind.ACTIVATION;
   pkh: string;
   secret: string;
+  publicKey?: string;
 }
 
 export type RPCOperation =
@@ -209,5 +216,6 @@ export type RPCOperation =
 
 export type PrepareOperationParams = {
   operation: RPCOperation | RPCOperation[];
+  publicKey?: string;
   source?: string;
 };

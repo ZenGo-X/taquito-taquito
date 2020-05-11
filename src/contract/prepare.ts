@@ -92,6 +92,7 @@ export const createTransferOperation = async ({
 export const createSetDelegateOperation = async ({
   delegate,
   source,
+  publicKey,
   fee = DEFAULT_FEE.DELEGATION,
   gasLimit = DEFAULT_GAS_LIMIT.DELEGATION,
   storageLimit = DEFAULT_STORAGE_LIMIT.DELEGATION,
@@ -103,6 +104,7 @@ export const createSetDelegateOperation = async ({
     gas_limit: gasLimit,
     storage_limit: storageLimit,
     delegate,
+    publicKey
   };
   return operation;
 };
@@ -113,7 +115,8 @@ export const createRegisterDelegateOperation = async (
     gasLimit = DEFAULT_GAS_LIMIT.DELEGATION,
     storageLimit = DEFAULT_STORAGE_LIMIT.DELEGATION,
   }: RegisterDelegateParams,
-  source: string
+  source: string,
+  publicKey?: string,
 ) => {
   return {
     kind: OpKind.DELEGATION,
@@ -121,5 +124,6 @@ export const createRegisterDelegateOperation = async (
     gas_limit: gasLimit,
     storage_limit: storageLimit,
     delegate: source,
+    publicKey
   } as RPCDelegateOperation;
 };

@@ -205,7 +205,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, params), estimate))];
                     case 3:
                         operation = _b.sent();
-                        return [4 /*yield*/, this.prepareOperation({ operation: operation, source: publicKeyHash })];
+                        return [4 /*yield*/, this.prepareOperation({ operation: operation, source: publicKeyHash, publicKey: params.publicKey })];
                     case 4:
                         preparedOrigination = _b.sent();
                         return [4 /*yield*/, this.forge(preparedOrigination)];
@@ -254,6 +254,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.prepareAndForge({
                                 operation: operation,
                                 source: sourceOrDefault,
+                                publicKey: params.publicKey
                             })];
                     case 5:
                         opBytes = _c.sent();
@@ -301,6 +302,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.prepareAndForge({
                                 operation: operation,
                                 source: sourceOrDefault,
+                                publicKey: params.publicKey
                             })];
                     case 6:
                         forgedBytes = _b.sent();
@@ -373,10 +375,10 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         _c.label = 3;
                     case 3:
                         sourceOrDefault = _a;
-                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), estimate), sourceOrDefault)];
+                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), estimate), sourceOrDefault, params.publicKey)];
                     case 4:
                         operation = _c.sent();
-                        return [4 /*yield*/, this.prepareAndForge({ operation: operation })];
+                        return [4 /*yield*/, this.prepareAndForge({ operation: operation, publicKey: params.publicKey })];
                     case 5:
                         opBytes = _c.sent();
                         return [4 /*yield*/, this.signAndInject(opBytes)];
@@ -414,7 +416,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         _c.label = 4;
                     case 4:
                         source = _a;
-                        return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: params.source })];
+                        return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: params.source, publicKey: params.publicKey })];
                     case 5:
                         opBytes = _c.sent();
                         return [4 /*yield*/, this.signAndInject(opBytes)];
@@ -452,7 +454,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         _b.label = 4;
                     case 4:
                         source = _a;
-                        return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: source })];
+                        return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: source, publicKey: params.publicKey })];
                     case 5:
                         forgedBytes = _b.sent();
                         fees = this.calculateTotalFees(forgedBytes);

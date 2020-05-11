@@ -68,13 +68,14 @@ var ContractMethod = /** @class */ (function () {
      */
     ContractMethod.prototype.toTransferParams = function (_a) {
         var _b, _c;
-        var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, source = _d.source, _e = _d.amount, amount = _e === void 0 ? 0 : _e, _f = _d.mutez, mutez = _f === void 0 ? false : _f;
+        var _d = _a === void 0 ? {} : _a, fee = _d.fee, gasLimit = _d.gasLimit, storageLimit = _d.storageLimit, source = _d.source, publicKey = _d.publicKey, _e = _d.amount, amount = _e === void 0 ? 0 : _e, _f = _d.mutez, mutez = _f === void 0 ? false : _f;
         var fullTransferParams = {
             to: this.address,
             amount: amount,
             fee: fee,
             mutez: mutez,
             source: source,
+            publicKey: publicKey,
             gasLimit: gasLimit,
             storageLimit: storageLimit,
             parameter: {

@@ -102,7 +102,7 @@ var OperationEmitter = /** @class */ (function () {
     });
     // Originally from sotez (Copyright (c) 2018 Andrew Kishino)
     OperationEmitter.prototype.prepareOperation = function (_a) {
-        var operation = _a.operation, source = _a.source;
+        var operation = _a.operation, source = _a.source, publicKey = _a.publicKey;
         return __awaiter(this, void 0, void 0, function () {
             var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, _b, counterPromise, managerPromise, i, counter_1, _c, header, metadata, headCounter, manager, haveManager, reveal, getFee, getSource, constructOps, branch, contents, protocol;
             return __generator(this, function (_d) {
@@ -165,7 +165,7 @@ var OperationEmitter = /** @class */ (function () {
                                 reveal = {
                                     kind: rpc_1.OpKind.REVEAL,
                                     fee: constants_1.DEFAULT_FEE.REVEAL,
-                                    public_key: publicKeyHash,
+                                    public_key: publicKey,
                                     source: publicKeyHash,
                                     gas_limit: constants_1.DEFAULT_GAS_LIMIT.REVEAL,
                                     storage_limit: constants_1.DEFAULT_STORAGE_LIMIT.REVEAL,
@@ -196,6 +196,7 @@ var OperationEmitter = /** @class */ (function () {
                         };
                         constructOps = function (cOps) {
                             // tslint:disable strict-type-predicates
+                            // @ts-ignore
                             return cOps.map(function (op) {
                                 switch (op.kind) {
                                     case rpc_1.OpKind.ACTIVATION:

@@ -132,7 +132,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
       ...params,
       ...estimate,
     });
-    const preparedOrigination = await this.prepareOperation({ operation, source: publicKeyHash });
+    const preparedOrigination = await this.prepareOperation({ operation, source: publicKeyHash, publicKey: params.publicKey });
     const forgedOrigination = await this.forge(preparedOrigination);
     const { hash, context, forgedBytes, opResponse } = await this.signAndInject(forgedOrigination);
     return new OriginationOperation(hash, operation, forgedBytes, opResponse, context, this);
@@ -158,6 +158,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     const opBytes = await this.prepareAndForge({
       operation,
       source: sourceOrDefault,
+      publicKey: params.publicKey
     });
     const { hash, context, forgedBytes, opResponse } = await this.signAndInject(opBytes);
     return new DelegateOperation(
@@ -192,6 +193,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     const forgedBytes = await this.prepareAndForge({
       operation,
       source: sourceOrDefault,
+      publicKey: params.publicKey
     });
     const fees = this.calculateTotalFees(forgedBytes);
     return { forgedBytes, fees };
@@ -260,9 +262,10 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     const sourceOrDefault = params.source || (await this.signer.publicKeyHash());
     const operation = await createRegisterDelegateOperation(
       { ...params, ...estimate },
-      sourceOrDefault
+      sourceOrDefault,
+      params.publicKey
     );
-    const opBytes = await this.prepareAndForge({ operation });
+    const opBytes = await this.prepareAndForge({ operation, publicKey: params.publicKey });
     const { hash, context, forgedBytes, opResponse } = await this.signAndInject(opBytes);
     return new DelegateOperation(
       hash,
@@ -292,7 +295,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
       ...estimate,
     });
     const source = params.source || (await this.signer.publicKeyHash());
-    const opBytes = await this.prepareAndForge({ operation, source: params.source });
+    const opBytes = await this.prepareAndForge({ operation, source: params.source, publicKey: params.publicKey });
     const { hash, context, forgedBytes, opResponse } = await this.signAndInject(opBytes);
     return new TransactionOperation(hash, operation, source, forgedBytes, opResponse, context);
   }
@@ -314,7 +317,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
       ...estimate,
     });
     const source = params.source || (await this.signer.publicKeyHash());
-    const forgedBytes = await this.prepareAndForge({ operation, source });
+    const forgedBytes = await this.prepareAndForge({ operation, source, publicKey: params.publicKey });
     const fees = this.calculateTotalFees(forgedBytes);
     return { forgedBytes, fees };
   }

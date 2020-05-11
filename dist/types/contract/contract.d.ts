@@ -8,6 +8,7 @@ interface SendParams {
     gasLimit?: number;
     amount: number;
     source?: string;
+    publicKey?: string;
     mutez?: boolean;
 }
 /**
@@ -39,7 +40,7 @@ export declare class ContractMethod {
      *
      * @param Options generic transfer operation parameters
      */
-    toTransferParams({ fee, gasLimit, storageLimit, source, amount, mutez, }?: Partial<SendParams>): TransferParams;
+    toTransferParams({ fee, gasLimit, storageLimit, source, publicKey, amount, mutez, }?: Partial<SendParams>): TransferParams;
 }
 /**
  * @description Smart contract abstraction

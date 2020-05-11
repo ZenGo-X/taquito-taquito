@@ -207,7 +207,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
      * @param OriginationOperation Originate operation parameter
      */
     RPCEstimateProvider.prototype.originate = function (_a) {
-        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, rest = __rest(_a, ["fee", "storageLimit", "gasLimit", "source"]);
+        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, publicKey = _a.publicKey, rest = __rest(_a, ["fee", "storageLimit", "gasLimit", "source", "publicKey"]);
         return __awaiter(this, void 0, void 0, function () {
             var pkh, _b, DEFAULT_PARAMS, op;
             return __generator(this, function (_c) {
@@ -224,10 +224,10 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.getAccountLimits(pkh)];
                     case 3:
                         DEFAULT_PARAMS = _c.sent();
-                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
+                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign(__assign({}, rest), DEFAULT_PARAMS), { publicKey: publicKey }))];
                     case 4:
                         op = _c.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh, publicKey: publicKey })];
                     case 5: return [2 /*return*/, (_c.sent())[0]];
                 }
             });
@@ -242,7 +242,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
      * @param TransferOperation Originate operation parameter
      */
     RPCEstimateProvider.prototype.transfer = function (_a) {
-        var storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, rest = __rest(_a, ["storageLimit", "gasLimit", "source"]);
+        var storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, publicKey = _a.publicKey, rest = __rest(_a, ["storageLimit", "gasLimit", "source", "publicKey"]);
         return __awaiter(this, void 0, void 0, function () {
             var pkh, _b, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, isDelegatedPromise, _c, sourceBalance, manager, isNewImplicitAccount, isDelegated, requireReveal, revealFee, _storageLimit, required, fee, DEFAULT_PARAMS, op;
             return __generator(this, function (_d) {
@@ -281,10 +281,10 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                             storageLimit: _storageLimit,
                             gasLimit: constants_1.DEFAULT_GAS_LIMIT.TRANSFER,
                         };
-                        return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
+                        return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign(__assign({}, rest), DEFAULT_PARAMS), { publicKey: publicKey }))];
                     case 4:
                         op = _d.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh, publicKey: publicKey })];
                     case 5: return [2 /*return*/, (_d.sent())[0]];
                 }
             });
@@ -375,13 +375,13 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         _c.label = 4;
                     case 4:
                         sourceOrDefault = _b;
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault, publicKey: params.publicKey })];
                     case 5: return [2 /*return*/, (_c.sent())[0]];
                 }
             });
         });
     };
-    RPCEstimateProvider.prototype.batch = function (params) {
+    RPCEstimateProvider.prototype.batch = function (params, publicKey) {
         return __awaiter(this, void 0, void 0, function () {
             var operations, DEFAULT_PARAMS, _a, params_1, params_1_1, param, _b, _c, _d, _e, _f, _g, _h, e_2_1;
             var e_2, _j;
@@ -446,7 +446,7 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         }
                         finally { if (e_2) throw e_2.error; }
                         return [7 /*endfinally*/];
-                    case 17: return [2 /*return*/, this.createEstimate({ operation: operations })];
+                    case 17: return [2 /*return*/, this.createEstimate({ operation: operations, publicKey: publicKey })];
                 }
             });
         });
@@ -476,10 +476,10 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.getAccountLimits(sourceOrDefault)];
                     case 3:
                         DEFAULT_PARAMS = _b.sent();
-                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), DEFAULT_PARAMS), sourceOrDefault)];
+                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), DEFAULT_PARAMS), sourceOrDefault, params.publicKey)];
                     case 4:
                         op = _b.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault, publicKey: params.publicKey })];
                     case 5: return [2 /*return*/, (_b.sent())[0]];
                 }
             });

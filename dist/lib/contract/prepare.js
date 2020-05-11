@@ -102,7 +102,7 @@ exports.createTransferOperation = function (_a) {
     });
 };
 exports.createSetDelegateOperation = function (_a) {
-    var delegate = _a.delegate, source = _a.source, _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? constants_1.DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
+    var delegate = _a.delegate, source = _a.source, publicKey = _a.publicKey, _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? constants_1.DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
     return __awaiter(void 0, void 0, void 0, function () {
         var operation;
         return __generator(this, function (_e) {
@@ -113,12 +113,13 @@ exports.createSetDelegateOperation = function (_a) {
                 gas_limit: gasLimit,
                 storage_limit: storageLimit,
                 delegate: delegate,
+                publicKey: publicKey
             };
             return [2 /*return*/, operation];
         });
     });
 };
-exports.createRegisterDelegateOperation = function (_a, source) {
+exports.createRegisterDelegateOperation = function (_a, source, publicKey) {
     var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? constants_1.DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
     return __awaiter(void 0, void 0, void 0, function () {
         return __generator(this, function (_e) {
@@ -128,6 +129,7 @@ exports.createRegisterDelegateOperation = function (_a, source) {
                     gas_limit: gasLimit,
                     storage_limit: storageLimit,
                     delegate: source,
+                    publicKey: publicKey
                 }];
         });
     });
