@@ -207,22 +207,28 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
      * @param OriginationOperation Originate operation parameter
      */
     RPCEstimateProvider.prototype.originate = function (_a) {
-        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
+        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, rest = __rest(_a, ["fee", "storageLimit", "gasLimit", "source"]);
         return __awaiter(this, void 0, void 0, function () {
-            var pkh, DEFAULT_PARAMS, op;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+            var pkh, _b, DEFAULT_PARAMS, op;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        _b = source;
+                        if (_b) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        pkh = _b.sent();
-                        return [4 /*yield*/, this.getAccountLimits(pkh)];
+                        _b = (_c.sent());
+                        _c.label = 2;
                     case 2:
-                        DEFAULT_PARAMS = _b.sent();
-                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
+                        pkh = _b;
+                        return [4 /*yield*/, this.getAccountLimits(pkh)];
                     case 3:
-                        op = _b.sent();
+                        DEFAULT_PARAMS = _c.sent();
+                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
+                    case 4:
+                        op = _c.sent();
                         return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
-                    case 4: return [2 /*return*/, (_b.sent())[0]];
+                    case 5: return [2 /*return*/, (_c.sent())[0]];
                 }
             });
         });
@@ -236,14 +242,20 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
      * @param TransferOperation Originate operation parameter
      */
     RPCEstimateProvider.prototype.transfer = function (_a) {
-        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
+        var storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, source = _a.source, rest = __rest(_a, ["storageLimit", "gasLimit", "source"]);
         return __awaiter(this, void 0, void 0, function () {
-            var pkh, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, isDelegatedPromise, _b, sourceBalance, manager, isNewImplicitAccount, isDelegated, requireReveal, revealFee, _storageLimit, DEFAULT_PARAMS, op;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+            var pkh, _b, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, isDelegatedPromise, _c, sourceBalance, manager, isNewImplicitAccount, isDelegated, requireReveal, revealFee, _storageLimit, required, fee, DEFAULT_PARAMS, op;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        _b = source;
+                        if (_b) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        pkh = _c.sent();
+                        _b = (_d.sent());
+                        _d.label = 2;
+                    case 2:
+                        pkh = _b;
                         mutezAmount = rest.mutez
                             ? rest.amount.toString()
                             : format_1.format('tz', 'mutez', rest.amount).toString();
@@ -257,24 +269,23 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                                 isNewImplicitAccountPromise,
                                 isDelegatedPromise,
                             ])];
-                    case 2:
-                        _b = __read.apply(void 0, [_c.sent(), 4]), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2], isDelegated = _b[3];
+                    case 3:
+                        _c = __read.apply(void 0, [_d.sent(), 4]), sourceBalance = _c[0], manager = _c[1], isNewImplicitAccount = _c[2], isDelegated = _c[3];
                         requireReveal = !manager;
                         revealFee = requireReveal ? constants_1.DEFAULT_FEE.REVEAL : 0;
-                        console.log("isDelegated=", isDelegated);
                         _storageLimit = isNewImplicitAccount ? constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
+                        required = Number(mutezAmount) + revealFee + _storageLimit * 1000 + (isDelegated ? 1 : 0);
+                        fee = sourceBalance.minus(required).toNumber();
                         DEFAULT_PARAMS = {
-                            fee: sourceBalance
-                                .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + 1)
-                                .toNumber(),
+                            fee: fee,
                             storageLimit: _storageLimit,
                             gasLimit: constants_1.DEFAULT_GAS_LIMIT.TRANSFER,
                         };
                         return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
-                    case 3:
-                        op = _c.sent();
+                    case 4:
+                        op = _d.sent();
                         return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
-                    case 4: return [2 /*return*/, (_c.sent())[0]];
+                    case 5: return [2 /*return*/, (_d.sent())[0]];
                 }
             });
         });
@@ -450,26 +461,26 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
      */
     RPCEstimateProvider.prototype.registerDelegate = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var DEFAULT_PARAMS, _a, op, _b, _c, _d, _e;
-            return __generator(this, function (_f) {
-                switch (_f.label) {
+            var sourceOrDefault, _a, DEFAULT_PARAMS, op;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
-                        _a = this.getAccountLimits;
+                        _a = params.source;
+                        if (_a) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1: return [4 /*yield*/, _a.apply(this, [_f.sent()])];
+                    case 1:
+                        _a = (_b.sent());
+                        _b.label = 2;
                     case 2:
-                        DEFAULT_PARAMS = _f.sent();
-                        _b = prepare_1.createRegisterDelegateOperation;
-                        _c = [__assign(__assign({}, params), DEFAULT_PARAMS)];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 3: return [4 /*yield*/, _b.apply(void 0, _c.concat([_f.sent()]))];
+                        sourceOrDefault = _a;
+                        return [4 /*yield*/, this.getAccountLimits(sourceOrDefault)];
+                    case 3:
+                        DEFAULT_PARAMS = _b.sent();
+                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), DEFAULT_PARAMS), sourceOrDefault)];
                     case 4:
-                        op = _f.sent();
-                        _d = this.createEstimate;
-                        _e = { operation: op };
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 5: return [4 /*yield*/, _d.apply(this, [(_e.source = _f.sent(), _e)])];
-                    case 6: return [2 /*return*/, (_f.sent())[0]];
+                        op = _b.sent();
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
+                    case 5: return [2 /*return*/, (_b.sent())[0]];
                 }
             });
         });

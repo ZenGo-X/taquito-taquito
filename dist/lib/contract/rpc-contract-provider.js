@@ -269,13 +269,13 @@ var RpcContractProvider = /** @class */ (function (_super) {
      *
      * @description Get relevant parameters for later signing and broadcast of a delegate transaction
      *
-     * @returns ForgedBytes parameters needed to sign and broadcast
+     * @returns ForgedBytes parameters needed to sign and broadcast, and Number to represent fees in mutez
      *
      * @param params delegate parameters
      */
-    RpcContractProvider.prototype.getDelegateSignatureHash = function (params) {
+    RpcContractProvider.prototype.getDelegateSignatureHashAndFees = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var estimate, operation, sourceOrDefault, _a;
+            var estimate, operation, sourceOrDefault, _a, forgedBytes, fees;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, this.context.isAnyProtocolActive(constants_1.protocols['005'])];
@@ -298,13 +298,23 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         _b.label = 5;
                     case 5:
                         sourceOrDefault = _a;
-                        return [2 /*return*/, this.prepareAndForge({
+                        return [4 /*yield*/, this.prepareAndForge({
                                 operation: operation,
                                 source: sourceOrDefault,
                             })];
+                    case 6:
+                        forgedBytes = _b.sent();
+                        fees = this.calculateTotalFees(forgedBytes);
+                        return [2 /*return*/, { forgedBytes: forgedBytes, fees: fees }];
                 }
             });
         });
+    };
+    RpcContractProvider.prototype.calculateTotalFees = function (forgedBytes) {
+        return forgedBytes.opOb.contents.reduce(function (acc, content) {
+            acc += parseInt(content.fee, 10) + parseInt(content.storage_limit, 10) * 1000; // storage_limit is given in mtz
+            return acc;
+        }, 0);
     };
     /**
      *
@@ -349,25 +359,30 @@ var RpcContractProvider = /** @class */ (function (_super) {
      */
     RpcContractProvider.prototype.registerDelegate = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var estimate, source, operation, opBytes, _a, hash, context, forgedBytes, opResponse;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var estimate, sourceOrDefault, _a, operation, opBytes, _b, hash, context, forgedBytes, opResponse;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0: return [4 /*yield*/, this.estimate(params, this.estimator.registerDelegate.bind(this.estimator))];
                     case 1:
-                        estimate = _b.sent();
+                        estimate = _c.sent();
+                        _a = params.source;
+                        if (_a) return [3 /*break*/, 3];
                         return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 2:
-                        source = _b.sent();
-                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), estimate), source)];
+                        _a = (_c.sent());
+                        _c.label = 3;
                     case 3:
-                        operation = _b.sent();
-                        return [4 /*yield*/, this.prepareAndForge({ operation: operation })];
+                        sourceOrDefault = _a;
+                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), estimate), sourceOrDefault)];
                     case 4:
-                        opBytes = _b.sent();
-                        return [4 /*yield*/, this.signAndInject(opBytes)];
+                        operation = _c.sent();
+                        return [4 /*yield*/, this.prepareAndForge({ operation: operation })];
                     case 5:
-                        _a = _b.sent(), hash = _a.hash, context = _a.context, forgedBytes = _a.forgedBytes, opResponse = _a.opResponse;
-                        return [2 /*return*/, new delegate_operation_1.DelegateOperation(hash, operation, source, forgedBytes, opResponse, context)];
+                        opBytes = _c.sent();
+                        return [4 /*yield*/, this.signAndInject(opBytes)];
+                    case 6:
+                        _b = _c.sent(), hash = _b.hash, context = _b.context, forgedBytes = _b.forgedBytes, opResponse = _b.opResponse;
+                        return [2 /*return*/, new delegate_operation_1.DelegateOperation(hash, operation, sourceOrDefault, forgedBytes, opResponse, context)];
                 }
             });
         });
@@ -414,13 +429,13 @@ var RpcContractProvider = /** @class */ (function (_super) {
      *
      * @description Get relevant parameters for later signing and broadcast of a transfer transaction
      *
-     * @returns GetTransferSignatureHashResponse parameters needed to sign and broadcast
+     * @returns GetTransferSignatureHashResponse parameters needed to sign and broadcast, and a number which represent the fees in mutez
      *
      * @param params operation parameters
      */
-    RpcContractProvider.prototype.getTransferSignatureHash = function (params) {
+    RpcContractProvider.prototype.getTransferSignatureHashAndFees = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var estimate, operation, source, _a;
+            var estimate, operation, source, _a, forgedBytes, fees;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, this.estimate(params, this.estimator.transfer.bind(this.estimator))];
@@ -437,7 +452,11 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         _b.label = 4;
                     case 4:
                         source = _a;
-                        return [2 /*return*/, this.prepareAndForge({ operation: operation, source: source })];
+                        return [4 /*yield*/, this.prepareAndForge({ operation: operation, source: source })];
+                    case 5:
+                        forgedBytes = _b.sent();
+                        fees = this.calculateTotalFees(forgedBytes);
+                        return [2 /*return*/, { forgedBytes: forgedBytes, fees: fees }];
                 }
             });
         });

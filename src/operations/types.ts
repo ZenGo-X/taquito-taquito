@@ -68,6 +68,7 @@ export type OriginateParamsBase = {
   fee?: number;
   gasLimit?: number;
   storageLimit?: number;
+  source?: string;
 };
 
 /**
@@ -146,6 +147,7 @@ export interface RegisterDelegateParams {
   fee?: number;
   gasLimit?: number;
   storageLimit?: number;
+  source?: string;
 }
 
 /**

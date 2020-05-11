@@ -38,6 +38,7 @@ export declare type OriginateParamsBase = {
     fee?: number;
     gasLimit?: number;
     storageLimit?: number;
+    source?: string;
 };
 /**
  * @description Parameters for originate method
@@ -105,6 +106,7 @@ export interface RegisterDelegateParams {
     fee?: number;
     gasLimit?: number;
     storageLimit?: number;
+    source?: string;
 }
 /**
  * @description RPC delegation operation

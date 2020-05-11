@@ -119,8 +119,8 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
    *
    * @param OriginationOperation Originate operation parameter
    */
-  async originate({ fee, storageLimit, gasLimit, ...rest }: OriginateParams) {
-    const pkh = await this.signer.publicKeyHash();
+  async originate({ fee, storageLimit, gasLimit, source, ...rest }: OriginateParams) {
+    const pkh = source || (await this.signer.publicKeyHash());
     const DEFAULT_PARAMS = await this.getAccountLimits(pkh);
     const op = await createOriginationOperation({
       ...rest,
@@ -136,9 +136,9 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
    *
    * @param TransferOperation Originate operation parameter
    */
-  async transfer({ fee, storageLimit, gasLimit, ...rest }: TransferParams) {
+  async transfer({ storageLimit, gasLimit, source, ...rest }: TransferParams) {
     // TODO - gather all promises into one Promise.all
-    const pkh = await this.signer.publicKeyHash();
+    const pkh = source || (await this.signer.publicKeyHash());
 
     // we want to make the initial fee estimation as tight as possible because otherwise the estimation fails here.
     const mutezAmount = rest.mutez
@@ -161,14 +161,16 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
     const requireReveal = !manager;
     const revealFee = requireReveal ? DEFAULT_FEE.REVEAL : 0;
 
-    console.log("isDelegated=", isDelegated)
     /* A transfer to a new implicit account would require burning funds for its storage
        https://tezos.stackexchange.com/questions/956/burn-fee-for-empty-account */
     const _storageLimit = isNewImplicitAccount ? DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
+
+    // maximum possible, +1 to avoid emptying a delegated account
+    const required = Number(mutezAmount) + revealFee + _storageLimit * 1000 + (isDelegated ? 1 : 0);
+    const fee = sourceBalance.minus(required).toNumber();
+
     const DEFAULT_PARAMS = {
-      fee: sourceBalance
-        .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + 1)
-        .toNumber(), // maximum possible, +1 to avoid emptying a delegated account
+      fee,
       storageLimit: _storageLimit,
       gasLimit: DEFAULT_GAS_LIMIT.TRANSFER,
     };
@@ -287,13 +289,12 @@ export class RPCEstimateProvider extends OperationEmitter implements EstimationP
    * @param Estimate
    */
   async registerDelegate(params: RegisterDelegateParams) {
-    const DEFAULT_PARAMS = await this.getAccountLimits(await this.signer.publicKeyHash());
+    const sourceOrDefault = params.source || (await this.signer.publicKeyHash());
+    const DEFAULT_PARAMS = await this.getAccountLimits(sourceOrDefault);
     const op = await createRegisterDelegateOperation(
       { ...params, ...DEFAULT_PARAMS },
-      await this.signer.publicKeyHash()
+      sourceOrDefault
     );
-    return (
-      await this.createEstimate({ operation: op, source: await this.signer.publicKeyHash() })
-    )[0];
+    return (await this.createEstimate({ operation: op, source: sourceOrDefault }))[0];
   }
 }

@@ -68,11 +68,15 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      *
      * @description Get relevant parameters for later signing and broadcast of a delegate transaction
      *
-     * @returns ForgedBytes parameters needed to sign and broadcast
+     * @returns ForgedBytes parameters needed to sign and broadcast, and Number to represent fees in mutez
      *
      * @param params delegate parameters
      */
-    getDelegateSignatureHash(params: DelegateParams): Promise<ForgedBytes>;
+    getDelegateSignatureHashAndFees(params: DelegateParams): Promise<{
+        forgedBytes: ForgedBytes;
+        fees: Number;
+    }>;
+    calculateTotalFees(forgedBytes: ForgedBytes): Number;
     /**
      *
      * @description inject a signature to construct a delegate operation
@@ -106,11 +110,14 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      *
      * @description Get relevant parameters for later signing and broadcast of a transfer transaction
      *
-     * @returns GetTransferSignatureHashResponse parameters needed to sign and broadcast
+     * @returns GetTransferSignatureHashResponse parameters needed to sign and broadcast, and a number which represent the fees in mutez
      *
      * @param params operation parameters
      */
-    getTransferSignatureHash(params: TransferParams): Promise<ForgedBytes>;
+    getTransferSignatureHashAndFees(params: TransferParams): Promise<{
+        forgedBytes: ForgedBytes;
+        fees: Number;
+    }>;
     /**
      *
      * @description Transfer tz from current address to a specific address. Will sign and inject an operation using the current context

@@ -109,11 +109,13 @@ export interface ContractProvider {
    *
    * @description Get relevant parameters for later signing and broadcast of a delegate transaction
    *
-   * @returns ForgedBytes parameters needed to sign and broadcast
+   * @returns ForgedBytes parameters needed to sign and broadcast, Number to represent the fees in mutez
    *
    * @param params transfer parameters
    */
-  getDelegateSignatureHash(params: DelegateParams): Promise<ForgedBytes>;
+  getDelegateSignatureHashAndFees(
+    params: DelegateParams
+  ): Promise<{ forgedBytes: ForgedBytes; fees: Number }>;
 
   /**
    *
@@ -169,7 +171,9 @@ export interface ContractProvider {
    *
    * @param params transfer parameters
    */
-  getTransferSignatureHash(params: TransferParams): Promise<ForgedBytes>;
+  getTransferSignatureHashAndFees(
+    params: TransferParams
+  ): Promise<{ forgedBytes: ForgedBytes; fees: Number }>;
 
   /**
    *

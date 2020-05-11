@@ -62,7 +62,7 @@ export abstract class OperationEmitter {
     }
 
     // Implicit account who emit the operation
-    const publicKeyHash = await this.signer.publicKeyHash();
+    const publicKeyHash = source || (await this.signer.publicKeyHash());
 
     let counterPromise: Promise<string | undefined> = Promise.resolve(undefined);
     let managerPromise: Promise<ManagerKeyResponse | undefined> = Promise.resolve(undefined);

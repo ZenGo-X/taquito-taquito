@@ -104,9 +104,9 @@ var OperationEmitter = /** @class */ (function () {
     OperationEmitter.prototype.prepareOperation = function (_a) {
         var operation = _a.operation, source = _a.source;
         return __awaiter(this, void 0, void 0, function () {
-            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, managerPromise, i, counter_1, _b, header, metadata, headCounter, manager, haveManager, reveal, _c, getFee, getSource, constructOps, branch, contents, protocol;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
+            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, _b, counterPromise, managerPromise, i, counter_1, _c, header, metadata, headCounter, manager, haveManager, reveal, _d, getFee, getSource, constructOps, branch, contents, protocol;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
                     case 0:
                         counters = {};
                         requiresReveal = false;
@@ -119,34 +119,39 @@ var OperationEmitter = /** @class */ (function () {
                         else {
                             ops = [operation];
                         }
+                        _b = source;
+                        if (_b) return [3 /*break*/, 2];
                         return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        publicKeyHash = _d.sent();
+                        _b = (_e.sent());
+                        _e.label = 2;
+                    case 2:
+                        publicKeyHash = _b;
                         counterPromise = Promise.resolve(undefined);
                         managerPromise = Promise.resolve(undefined);
                         i = 0;
-                        _d.label = 2;
-                    case 2:
-                        if (!(i < ops.length)) return [3 /*break*/, 5];
-                        if (!types_1.isOpRequireReveal(ops[i])) return [3 /*break*/, 4];
+                        _e.label = 3;
+                    case 3:
+                        if (!(i < ops.length)) return [3 /*break*/, 6];
+                        if (!types_1.isOpRequireReveal(ops[i])) return [3 /*break*/, 5];
                         requiresReveal = true;
                         return [4 /*yield*/, this.rpc.getContract(publicKeyHash)];
-                    case 3:
-                        counter_1 = (_d.sent()).counter;
+                    case 4:
+                        counter_1 = (_e.sent()).counter;
                         counterPromise = Promise.resolve(counter_1);
                         managerPromise = this.rpc.getManagerKey(publicKeyHash);
-                        return [3 /*break*/, 5];
-                    case 4:
+                        return [3 /*break*/, 6];
+                    case 5:
                         i++;
-                        return [3 /*break*/, 2];
-                    case 5: return [4 /*yield*/, Promise.all([
+                        return [3 /*break*/, 3];
+                    case 6: return [4 /*yield*/, Promise.all([
                             blockHeaderPromise,
                             blockMetaPromise,
                             counterPromise,
                             managerPromise,
                         ])];
-                    case 6:
-                        _b = __read.apply(void 0, [_d.sent(), 4]), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
+                    case 7:
+                        _c = __read.apply(void 0, [_e.sent(), 4]), header = _c[0], metadata = _c[1], headCounter = _c[2], manager = _c[3];
                         if (!header) {
                             throw new Error('Unable to latest block header');
                         }
@@ -154,23 +159,23 @@ var OperationEmitter = /** @class */ (function () {
                             throw new Error('Unable to fetch latest metadata');
                         }
                         head = header;
-                        if (!requiresReveal) return [3 /*break*/, 8];
+                        if (!requiresReveal) return [3 /*break*/, 9];
                         haveManager = manager && typeof manager === 'object' ? !!manager.key : !!manager;
-                        if (!!haveManager) return [3 /*break*/, 8];
-                        _c = {
+                        if (!!haveManager) return [3 /*break*/, 9];
+                        _d = {
                             kind: rpc_1.OpKind.REVEAL,
                             fee: constants_1.DEFAULT_FEE.REVEAL
                         };
                         return [4 /*yield*/, this.signer.publicKey()];
-                    case 7:
-                        reveal = (_c.public_key = _d.sent(),
-                            _c.source = publicKeyHash,
-                            _c.gas_limit = constants_1.DEFAULT_GAS_LIMIT.REVEAL,
-                            _c.storage_limit = constants_1.DEFAULT_STORAGE_LIMIT.REVEAL,
-                            _c);
-                        ops.unshift(reveal);
-                        _d.label = 8;
                     case 8:
+                        reveal = (_d.public_key = _e.sent(),
+                            _d.source = publicKeyHash,
+                            _d.gas_limit = constants_1.DEFAULT_GAS_LIMIT.REVEAL,
+                            _d.storage_limit = constants_1.DEFAULT_STORAGE_LIMIT.REVEAL,
+                            _d);
+                        ops.unshift(reveal);
+                        _e.label = 9;
+                    case 9:
                         counter = parseInt(headCounter || '0', 10);
                         if (!counters[publicKeyHash] || counters[publicKeyHash] < counter) {
                             counters[publicKeyHash] = counter;
