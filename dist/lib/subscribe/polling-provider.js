@@ -82,7 +82,7 @@ var PollingSubscribeProvider = /** @class */ (function () {
         if (POLL_INTERVAL === void 0) { POLL_INTERVAL = 20000; }
         this.context = context;
         this.POLL_INTERVAL = POLL_INTERVAL;
-        this.newBlock$ = rxjs_1.timer(0, this.POLL_INTERVAL).pipe(operators_1.map(function () { return _this.context; }), operators_1.switchMap(getLastBlock), operators_1.distinctUntilKeyChanged('hash'), operators_1.publishReplay(), operators_1.refCount());
+        this.newBlock$ = rxjs_1.timer(0, this.POLL_INTERVAL).pipe(operators_1.map(function () { return _this.context; }), operators_1.switchMap(getLastBlock), operators_1.distinctUntilKeyChanged('hash'));
     }
     PollingSubscribeProvider.prototype.subscribe = function (_filter) {
         return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(operators_1.pluck('hash')));

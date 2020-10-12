@@ -6,8 +6,6 @@ import {
   first,
   map,
   pluck,
-  publishReplay,
-  refCount,
   switchMap,
 } from 'rxjs/operators';
 import { Context } from '../context';
@@ -39,9 +37,7 @@ export class PollingSubscribeProvider implements SubscribeProvider {
   private newBlock$ = timer(0, this.POLL_INTERVAL).pipe(
     map(() => this.context),
     switchMap(getLastBlock),
-    distinctUntilKeyChanged('hash'),
-    publishReplay(),
-    refCount()
+    distinctUntilKeyChanged('hash')
   );
 
   constructor(private context: Context, public readonly POLL_INTERVAL = 20000) {}
