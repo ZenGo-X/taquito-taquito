@@ -36,6 +36,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var UnconfiguredSignerError = /** @class */ (function () {
+    function UnconfiguredSignerError() {
+        this.name = 'UnconfiguredSignerError';
+        this.message = 'No signer has been configured. Please configure one by calling setProvider({signer}) on your TezosToolkit instance.';
+    }
+    return UnconfiguredSignerError;
+}());
+exports.UnconfiguredSignerError = UnconfiguredSignerError;
 /**
  * @description Default signer implementation which does nothing and produce invalid signature
  */
@@ -45,33 +53,28 @@ var NoopSigner = /** @class */ (function () {
     NoopSigner.prototype.publicKey = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, ''];
+                throw new UnconfiguredSignerError();
             });
         });
     };
     NoopSigner.prototype.publicKeyHash = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, ''];
+                throw new UnconfiguredSignerError();
             });
         });
     };
     NoopSigner.prototype.secretKey = function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, ''];
+                throw new UnconfiguredSignerError();
             });
         });
     };
-    NoopSigner.prototype.sign = function (bytes, _watermark) {
+    NoopSigner.prototype.sign = function (_bytes, _watermark) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
-                return [2 /*return*/, {
-                        bytes: bytes,
-                        sig: '',
-                        prefixSig: '',
-                        sbytes: bytes,
-                    }];
+                throw new UnconfiguredSignerError();
             });
         });
     };

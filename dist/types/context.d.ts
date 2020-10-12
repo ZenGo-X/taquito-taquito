@@ -3,6 +3,9 @@ import { Signer } from './signer/interface';
 import { Protocols } from './constants';
 import { Forger } from './forger/interface';
 import { Injector } from './injector/interface';
+export interface TaquitoProvider<T, K extends Array<any>> {
+    new (context: Context, ...rest: K): T;
+}
 export interface Config {
     confirmationPollingIntervalSecond?: number;
     confirmationPollingTimeoutSecond?: number;

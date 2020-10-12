@@ -53,7 +53,7 @@ var rpc_forger_1 = require("./forger/rpc-forger");
 var rpc_injector_1 = require("./injector/rpc-injector");
 exports.defaultConfig = {
     confirmationPollingIntervalSecond: 10,
-    defaultConfirmationCount: 0,
+    defaultConfirmationCount: 1,
     confirmationPollingTimeoutSecond: 180,
 };
 /**

@@ -11,22 +11,18 @@ import { DEFAULT_FEE, DEFAULT_GAS_LIMIT, DEFAULT_STORAGE_LIMIT } from '../consta
 import { ml2mic, sexp2mic } from '@taquito/utils';
 import { Schema } from '@taquito/michelson-encoder';
 import { format } from '../format';
+import { OpKind } from '@taquito/rpc';
 
-export const createOriginationOperation = async (
-  {
-    code,
-    init,
-    balance = '0',
-    spendable = false,
-    delegatable = false,
-    delegate,
-    storage,
-    fee = DEFAULT_FEE.ORIGINATION,
-    gasLimit = DEFAULT_GAS_LIMIT.ORIGINATION,
-    storageLimit = DEFAULT_STORAGE_LIMIT.ORIGINATION,
-  }: OriginateParams,
-  publicKeyHash: string
-) => {
+export const createOriginationOperation = async ({
+  code,
+  init,
+  balance = '0',
+  delegate,
+  storage,
+  fee = DEFAULT_FEE.ORIGINATION,
+  gasLimit = DEFAULT_GAS_LIMIT.ORIGINATION,
+  storageLimit = DEFAULT_STORAGE_LIMIT.ORIGINATION,
+}: OriginateParams) => {
   // tslint:disable-next-line: strict-type-predicates
   if (storage !== undefined && init !== undefined) {
     throw new Error(
@@ -50,14 +46,11 @@ export const createOriginationOperation = async (
   };
 
   const operation: RPCOriginationOperation = {
-    kind: 'origination',
+    kind: OpKind.ORIGINATION,
     fee,
     gas_limit: gasLimit,
     storage_limit: storageLimit,
     balance: format('tz', 'mutez', balance).toString(),
-    manager_pubkey: publicKeyHash,
-    spendable,
-    delegatable,
     script,
   };
 
@@ -78,7 +71,7 @@ export const createTransferOperation = async ({
   rawParam = false,
 }: TransferParams) => {
   const operation: RPCTransferOperation = {
-    kind: 'transaction',
+    kind: OpKind.TRANSACTION,
     fee,
     gas_limit: gasLimit,
     storage_limit: storageLimit,
@@ -104,7 +97,7 @@ export const createSetDelegateOperation = async ({
   storageLimit = DEFAULT_STORAGE_LIMIT.DELEGATION,
 }: DelegateParams) => {
   const operation: RPCDelegateOperation = {
-    kind: 'delegation',
+    kind: OpKind.DELEGATION,
     source,
     fee,
     gas_limit: gasLimit,
@@ -123,7 +116,7 @@ export const createRegisterDelegateOperation = async (
   source: string
 ) => {
   return {
-    kind: 'delegation',
+    kind: OpKind.DELEGATION,
     fee,
     gas_limit: gasLimit,
     storage_limit: storageLimit,

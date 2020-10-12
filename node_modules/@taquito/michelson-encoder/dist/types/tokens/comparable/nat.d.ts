@@ -1,5 +1,11 @@
-import { Token, TokenFactory, ComparableToken } from '../token';
-export declare class NatToken extends Token implements ComparableToken {
+import { TokenFactory, ComparableToken, TokenValidationError } from '../token';
+export declare class NatValidationError extends TokenValidationError {
+    value: any;
+    token: NatToken;
+    name: string;
+    constructor(value: any, token: NatToken, message: string);
+}
+export declare class NatToken extends ComparableToken {
     protected val: {
         prim: string;
         args: any[];
@@ -17,6 +23,7 @@ export declare class NatToken extends Token implements ComparableToken {
         [key: string]: any;
     };
     Encode(args: any[]): any;
+    private isValid;
     EncodeObject(val: any): any;
     ExtractSchema(): string;
     ToBigMapKey(val: string): {

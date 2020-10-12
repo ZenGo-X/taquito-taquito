@@ -54,6 +54,6 @@ var TimestampToken = /** @class */ (function (_super) {
     };
     TimestampToken.prim = 'timestamp';
     return TimestampToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.TimestampToken = TimestampToken;
 //# sourceMappingURL=timestamp.js.map

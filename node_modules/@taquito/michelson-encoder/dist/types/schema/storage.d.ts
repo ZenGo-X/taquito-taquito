@@ -14,6 +14,7 @@ export declare class Schema {
     constructor(val: MichelsonV1Expression);
     private removeTopLevelAnnotation;
     Execute(val: any, semantics?: Semantic): any;
+    Typecheck(val: any): boolean;
     ExecuteOnBigMapDiff(diff: any[], semantics?: Semantic): any;
     ExecuteOnBigMapValue(key: any, semantics?: Semantic): any;
     EncodeBigMapKey(key: string): {

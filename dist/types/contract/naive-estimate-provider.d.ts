@@ -1,5 +1,5 @@
 import { DEFAULT_FEE, DEFAULT_GAS_LIMIT } from '../constants';
-import { OriginateParams, TransferParams } from '../operations/types';
+import { OriginateParams, TransferParams, ParamsWithKind } from '../operations/types';
 import { Estimate } from './estimate';
 import { EstimationProvider } from './interface';
 /**
@@ -48,4 +48,5 @@ export declare class NaiveEstimateProvider implements EstimationProvider {
         fee?: DEFAULT_FEE | undefined;
         gasLimit?: DEFAULT_GAS_LIMIT | undefined;
     }): Promise<Estimate>;
+    batch(params: ParamsWithKind[]): Promise<Estimate[]>;
 }

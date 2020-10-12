@@ -1,5 +1,11 @@
-import { Token, TokenFactory, ComparableToken } from '../token';
-export declare class KeyHashToken extends Token implements ComparableToken {
+import { TokenFactory, ComparableToken, TokenValidationError } from '../token';
+export declare class KeyHashValidationError extends TokenValidationError {
+    value: any;
+    token: KeyHashToken;
+    name: string;
+    constructor(value: any, token: KeyHashToken, message: string);
+}
+export declare class KeyHashToken extends ComparableToken {
     protected val: {
         prim: string;
         args: any[];
@@ -17,6 +23,7 @@ export declare class KeyHashToken extends Token implements ComparableToken {
         bytes: string;
         string: string;
     }): string;
+    private isValid;
     Encode(args: any[]): any;
     EncodeObject(val: any): any;
     ExtractSchema(): string;

@@ -14,6 +14,18 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("../token");
+var BytesValidationError = /** @class */ (function (_super) {
+    __extends(BytesValidationError, _super);
+    function BytesValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'BytesValidationError';
+        return _this;
+    }
+    return BytesValidationError;
+}(token_1.TokenValidationError));
+exports.BytesValidationError = BytesValidationError;
 var BytesToken = /** @class */ (function (_super) {
     __extends(BytesToken, _super);
     function BytesToken(val, idx, fac) {
@@ -29,11 +41,27 @@ var BytesToken = /** @class */ (function (_super) {
             type: { prim: BytesToken.prim },
         };
     };
+    BytesToken.prototype.isValid = function (val) {
+        if (typeof val === 'string' && /^[0-9a-fA-F]*$/.test(val) && val.length % 2 === 0) {
+            return null;
+        }
+        else {
+            return new BytesValidationError(val, this, "Invalid bytes: " + val);
+        }
+    };
     BytesToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { bytes: String(val).toString() };
     };
     BytesToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { bytes: String(val).toString() };
     };
     BytesToken.prototype.Execute = function (val) {
@@ -52,6 +80,6 @@ var BytesToken = /** @class */ (function (_super) {
     };
     BytesToken.prim = 'bytes';
     return BytesToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.BytesToken = BytesToken;
 //# sourceMappingURL=bytes.js.map

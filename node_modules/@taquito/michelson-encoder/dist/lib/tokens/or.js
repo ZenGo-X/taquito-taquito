@@ -23,12 +23,36 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-var __spreadArrays = (this && this.__spreadArrays) || function () {
-    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-    for (var r = Array(s), k = 0, i = 0; i < il; i++)
-        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-            r[k] = a[j];
-    return r;
+var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var __spread = (this && this.__spread) || function () {
+    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
+    return ar;
+};
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("./token");
@@ -74,6 +98,7 @@ var OrToken = /** @class */ (function (_super) {
         }
     };
     OrToken.prototype.ExtractSignature = function () {
+        var e_1, _a, e_2, _b;
         var leftToken = this.createToken(this.val.args[0], this.idx);
         var keyCount = 1;
         if (leftToken instanceof OrToken) {
@@ -82,21 +107,39 @@ var OrToken = /** @class */ (function (_super) {
         var rightToken = this.createToken(this.val.args[1], this.idx + keyCount);
         var newSig = [];
         if (leftToken instanceof OrToken) {
-            newSig.push.apply(newSig, leftToken.ExtractSignature());
+            newSig.push.apply(newSig, __spread(leftToken.ExtractSignature()));
         }
         else {
-            for (var _i = 0, _a = leftToken.ExtractSignature(); _i < _a.length; _i++) {
-                var sig = _a[_i];
-                newSig.push(__spreadArrays([leftToken.annot()], sig));
+            try {
+                for (var _c = __values(leftToken.ExtractSignature()), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var sig = _d.value;
+                    newSig.push(__spread([leftToken.annot()], sig));
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+                }
+                finally { if (e_1) throw e_1.error; }
             }
         }
         if (rightToken instanceof OrToken) {
-            newSig.push.apply(newSig, rightToken.ExtractSignature());
+            newSig.push.apply(newSig, __spread(rightToken.ExtractSignature()));
         }
         else {
-            for (var _b = 0, _c = rightToken.ExtractSignature(); _b < _c.length; _b++) {
-                var sig = _c[_b];
-                newSig.push(__spreadArrays([rightToken.annot()], sig));
+            try {
+                for (var _e = __values(rightToken.ExtractSignature()), _f = _e.next(); !_f.done; _f = _e.next()) {
+                    var sig = _f.value;
+                    newSig.push(__spread([rightToken.annot()], sig));
+                }
+            }
+            catch (e_2_1) { e_2 = { error: e_2_1 }; }
+            finally {
+                try {
+                    if (_f && !_f.done && (_b = _e.return)) _b.call(_e);
+                }
+                finally { if (e_2) throw e_2.error; }
             }
         }
         return newSig;

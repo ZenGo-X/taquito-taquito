@@ -334,6 +334,15 @@
       }
       return HttpResponseError;
   }());
+  var HttpRequestFailed = /** @class */ (function () {
+      function HttpRequestFailed(url, innerEvent) {
+          this.url = url;
+          this.innerEvent = innerEvent;
+          this.name = 'HttpRequestFailed';
+          this.message = "Request to " + url + " failed";
+      }
+      return HttpRequestFailed;
+  }());
   var HttpBackend = /** @class */ (function () {
       function HttpBackend() {
       }
@@ -416,8 +425,8 @@
               request.ontimeout = function () {
                   reject(new Error("Request timed out after: " + request.timeout + "ms"));
               };
-              request.onerror = function () {
-                  reject(new HttpResponseError("Http error response: (" + this.status + ") " + request.response, this.status, request.statusText, request.response));
+              request.onerror = function (err) {
+                  reject(new HttpRequestFailed(url, err));
               };
               if (data) {
                   var dataStr = JSON.stringify(data);
@@ -432,6 +441,7 @@
   }());
 
   exports.HttpBackend = HttpBackend;
+  exports.HttpRequestFailed = HttpRequestFailed;
   exports.HttpResponseError = HttpResponseError;
 
   Object.defineProperty(exports, '__esModule', { value: true });

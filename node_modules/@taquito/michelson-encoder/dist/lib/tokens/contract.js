@@ -13,8 +13,20 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var token_1 = require("./token");
 var utils_1 = require("@taquito/utils");
+var token_1 = require("./token");
+var ContractValidationError = /** @class */ (function (_super) {
+    __extends(ContractValidationError, _super);
+    function ContractValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'ContractValidationError';
+        return _this;
+    }
+    return ContractValidationError;
+}(token_1.TokenValidationError));
+exports.ContractValidationError = ContractValidationError;
 var ContractToken = /** @class */ (function (_super) {
     __extends(ContractToken, _super);
     function ContractToken(val, idx, fac) {
@@ -24,6 +36,13 @@ var ContractToken = /** @class */ (function (_super) {
         _this.fac = fac;
         return _this;
     }
+    ContractToken.prototype.isValid = function (value) {
+        // tz1,tz2 and tz3 seems to be valid contract values (for Unit contract)
+        if (utils_1.validateAddress(value) !== utils_1.ValidationResult.VALID) {
+            return new ContractValidationError(value, this, 'Contract address is not valid');
+        }
+        return null;
+    };
     ContractToken.prototype.Execute = function (val) {
         if (val.string) {
             return val.string;
@@ -32,9 +51,17 @@ var ContractToken = /** @class */ (function (_super) {
     };
     ContractToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     ContractToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     ContractToken.prototype.ExtractSchema = function () {

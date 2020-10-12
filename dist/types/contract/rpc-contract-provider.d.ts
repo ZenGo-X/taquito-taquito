@@ -1,12 +1,12 @@
 import { Schema } from '@taquito/michelson-encoder';
 import { Context } from '../context';
+import { DelegateOperation } from '../operations/delegate-operation';
 import { OperationEmitter } from '../operations/operation-emitter';
 import { OriginationOperation } from '../operations/origination-operation';
-import { DelegateParams, OriginateParams, TransferParams, RegisterDelegateParams, ForgedBytes } from '../operations/types';
+import { TransactionOperation } from '../operations/transaction-operation';
+import { DelegateParams, OriginateParams, RegisterDelegateParams, ForgedBytes, TransferParams } from '../operations/types';
 import { Contract } from './contract';
 import { ContractProvider, ContractSchema, EstimationProvider } from './interface';
-import { TransactionOperation } from '../operations/transaction-operation';
-import { DelegateOperation } from '../operations/delegate-operation';
 export declare class RpcContractProvider extends OperationEmitter implements ContractProvider {
     private estimator;
     constructor(context: Context, estimator: EstimationProvider);
@@ -17,7 +17,7 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      * @param contract contract address you want to get the storage from
      * @param schema optional schema can either be the contract script rpc response or a michelson-encoder schema
      *
-     * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
      */
     getStorage<T>(contract: string, schema?: ContractSchema): Promise<T>;
     /**
@@ -30,7 +30,7 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      *
      * @deprecated Deprecated in favor of getBigMapKeyByID
      *
-     * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
      */
     getBigMapKey<T>(contract: string, key: string, schema?: ContractSchema): Promise<T>;
     /**
@@ -41,10 +41,9 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      * @param keyToEncode key to query (will be encoded properly according to the schema)
      * @param schema Big Map schema (can be determined using your contract type)
      *
-     * @see http://tezos.gitlab.io/mainnet/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
      */
     getBigMapKeyByID<T>(id: string, keyToEncode: string, schema: Schema): Promise<T>;
-    private estimate;
     /**
      *
      * @description Originate a new contract according to the script in parameters. Will sign and inject an operation using the current context
@@ -84,7 +83,7 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      * @param prefixSig the prefix to be used for the encoding of the signature bytes
      * @param sbytes signature bytes in hex
      */
-    injectDelegateSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string, trackingId?: number): Promise<DelegateOperation>;
+    injectDelegateSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<DelegateOperation>;
     /**
      *
      * @description Register the current address as delegate. Will sign and inject an operation using the current context

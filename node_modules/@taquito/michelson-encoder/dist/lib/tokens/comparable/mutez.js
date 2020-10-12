@@ -15,6 +15,18 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("../token");
 var bignumber_js_1 = require("bignumber.js");
+var MutezValidationError = /** @class */ (function (_super) {
+    __extends(MutezValidationError, _super);
+    function MutezValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'MutezValidationError';
+        return _this;
+    }
+    return MutezValidationError;
+}(token_1.TokenValidationError));
+exports.MutezValidationError = MutezValidationError;
 var MutezToken = /** @class */ (function (_super) {
     __extends(MutezToken, _super);
     function MutezToken(val, idx, fac) {
@@ -30,11 +42,28 @@ var MutezToken = /** @class */ (function (_super) {
     MutezToken.prototype.ExtractSchema = function () {
         return MutezToken.prim;
     };
+    MutezToken.prototype.isValid = function (val) {
+        var bigNumber = new bignumber_js_1.default(val);
+        if (bigNumber.isNaN()) {
+            return new MutezValidationError(val, this, "Value is not a number: " + val);
+        }
+        else {
+            return null;
+        }
+    };
     MutezToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { int: String(val).toString() };
     };
     MutezToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { int: String(val).toString() };
     };
     MutezToken.prototype.ToBigMapKey = function (val) {
@@ -49,6 +78,6 @@ var MutezToken = /** @class */ (function (_super) {
     };
     MutezToken.prim = 'mutez';
     return MutezToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.MutezToken = MutezToken;
 //# sourceMappingURL=mutez.js.map

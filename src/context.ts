@@ -7,6 +7,10 @@ import { RpcForger } from './forger/rpc-forger';
 import { Injector } from './injector/interface';
 import { RpcInjector } from './injector/rpc-injector';
 
+export interface TaquitoProvider<T, K extends Array<any>> {
+  new (context: Context, ...rest: K): T;
+}
+
 export interface Config {
   confirmationPollingIntervalSecond?: number;
   confirmationPollingTimeoutSecond?: number;
@@ -15,7 +19,7 @@ export interface Config {
 
 export const defaultConfig: Required<Config> = {
   confirmationPollingIntervalSecond: 10,
-  defaultConfirmationCount: 0,
+  defaultConfirmationCount: 1,
   confirmationPollingTimeoutSecond: 180,
 };
 

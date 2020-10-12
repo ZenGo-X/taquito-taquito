@@ -15,8 +15,6 @@ export declare class UnitToken extends Token {
     }, idx: number, fac: TokenFactory);
     Encode(args: any[]): any;
     EncodeObject(_val: any): any;
-    Execute(): {
-        [key: string]: any;
-    };
+    Execute(): symbol;
     ExtractSchema(): string;
 }

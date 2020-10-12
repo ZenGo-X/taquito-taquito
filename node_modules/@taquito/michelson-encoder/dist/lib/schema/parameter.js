@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var createToken_1 = require("../tokens/createToken");
+var token_1 = require("../tokens/token");
 var or_1 = require("../tokens/or");
 var option_1 = require("../tokens/option");
 /**
@@ -48,7 +49,15 @@ var ParameterSchema = /** @class */ (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             args[_i] = arguments[_i];
         }
-        return this.root.Encode(args.reverse());
+        try {
+            return this.root.Encode(args.reverse());
+        }
+        catch (ex) {
+            if (ex instanceof token_1.TokenValidationError) {
+                throw ex;
+            }
+            throw new Error("Unable to encode storage object. " + ex);
+        }
     };
     ParameterSchema.prototype.ExtractSchema = function () {
         return this.root.ExtractSchema();

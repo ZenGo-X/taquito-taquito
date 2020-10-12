@@ -1,22 +1,21 @@
-import { IndexerClient } from '@taquito/indexer';
 import { RpcClient } from '@taquito/rpc';
 import { InMemorySigner } from '@taquito/signer';
 import { Protocols } from './constants';
-import { Context, Config } from './context';
+import { Context, Config, TaquitoProvider } from './context';
 import { ContractProvider, EstimationProvider } from './contract/interface';
 import { RpcContractProvider } from './contract/rpc-contract-provider';
 import { RPCEstimateProvider } from './contract/rpc-estimate-provider';
 import { format } from './format';
-import { IndexerProvider } from './query/indexer-provider';
-import { QueryProvider } from './query/interface';
 import { Signer } from './signer/interface';
 import { NoopSigner } from './signer/noop';
 import { SubscribeProvider } from './subscribe/interface';
 import { PollingSubscribeProvider } from './subscribe/polling-provider';
 import { TzProvider } from './tz/interface';
 import { RpcTzProvider } from './tz/rpc-tz-provider';
+import { Forger } from './forger/interface';
+import { RpcForger } from './forger/rpc-forger';
+import { RPCBatchProvider } from './batch/rpc-batch-provider';
 
-export * from './query/interface';
 export * from './signer/interface';
 export * from './subscribe/interface';
 export * from './forger/interface';
@@ -25,10 +24,29 @@ export * from './contract';
 export * from './contract/big-map';
 export * from './constants';
 
+export { OpKind } from './operations/types';
+
+export { TaquitoProvider } from './context';
+export { PollingSubscribeProvider } from './subscribe/polling-provider';
+export { RpcForger } from './forger/rpc-forger';
+export { CompositeForger } from './forger/composite-forger';
+export {
+  MichelsonMap,
+  MichelsonMapKey,
+  MapTypecheckError,
+  UnitValue,
+} from '@taquito/michelson-encoder';
+
+export {
+  TezosOperationError,
+  TezosOperationErrorWithMessage,
+  TezosPreapplyFailureError,
+} from './operations/operation-errors';
+
 export { SubscribeProvider } from './subscribe/interface';
 export interface SetProviderOptions {
+  forger?: Forger;
   rpc?: string | RpcClient;
-  indexer?: string | IndexerClient;
   stream?: string | SubscribeProvider;
   signer?: Signer;
   protocol?: Protocols;
@@ -40,8 +58,6 @@ export interface SetProviderOptions {
  */
 export class TezosToolkit {
   private _rpcClient = new RpcClient();
-  private _indexerClient: IndexerClient = new IndexerClient();
-  private _query!: QueryProvider;
   private _stream!: SubscribeProvider;
   private _options: SetProviderOptions = {};
 
@@ -50,6 +66,7 @@ export class TezosToolkit {
   private _tz = new RpcTzProvider(this._context);
   private _estimate = new RPCEstimateProvider(this._context);
   private _contract = new RpcContractProvider(this._context, this._estimate);
+  private _batch = new RPCBatchProvider(this._context, this._estimate);
 
   public readonly format = format;
 
@@ -58,14 +75,19 @@ export class TezosToolkit {
   }
 
   /**
+   * @description Sets configuration on the Tezos Taquito instance. Allows user to choose which signer, rpc client, rpc url, forger and so forth
    *
-   * @param options rpc url or rpcClient to use to interact with the Tezos network and indexer url to use to interact with the Tezos network
+   * @param options rpc url or rpcClient to use to interact with the Tezos network and  url to use to interact with the Tezos network
+   *
+   * @example Tezos.setProvider({signer: new InMemorySigner(“edsk...”)})
+   * @example Tezos.setProvider({config: {confirmationPollingTimeoutSecond: 300}})
+   *
    */
-  setProvider({ rpc, indexer, stream, signer, protocol, config }: SetProviderOptions) {
+  setProvider({ rpc, stream, signer, protocol, config, forger }: SetProviderOptions) {
     this.setRpcProvider(rpc);
-    this.setIndexerProvider(indexer);
     this.setStreamProvider(stream);
     this.setSignerProvider(signer);
+    this.setForgerProvider(forger);
 
     this._context.proto = protocol;
     this._context.config = config as Required<Config>;
@@ -93,17 +115,10 @@ export class TezosToolkit {
     this._context.rpc = this._rpcClient;
   }
 
-  private setIndexerProvider(indexer: SetProviderOptions['indexer']) {
-    if (typeof indexer === 'string') {
-      this._indexerClient = new IndexerClient(indexer);
-    } else if (indexer instanceof IndexerClient) {
-      this._indexerClient = indexer;
-    } else if (this._options.indexer === undefined) {
-      this._indexerClient = new IndexerClient();
-    }
-
-    this._query = new IndexerProvider(this._indexerClient);
-    this._options.indexer = indexer;
+  private setForgerProvider(forger: SetProviderOptions['forger']) {
+    const f = typeof forger === 'undefined' ? new RpcForger(this._context) : forger;
+    this._options.forger = f;
+    this._context.forger = f;
   }
 
   private setStreamProvider(stream: SetProviderOptions['stream']) {
@@ -131,18 +146,13 @@ export class TezosToolkit {
     return this._contract;
   }
 
+  public batch = this._batch.batch.bind(this._batch);
+
   /**
    * @description Provide access to operation estimation utilities
    */
   get estimate(): EstimationProvider {
     return this._estimate;
-  }
-
-  /**
-   * @description Provide access to querying utilities backed by an indexer implementation
-   */
-  get query(): QueryProvider {
-    return this._query;
   }
 
   /**
@@ -193,25 +203,38 @@ export class TezosToolkit {
     secret?: string
   ): Promise<void> {
     if (privateKeyOrEmail && passphrase && mnemonic && secret) {
+      const previousSigner = this.signer;
       const signer = InMemorySigner.fromFundraiser(privateKeyOrEmail, passphrase, mnemonic);
       const pkh = await signer.publicKeyHash();
-      let op;
-      try {
-        op = await this.tz.activate(pkh, secret);
-      } catch (ex) {
-        const isInvalidActivationError = ex && ex.body && /Invalid activation/.test(ex.body);
-        if (!isInvalidActivationError) {
-          throw ex;
-        }
-      }
-      if (op) {
-        await op.confirmation();
-      }
       this.setSignerProvider(signer);
+      try {
+        let op;
+        try {
+          op = await this.tz.activate(pkh, secret);
+        } catch (ex) {
+          const isInvalidActivationError = ex && ex.body && /Invalid activation/.test(ex.body);
+          if (!isInvalidActivationError) {
+            throw ex;
+          }
+        }
+        if (op) {
+          await op.confirmation();
+        }
+      } catch (ex) {
+        // Restore to previous signer in case of error
+        this.setSignerProvider(previousSigner);
+        throw ex;
+      }
     } else {
       // Fallback to regular import
       this.setSignerProvider(new InMemorySigner(privateKeyOrEmail, passphrase));
     }
+  }
+
+  getFactory<T, K extends Array<any>>(ctor: TaquitoProvider<T, K>) {
+    return (...args: K) => {
+      return new ctor(this._context, ...args);
+    };
   }
 }
 

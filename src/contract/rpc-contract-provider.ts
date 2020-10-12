@@ -1,32 +1,34 @@
 import { Schema } from '@taquito/michelson-encoder';
-import { ConstructedOperation, ScriptResponse } from '@taquito/rpc';
-import { DEFAULT_FEE, DEFAULT_GAS_LIMIT, DEFAULT_STORAGE_LIMIT, protocols } from '../constants';
+import {
+  OperationContents,
+  OperationContentsDelegation,
+  OperationContentsTransaction,
+  ScriptResponse,
+} from '@taquito/rpc';
+import { encodeExpr } from '@taquito/utils';
 import { Context } from '../context';
+import { DelegateOperation } from '../operations/delegate-operation';
 import { OperationEmitter } from '../operations/operation-emitter';
-import { Operation } from '../operations/operations';
 import { OriginationOperation } from '../operations/origination-operation';
+import { TransactionOperation } from '../operations/transaction-operation';
 import {
   DelegateParams,
   OriginateParams,
-  RPCDelegateOperation,
-  TransferParams,
   RegisterDelegateParams,
   ForgedBytes,
+  TransferParams,
 } from '../operations/types';
 import { Contract } from './contract';
-import { Estimate } from './estimate';
+import { InvalidDelegationSource } from './errors';
 import { ContractProvider, ContractSchema, EstimationProvider } from './interface';
 import {
   createOriginationOperation,
-  createTransferOperation,
-  createSetDelegateOperation,
   createRegisterDelegateOperation,
+  createSetDelegateOperation,
+  createTransferOperation,
 } from './prepare';
 import { smartContractAbstractionSemantic } from './semantic';
-import { encodeExpr, hex2buf, mergebuf, b58cencode, prefix } from '@taquito/utils';
-import { TransactionOperation } from '../operations/transaction-operation';
-import { DelegateOperation } from '../operations/delegate-operation';
-import { InvalidDelegationSource } from './errors';
+import { protocols } from '../constants';
 
 export class RpcContractProvider extends OperationEmitter implements ContractProvider {
   constructor(context: Context, private estimator: EstimationProvider) {
@@ -40,7 +42,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
    * @param contract contract address you want to get the storage from
    * @param schema optional schema can either be the contract script rpc response or a michelson-encoder schema
    *
-   * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+   * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
    */
   async getStorage<T>(contract: string, schema?: ContractSchema): Promise<T> {
     if (!schema) {
@@ -69,7 +71,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
    *
    * @deprecated Deprecated in favor of getBigMapKeyByID
    *
-   * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+   * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
    */
   async getBigMapKey<T>(contract: string, key: string, schema?: ContractSchema): Promise<T> {
     if (!schema) {
@@ -98,7 +100,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
    * @param keyToEncode key to query (will be encoded properly according to the schema)
    * @param schema Big Map schema (can be determined using your contract type)
    *
-   * @see http://tezos.gitlab.io/mainnet/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
+   * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
    */
   async getBigMapKeyByID<T>(id: string, keyToEncode: string, schema: Schema): Promise<T> {
     const { key, type } = schema.EncodeBigMapKey(keyToEncode);
@@ -109,37 +111,6 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     const bigMapValue = await this.context.rpc.getBigMapExpr(id.toString(), encodedExpr);
 
     return schema.ExecuteOnBigMapValue(bigMapValue, smartContractAbstractionSemantic(this)) as T;
-  }
-
-  private async estimate<T extends { fee?: number; gasLimit?: number; storageLimit?: number }>(
-    { fee, gasLimit, storageLimit, ...rest }: T,
-    estimator: (param: T) => Promise<Estimate>
-  ) {
-    let calculatedFee = fee;
-    let calculatedGas = gasLimit;
-    let calculatedStorage = storageLimit;
-
-    if (fee === undefined || gasLimit === undefined || storageLimit === undefined) {
-      const estimation = await estimator({ fee, gasLimit, storageLimit, ...(rest as any) });
-
-      if (calculatedFee === undefined) {
-        calculatedFee = estimation.suggestedFeeMutez;
-      }
-
-      if (calculatedGas === undefined) {
-        calculatedGas = estimation.gasLimit;
-      }
-
-      if (calculatedStorage === undefined) {
-        calculatedStorage = estimation.storageLimit;
-      }
-    }
-
-    return {
-      fee: calculatedFee!,
-      gasLimit: calculatedGas!,
-      storageLimit: calculatedStorage!,
-    };
   }
 
   /**
@@ -156,13 +127,10 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     const estimate = await this.estimate(params, this.estimator.originate.bind(this.estimator));
 
     const publicKeyHash = await this.signer.publicKeyHash();
-    const operation = await createOriginationOperation(
-      {
-        ...params,
-        ...estimate,
-      },
-      publicKeyHash
-    );
+    const operation = await createOriginationOperation({
+      ...params,
+      ...estimate,
+    });
     const preparedOrigination = await this.prepareOperation({ operation, source: publicKeyHash });
     const forgedOrigination = await this.forge(preparedOrigination);
     const { hash, context, forgedBytes, opResponse } = await this.signAndInject(forgedOrigination);
@@ -179,7 +147,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
    */
   async setDelegate(params: DelegateParams) {
     // Since babylon delegation source cannot smart contract
-    if ((await this.context.isAnyProtocolActive(protocols['005'])) && /kt1/i.test(params.source)) {
+    if (/kt1/i.test(params.source)) {
       throw new InvalidDelegationSource(params.source);
     }
 
@@ -237,15 +205,14 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
   async injectDelegateSignatureAndBroadcast(
     params: ForgedBytes,
     prefixSig: string,
-    sbytes: string,
-    trackingId? : number
+    sbytes: string
   ): Promise<DelegateOperation> {
     const { hash, context, forgedBytes, opResponse } = await this.inject(params, prefixSig, sbytes);
     if (!params.opOb.contents) {
       throw new Error('Invalid operation contents');
     }
 
-    const delegationParams: ConstructedOperation | undefined = params.opOb.contents.find(
+    const delegationParams: OperationContents | undefined = params.opOb.contents.find(
       content => content.kind === 'delegation'
     );
     if (!delegationParams) {
@@ -253,12 +220,12 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     }
 
     const operation = await createSetDelegateOperation(
-      constructedOperationToDelegateParams(delegationParams, trackingId)
+      operationContentsToDelegateParams(delegationParams as OperationContentsDelegation)
     );
     return new DelegateOperation(
       hash,
       operation,
-      params.opOb.contents[0].source,
+      (params.opOb.contents[0] as OperationContentsDelegation).source,
       forgedBytes,
       opResponse,
       context
@@ -294,7 +261,10 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
    * @param Transfer operation parameter
    */
   async transfer(params: TransferParams) {
-    const estimate = await this.estimate(params, this.estimator.transfer.bind(this.estimator));
+    const estimate = await this.estimate(
+      params,
+      this.estimator.transfer.bind(this.estimator, params)
+    );
     const operation = await createTransferOperation({
       ...params,
       ...estimate,
@@ -343,7 +313,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
       throw new Error('Invalid operation contents');
     }
 
-    const transactionParams: ConstructedOperation | undefined = params.opOb.contents.find(
+    const transactionParams: OperationContents | undefined = params.opOb.contents.find(
       content => content.kind === 'transaction'
     );
     if (!transactionParams) {
@@ -351,12 +321,12 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     }
 
     const operation = await createTransferOperation(
-      constructedOperationToTransferParams(transactionParams)
+      operationContentsToTransferParams(transactionParams as OperationContentsTransaction)
     );
     return new TransactionOperation(
       hash,
       operation,
-      params.opOb.contents[0].source,
+      (params.opOb.contents[0] as OperationContentsTransaction).source,
       forgedBytes,
       opResponse,
       context
@@ -364,19 +334,13 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
   }
 
   async at(address: string): Promise<Contract> {
-    // We need to check if Proto5 is activated to pick the right smart contract abstraction
-    if (await this.context.isAnyProtocolActive(protocols['005'])) {
-      const script = await this.rpc.getScript(address);
-      const entrypoints = await this.rpc.getEntrypoints(address);
-      return new Contract(address, script, this, entrypoints);
-    } else {
-      const script = await this.rpc.getScript(address);
-      return new Contract(address, script, this);
-    }
+    const script = await this.rpc.getScript(address);
+    const entrypoints = await this.rpc.getEntrypoints(address);
+    return new Contract(address, script, this, entrypoints);
   }
 }
 
-function constructedOperationToTransferParams(op: ConstructedOperation): TransferParams {
+function operationContentsToTransferParams(op: OperationContentsTransaction): TransferParams {
   return {
     to: op.destination,
     // @ts-ignore
@@ -390,14 +354,12 @@ function constructedOperationToTransferParams(op: ConstructedOperation): Transfe
   };
 }
 
-function constructedOperationToDelegateParams(op: ConstructedOperation, trackingId? : number): DelegateParams {
-  const gasLimit : number =  Number(op.gas_limit);
-  
+function operationContentsToDelegateParams(op: OperationContentsDelegation): DelegateParams {
   return {
     source: op.source,
-    delegate: op.delegate,
+    delegate: op.delegate || '',
     fee: Number(op.fee),
-    gasLimit: trackingId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
+    gasLimit: Number(op.gas_limit),
     storageLimit: Number(op.storage_limit),
   };
 }

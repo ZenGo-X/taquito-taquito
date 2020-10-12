@@ -15,6 +15,18 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("./token");
 var utils_1 = require("@taquito/utils");
+var KeyValidationError = /** @class */ (function (_super) {
+    __extends(KeyValidationError, _super);
+    function KeyValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'KeyValidationError';
+        return _this;
+    }
+    return KeyValidationError;
+}(token_1.TokenValidationError));
+exports.KeyValidationError = KeyValidationError;
 var KeyToken = /** @class */ (function (_super) {
     __extends(KeyToken, _super);
     function KeyToken(val, idx, fac) {
@@ -30,11 +42,25 @@ var KeyToken = /** @class */ (function (_super) {
         }
         return utils_1.encodeKey(val.bytes);
     };
+    KeyToken.prototype.isValid = function (value) {
+        if (utils_1.validatePublicKey(value) !== utils_1.ValidationResult.VALID) {
+            return new KeyValidationError(value, this, 'Key is not valid');
+        }
+        return null;
+    };
     KeyToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     KeyToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     KeyToken.prototype.ExtractSchema = function () {

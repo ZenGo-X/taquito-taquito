@@ -1,5 +1,6 @@
 /// <reference types="node" />
-export { prefix } from './constants';
+export * from './validators';
+export { prefix, Prefix, prefixLength } from './constants';
 export declare function encodeExpr(value: string): any;
 /**
  *

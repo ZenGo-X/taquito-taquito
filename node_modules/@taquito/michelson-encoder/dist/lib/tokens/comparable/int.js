@@ -15,6 +15,18 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("../token");
 var bignumber_js_1 = require("bignumber.js");
+var IntValidationError = /** @class */ (function (_super) {
+    __extends(IntValidationError, _super);
+    function IntValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'IntValidationError';
+        return _this;
+    }
+    return IntValidationError;
+}(token_1.TokenValidationError));
+exports.IntValidationError = IntValidationError;
 var IntToken = /** @class */ (function (_super) {
     __extends(IntToken, _super);
     function IntToken(val, idx, fac) {
@@ -30,11 +42,28 @@ var IntToken = /** @class */ (function (_super) {
     IntToken.prototype.ExtractSchema = function () {
         return IntToken.prim;
     };
+    IntToken.prototype.isValid = function (val) {
+        var bigNumber = new bignumber_js_1.default(val);
+        if (bigNumber.isNaN()) {
+            return new IntValidationError(val, this, "Value is not a number: " + val);
+        }
+        else {
+            return null;
+        }
+    };
     IntToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { int: String(val).toString() };
     };
     IntToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { int: String(val).toString() };
     };
     IntToken.prototype.ToBigMapKey = function (val) {
@@ -49,6 +78,6 @@ var IntToken = /** @class */ (function (_super) {
     };
     IntToken.prim = 'int';
     return IntToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.IntToken = IntToken;
 //# sourceMappingURL=int.js.map

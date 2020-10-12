@@ -16,13 +16,13 @@ export declare class OriginationOperation extends Operation implements GasConsum
      */
     readonly contractAddress?: string;
     constructor(hash: string, params: RPCOriginationOperation, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context, contractProvider: RpcContractProvider);
-    readonly operationResults: import("@taquito/rpc").OperationResultOrigination | undefined;
+    readonly operationResults: any;
     readonly fee: number;
     readonly gasLimit: number;
     readonly storageLimit: number;
-    readonly consumedGas: string | undefined;
-    readonly storageDiff: string | undefined;
-    readonly storageSize: string | undefined;
+    readonly consumedGas: any;
+    readonly storageDiff: any;
+    readonly storageSize: any;
     readonly errors: any;
     /**
      * @description Provide the contract abstract of the newly originated contract

@@ -1,4 +1,10 @@
-import { Token, TokenFactory } from './token';
+import { Token, TokenFactory, TokenValidationError } from './token';
+export declare class ContractValidationError extends TokenValidationError {
+    value: any;
+    token: ContractToken;
+    name: string;
+    constructor(value: any, token: ContractToken, message: string);
+}
 export declare class ContractToken extends Token {
     protected val: {
         prim: string;
@@ -13,6 +19,7 @@ export declare class ContractToken extends Token {
         args: any[];
         annots: any[];
     }, idx: number, fac: TokenFactory);
+    private isValid;
     Execute(val: {
         bytes: string;
         string: string;

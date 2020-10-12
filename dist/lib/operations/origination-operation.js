@@ -69,8 +69,7 @@ var OriginationOperation = /** @class */ (function (_super) {
     }
     Object.defineProperty(OriginationOperation.prototype, "operationResults", {
         get: function () {
-            var originationOp = Array.isArray(this.results) &&
-                this.results.find(function (op) { return op.kind === 'origination'; });
+            var originationOp = Array.isArray(this.results) && this.results.find(function (op) { return op.kind === 'origination'; });
             var result = originationOp && originationOp.metadata && originationOp.metadata.operation_result;
             return result ? result : undefined;
         },

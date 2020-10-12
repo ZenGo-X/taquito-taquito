@@ -26,9 +26,11 @@ var Protocols;
     Protocols["Pt24m4xi"] = "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd";
     Protocols["PsBABY5H"] = "PsBABY5HQTSkA4297zNHfsZNKtxULfL18y95qb3m53QJiXGmrbU";
     Protocols["PsBabyM1"] = "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS";
+    Protocols["PsCARTHA"] = "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb";
 })(Protocols = exports.Protocols || (exports.Protocols = {}));
 exports.protocols = {
     '004': [Protocols.Pt24m4xi],
     '005': [Protocols.PsBABY5H, Protocols.PsBabyM1],
+    '006': [Protocols.PsCARTHA],
 };
 //# sourceMappingURL=constants.js.map

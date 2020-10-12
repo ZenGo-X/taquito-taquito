@@ -62,6 +62,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var operation_emitter_1 = require("../operations/operation-emitter");
 var operations_1 = require("../operations/operations");
+var rpc_1 = require("@taquito/rpc");
 var RpcTzProvider = /** @class */ (function (_super) {
     __extends(RpcTzProvider, _super);
     function RpcTzProvider(context) {
@@ -88,7 +89,7 @@ var RpcTzProvider = /** @class */ (function (_super) {
                 switch (_b.label) {
                     case 0:
                         operation = {
-                            kind: 'activate_account',
+                            kind: rpc_1.OpKind.ACTIVATION,
                             pkh: pkh,
                             secret: secret,
                         };

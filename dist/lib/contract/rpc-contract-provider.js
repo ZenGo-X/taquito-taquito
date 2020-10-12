@@ -59,29 +59,18 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __rest = (this && this.__rest) || function (s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
-var constants_1 = require("../constants");
+var utils_1 = require("@taquito/utils");
+var delegate_operation_1 = require("../operations/delegate-operation");
 var operation_emitter_1 = require("../operations/operation-emitter");
 var origination_operation_1 = require("../operations/origination-operation");
+var transaction_operation_1 = require("../operations/transaction-operation");
 var contract_1 = require("./contract");
+var errors_1 = require("./errors");
 var prepare_1 = require("./prepare");
 var semantic_1 = require("./semantic");
-var utils_1 = require("@taquito/utils");
-var transaction_operation_1 = require("../operations/transaction-operation");
-var delegate_operation_1 = require("../operations/delegate-operation");
-var errors_1 = require("./errors");
+var constants_1 = require("../constants");
 var RpcContractProvider = /** @class */ (function (_super) {
     __extends(RpcContractProvider, _super);
     function RpcContractProvider(context, estimator) {
@@ -96,7 +85,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
      * @param contract contract address you want to get the storage from
      * @param schema optional schema can either be the contract script rpc response or a michelson-encoder schema
      *
-     * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
      */
     RpcContractProvider.prototype.getStorage = function (contract, schema) {
         return __awaiter(this, void 0, void 0, function () {
@@ -134,7 +123,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
      *
      * @deprecated Deprecated in favor of getBigMapKeyByID
      *
-     * @see http://tezos.gitlab.io/master/api/rpc.html#get-block-id-context-contracts-contract-id-script
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
      */
     RpcContractProvider.prototype.getBigMapKey = function (contract, key, schema) {
         return __awaiter(this, void 0, void 0, function () {
@@ -171,7 +160,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
      * @param keyToEncode key to query (will be encoded properly according to the schema)
      * @param schema Big Map schema (can be determined using your contract type)
      *
-     * @see http://tezos.gitlab.io/mainnet/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
      */
     RpcContractProvider.prototype.getBigMapKeyByID = function (id, keyToEncode, schema) {
         return __awaiter(this, void 0, void 0, function () {
@@ -188,39 +177,6 @@ var RpcContractProvider = /** @class */ (function (_super) {
                     case 2:
                         bigMapValue = _b.sent();
                         return [2 /*return*/, schema.ExecuteOnBigMapValue(bigMapValue, semantic_1.smartContractAbstractionSemantic(this))];
-                }
-            });
-        });
-    };
-    RpcContractProvider.prototype.estimate = function (_a, estimator) {
-        var fee = _a.fee, gasLimit = _a.gasLimit, storageLimit = _a.storageLimit, rest = __rest(_a, ["fee", "gasLimit", "storageLimit"]);
-        return __awaiter(this, void 0, void 0, function () {
-            var calculatedFee, calculatedGas, calculatedStorage, estimation;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        calculatedFee = fee;
-                        calculatedGas = gasLimit;
-                        calculatedStorage = storageLimit;
-                        if (!(fee === undefined || gasLimit === undefined || storageLimit === undefined)) return [3 /*break*/, 2];
-                        return [4 /*yield*/, estimator(__assign({ fee: fee, gasLimit: gasLimit, storageLimit: storageLimit }, rest))];
-                    case 1:
-                        estimation = _b.sent();
-                        if (calculatedFee === undefined) {
-                            calculatedFee = estimation.suggestedFeeMutez;
-                        }
-                        if (calculatedGas === undefined) {
-                            calculatedGas = estimation.gasLimit;
-                        }
-                        if (calculatedStorage === undefined) {
-                            calculatedStorage = estimation.storageLimit;
-                        }
-                        _b.label = 2;
-                    case 2: return [2 /*return*/, {
-                            fee: calculatedFee,
-                            gasLimit: calculatedGas,
-                            storageLimit: calculatedStorage,
-                        }];
                 }
             });
         });
@@ -246,7 +202,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 2:
                         publicKeyHash = _b.sent();
-                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, params), estimate), publicKeyHash)];
+                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, params), estimate))];
                     case 3:
                         operation = _b.sent();
                         return [4 /*yield*/, this.prepareOperation({ operation: operation, source: publicKeyHash })];
@@ -276,34 +232,33 @@ var RpcContractProvider = /** @class */ (function (_super) {
             var estimate, operation, sourceOrDefault, _a, opBytes, _b, hash, context, forgedBytes, opResponse;
             return __generator(this, function (_c) {
                 switch (_c.label) {
-                    case 0: return [4 /*yield*/, this.context.isAnyProtocolActive(constants_1.protocols['005'])];
-                    case 1:
+                    case 0:
                         // Since babylon delegation source cannot smart contract
-                        if ((_c.sent()) && /kt1/i.test(params.source)) {
+                        if (/kt1/i.test(params.source)) {
                             throw new errors_1.InvalidDelegationSource(params.source);
                         }
                         return [4 /*yield*/, this.estimate(params, this.estimator.setDelegate.bind(this.estimator))];
-                    case 2:
+                    case 1:
                         estimate = _c.sent();
                         return [4 /*yield*/, prepare_1.createSetDelegateOperation(__assign(__assign({}, params), estimate))];
-                    case 3:
+                    case 2:
                         operation = _c.sent();
                         _a = params.source;
-                        if (_a) return [3 /*break*/, 5];
+                        if (_a) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 4:
+                    case 3:
                         _a = (_c.sent());
-                        _c.label = 5;
-                    case 5:
+                        _c.label = 4;
+                    case 4:
                         sourceOrDefault = _a;
                         return [4 /*yield*/, this.prepareAndForge({
                                 operation: operation,
                                 source: sourceOrDefault,
                             })];
-                    case 6:
+                    case 5:
                         opBytes = _c.sent();
                         return [4 /*yield*/, this.signAndInject(opBytes)];
-                    case 7:
+                    case 6:
                         _b = _c.sent(), hash = _b.hash, context = _b.context, forgedBytes = _b.forgedBytes, opResponse = _b.opResponse;
                         return [2 /*return*/, new delegate_operation_1.DelegateOperation(hash, operation, sourceOrDefault, forgedBytes, opResponse, context)];
                 }
@@ -361,7 +316,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
      * @param prefixSig the prefix to be used for the encoding of the signature bytes
      * @param sbytes signature bytes in hex
      */
-    RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes, trackingId) {
+    RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes) {
         return __awaiter(this, void 0, void 0, function () {
             var _a, hash, context, forgedBytes, opResponse, delegationParams, operation;
             return __generator(this, function (_b) {
@@ -376,7 +331,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         if (!delegationParams) {
                             throw new Error('No delegation in operation contents');
                         }
-                        return [4 /*yield*/, prepare_1.createSetDelegateOperation(constructedOperationToDelegateParams(delegationParams, trackingId))];
+                        return [4 /*yield*/, prepare_1.createSetDelegateOperation(operationContentsToDelegateParams(delegationParams))];
                     case 2:
                         operation = _b.sent();
                         return [2 /*return*/, new delegate_operation_1.DelegateOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
@@ -430,7 +385,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
             var estimate, operation, source, _a, opBytes, _b, hash, context, forgedBytes, opResponse;
             return __generator(this, function (_c) {
                 switch (_c.label) {
-                    case 0: return [4 /*yield*/, this.estimate(params, this.estimator.transfer.bind(this.estimator))];
+                    case 0: return [4 /*yield*/, this.estimate(params, this.estimator.transfer.bind(this.estimator, params))];
                     case 1:
                         estimate = _c.sent();
                         return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, params), estimate))];
@@ -512,7 +467,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         if (!transactionParams) {
                             throw new Error('No transaction in operation contents');
                         }
-                        return [4 /*yield*/, prepare_1.createTransferOperation(constructedOperationToTransferParams(transactionParams))];
+                        return [4 /*yield*/, prepare_1.createTransferOperation(operationContentsToTransferParams(transactionParams))];
                     case 2:
                         operation = _b.sent();
                         return [2 /*return*/, new transaction_operation_1.TransactionOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
@@ -522,23 +477,16 @@ var RpcContractProvider = /** @class */ (function (_super) {
     };
     RpcContractProvider.prototype.at = function (address) {
         return __awaiter(this, void 0, void 0, function () {
-            var script, entrypoints, script;
+            var script, entrypoints;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.context.isAnyProtocolActive(constants_1.protocols['005'])];
+                    case 0: return [4 /*yield*/, this.rpc.getScript(address)];
                     case 1:
-                        if (!_a.sent()) return [3 /*break*/, 4];
-                        return [4 /*yield*/, this.rpc.getScript(address)];
-                    case 2:
                         script = _a.sent();
                         return [4 /*yield*/, this.rpc.getEntrypoints(address)];
-                    case 3:
+                    case 2:
                         entrypoints = _a.sent();
                         return [2 /*return*/, new contract_1.Contract(address, script, this, entrypoints)];
-                    case 4: return [4 /*yield*/, this.rpc.getScript(address)];
-                    case 5:
-                        script = _a.sent();
-                        return [2 /*return*/, new contract_1.Contract(address, script, this)];
                 }
             });
         });
@@ -546,20 +494,19 @@ var RpcContractProvider = /** @class */ (function (_super) {
     return RpcContractProvider;
 }(operation_emitter_1.OperationEmitter));
 exports.RpcContractProvider = RpcContractProvider;
-function constructedOperationToTransferParams(op) {
+function operationContentsToTransferParams(op) {
     return __assign({ to: op.destination, 
         // @ts-ignore
         amount: Number(op.amount), parameter: op.parameters, 
         // @ts-ignore
         fee: Number(op.fee), gasLimit: Number(op.gas_limit), storageLimit: Number(op.storage_limit) }, op);
 }
-function constructedOperationToDelegateParams(op, trackingId) {
-    var gasLimit = Number(op.gas_limit);
+function operationContentsToDelegateParams(op) {
     return {
         source: op.source,
-        delegate: op.delegate,
+        delegate: op.delegate || '',
         fee: Number(op.fee),
-        gasLimit: trackingId ? (Math.ceil(gasLimit / 1000) * 1000) + trackingId : gasLimit,
+        gasLimit: Number(op.gas_limit),
         storageLimit: Number(op.storage_limit),
     };
 }

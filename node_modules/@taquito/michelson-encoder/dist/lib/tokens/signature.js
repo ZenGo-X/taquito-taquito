@@ -14,6 +14,19 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("./token");
+var utils_1 = require("@taquito/utils");
+var SignatureValidationError = /** @class */ (function (_super) {
+    __extends(SignatureValidationError, _super);
+    function SignatureValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'SignatureValidationError';
+        return _this;
+    }
+    return SignatureValidationError;
+}(token_1.TokenValidationError));
+exports.SignatureValidationError = SignatureValidationError;
 var SignatureToken = /** @class */ (function (_super) {
     __extends(SignatureToken, _super);
     function SignatureToken(val, idx, fac) {
@@ -26,11 +39,25 @@ var SignatureToken = /** @class */ (function (_super) {
     SignatureToken.prototype.Execute = function (val) {
         return val.string;
     };
+    SignatureToken.prototype.isValid = function (value) {
+        if (utils_1.validateSignature(value) !== utils_1.ValidationResult.VALID) {
+            return new SignatureValidationError(value, this, 'Signature is not valid');
+        }
+        return null;
+    };
     SignatureToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     SignatureToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     SignatureToken.prototype.ExtractSchema = function () {

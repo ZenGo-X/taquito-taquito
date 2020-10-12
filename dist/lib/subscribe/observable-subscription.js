@@ -1,4 +1,15 @@
 "use strict";
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
@@ -18,14 +29,24 @@ var ObservableSubscription = /** @class */ (function () {
         });
     }
     ObservableSubscription.prototype.call = function (listeners, value) {
-        for (var _i = 0, listeners_1 = listeners; _i < listeners_1.length; _i++) {
-            var l = listeners_1[_i];
+        var e_1, _a;
+        try {
+            for (var listeners_1 = __values(listeners), listeners_1_1 = listeners_1.next(); !listeners_1_1.done; listeners_1_1 = listeners_1.next()) {
+                var l = listeners_1_1.value;
+                try {
+                    l(value);
+                }
+                catch (ex) {
+                    console.error(ex);
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
             try {
-                l(value);
+                if (listeners_1_1 && !listeners_1_1.done && (_a = listeners_1.return)) _a.call(listeners_1);
             }
-            catch (ex) {
-                console.error(ex);
-            }
+            finally { if (e_1) throw e_1.error; }
         }
     };
     ObservableSubscription.prototype.remove = function (listeners, value) {

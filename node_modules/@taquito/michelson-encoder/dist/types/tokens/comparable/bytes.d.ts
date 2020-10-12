@@ -1,5 +1,11 @@
-import { Token, TokenFactory, ComparableToken } from '../token';
-export declare class BytesToken extends Token implements ComparableToken {
+import { TokenFactory, ComparableToken, TokenValidationError } from '../token';
+export declare class BytesValidationError extends TokenValidationError {
+    value: any;
+    token: BytesToken;
+    name: string;
+    constructor(value: any, token: BytesToken, message: string);
+}
+export declare class BytesToken extends ComparableToken {
     protected val: {
         prim: string;
         args: any[];
@@ -21,6 +27,7 @@ export declare class BytesToken extends Token implements ComparableToken {
             prim: string;
         };
     };
+    private isValid;
     Encode(args: any[]): any;
     EncodeObject(val: any): {
         bytes: string;

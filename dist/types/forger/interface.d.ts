@@ -1,7 +1,7 @@
-import { ConstructedOperation } from '@taquito/rpc';
+import { OperationContents } from '@taquito/rpc';
 export interface ForgeParams {
     branch: string;
-    contents: ConstructedOperation[];
+    contents: OperationContents[];
 }
 export declare type ForgeResponse = string;
 export interface Forger {

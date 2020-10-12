@@ -1,4 +1,10 @@
-import { Token, TokenFactory, ComparableToken, Semantic } from './token';
+import { Token, TokenFactory, ComparableToken, Semantic, TokenValidationError } from './token';
+export declare class BigMapValidationError extends TokenValidationError {
+    value: any;
+    token: BigMapToken;
+    name: string;
+    constructor(value: any, token: BigMapToken, message: string);
+}
 export declare class BigMapToken extends Token {
     protected val: {
         prim: string;
@@ -18,6 +24,7 @@ export declare class BigMapToken extends Token {
     ExtractSchema(): {
         [x: number]: any;
     };
+    private isValid;
     Encode(args: any[]): any;
     EncodeObject(args: any): any;
     Execute(val: any[] | {

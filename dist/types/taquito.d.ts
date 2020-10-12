@@ -1,14 +1,12 @@
-import { IndexerClient } from '@taquito/indexer';
 import { RpcClient } from '@taquito/rpc';
 import { Protocols } from './constants';
-import { Config } from './context';
+import { Config, TaquitoProvider } from './context';
 import { ContractProvider, EstimationProvider } from './contract/interface';
 import { format } from './format';
-import { QueryProvider } from './query/interface';
 import { Signer } from './signer/interface';
 import { SubscribeProvider } from './subscribe/interface';
 import { TzProvider } from './tz/interface';
-export * from './query/interface';
+import { Forger } from './forger/interface';
 export * from './signer/interface';
 export * from './subscribe/interface';
 export * from './forger/interface';
@@ -16,10 +14,17 @@ export * from './tz/interface';
 export * from './contract';
 export * from './contract/big-map';
 export * from './constants';
+export { OpKind } from './operations/types';
+export { TaquitoProvider } from './context';
+export { PollingSubscribeProvider } from './subscribe/polling-provider';
+export { RpcForger } from './forger/rpc-forger';
+export { CompositeForger } from './forger/composite-forger';
+export { MichelsonMap, MichelsonMapKey, MapTypecheckError, UnitValue, } from '@taquito/michelson-encoder';
+export { TezosOperationError, TezosOperationErrorWithMessage, TezosPreapplyFailureError, } from './operations/operation-errors';
 export { SubscribeProvider } from './subscribe/interface';
 export interface SetProviderOptions {
+    forger?: Forger;
     rpc?: string | RpcClient;
-    indexer?: string | IndexerClient;
     stream?: string | SubscribeProvider;
     signer?: Signer;
     protocol?: Protocols;
@@ -30,24 +35,28 @@ export interface SetProviderOptions {
  */
 export declare class TezosToolkit {
     private _rpcClient;
-    private _indexerClient;
-    private _query;
     private _stream;
     private _options;
     private _context;
     private _tz;
     private _estimate;
     private _contract;
+    private _batch;
     readonly format: typeof format;
     constructor();
     /**
+     * @description Sets configuration on the Tezos Taquito instance. Allows user to choose which signer, rpc client, rpc url, forger and so forth
      *
-     * @param options rpc url or rpcClient to use to interact with the Tezos network and indexer url to use to interact with the Tezos network
+     * @param options rpc url or rpcClient to use to interact with the Tezos network and  url to use to interact with the Tezos network
+     *
+     * @example Tezos.setProvider({signer: new InMemorySigner(“edsk...”)})
+     * @example Tezos.setProvider({config: {confirmationPollingTimeoutSecond: 300}})
+     *
      */
-    setProvider({ rpc, indexer, stream, signer, protocol, config }: SetProviderOptions): void;
+    setProvider({ rpc, stream, signer, protocol, config, forger }: SetProviderOptions): void;
     private setSignerProvider;
     private setRpcProvider;
-    private setIndexerProvider;
+    private setForgerProvider;
     private setStreamProvider;
     /**
      * @description Provide access to tezos account management
@@ -57,14 +66,11 @@ export declare class TezosToolkit {
      * @description Provide access to smart contract utilities
      */
     readonly contract: ContractProvider;
+    batch: (params?: import("./operations/types").ParamsWithKind[] | undefined) => import("./batch/rpc-batch-provider").OperationBatch;
     /**
      * @description Provide access to operation estimation utilities
      */
     readonly estimate: EstimationProvider;
-    /**
-     * @description Provide access to querying utilities backed by an indexer implementation
-     */
-    readonly query: QueryProvider;
     /**
      * @description Provide access to streaming utilities backed by an streamer implementation
      */
@@ -95,6 +101,7 @@ export declare class TezosToolkit {
      * @param secret Faucet secret
      */
     importKey(email: string, password: string, mnemonic: string, secret: string): Promise<void>;
+    getFactory<T, K extends Array<any>>(ctor: TaquitoProvider<T, K>): (...args: K) => T;
 }
 /**
  * @description Default Tezos toolkit instance

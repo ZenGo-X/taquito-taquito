@@ -1,6 +1,12 @@
-import { Token, TokenFactory, ComparableToken } from '../token';
+import { TokenFactory, ComparableToken, TokenValidationError } from '../token';
 import BigNumber from 'bignumber.js';
-export declare class MutezToken extends Token implements ComparableToken {
+export declare class MutezValidationError extends TokenValidationError {
+    value: any;
+    token: MutezToken;
+    name: string;
+    constructor(value: any, token: MutezToken, message: string);
+}
+export declare class MutezToken extends ComparableToken {
     protected val: {
         prim: string;
         args: any[];
@@ -16,6 +22,7 @@ export declare class MutezToken extends Token implements ComparableToken {
     }, idx: number, fac: TokenFactory);
     Execute(val: any): BigNumber;
     ExtractSchema(): string;
+    private isValid;
     Encode(args: any[]): any;
     EncodeObject(val: any): any;
     ToBigMapKey(val: string): {

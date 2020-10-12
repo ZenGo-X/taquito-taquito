@@ -15,6 +15,18 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var token_1 = require("../token");
 var utils_1 = require("@taquito/utils");
+var KeyHashValidationError = /** @class */ (function (_super) {
+    __extends(KeyHashValidationError, _super);
+    function KeyHashValidationError(value, token, message) {
+        var _this = _super.call(this, value, token, message) || this;
+        _this.value = value;
+        _this.token = token;
+        _this.name = 'KeyHashValidationError';
+        return _this;
+    }
+    return KeyHashValidationError;
+}(token_1.TokenValidationError));
+exports.KeyHashValidationError = KeyHashValidationError;
 var KeyHashToken = /** @class */ (function (_super) {
     __extends(KeyHashToken, _super);
     function KeyHashToken(val, idx, fac) {
@@ -30,11 +42,25 @@ var KeyHashToken = /** @class */ (function (_super) {
         }
         return utils_1.encodeKeyHash(val.bytes);
     };
+    KeyHashToken.prototype.isValid = function (value) {
+        if (utils_1.validateKeyHash(value) !== utils_1.ValidationResult.VALID) {
+            return new KeyHashValidationError(value, this, "KeyHash is not valid: " + value);
+        }
+        return null;
+    };
     KeyHashToken.prototype.Encode = function (args) {
         var val = args.pop();
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     KeyHashToken.prototype.EncodeObject = function (val) {
+        var err = this.isValid(val);
+        if (err) {
+            throw err;
+        }
         return { string: val };
     };
     KeyHashToken.prototype.ExtractSchema = function () {
@@ -56,6 +82,6 @@ var KeyHashToken = /** @class */ (function (_super) {
     };
     KeyHashToken.prim = 'key_hash';
     return KeyHashToken;
-}(token_1.Token));
+}(token_1.ComparableToken));
 exports.KeyHashToken = KeyHashToken;
 //# sourceMappingURL=key_hash.js.map
