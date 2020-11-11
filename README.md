@@ -1,15 +1,13 @@
 [![pkgsign status](https://us-central1-pkgsign.cloudfunctions.net/pkgsign-badge?name=@taquito/taquito&expectedIdentity=%40simrob)](https://github.com/RedpointGames/pkgsign)
 
-# Taquito high level functions
+# ZenGo's taquito package
 
-The `@taquito/taquito` package contains higher level functionality that builds upon the other packages in the Tezos Typescript Library Suite.
+The purpose of this repository is to include https://github.com/ZenGo-X/taquito (a fork of https://github.com/ecadlabs/taquito) as a dependency for ZenGo's server.
+This is done in order to build artifacts at build-time. 
 
-## API Documentation
+# Contribution
 
-TypeDoc style documentation is available on-line [here](https://tezostaquito.io/typedoc/modules/_taquito_taquito.html)
-
-See the top-level [https://github.com/ecadlabs/taquito](https://github.com/ecadlabs/taquito) file for details on reporting issues, contributing and versioning.
-
-## Disclaimer
-
-THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Do NOT develop directly from this repository. <br>
+Instead:
+1. Develop on top of https://github.com/ZenGo-X/taquito. Main branch is `zengo` (`master` is preserved for other purposes).
+2. Merge using the instructions in https://gist.github.com/gbenattar/40040c4e31daee651b3dc53d5db7da2f.
