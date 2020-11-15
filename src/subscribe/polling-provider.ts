@@ -1,13 +1,6 @@
 import { BlockResponse, OperationEntry } from '@taquito/rpc';
 import { from, Observable, ObservableInput, timer } from 'rxjs';
-import {
-  concatMap,
-  distinctUntilKeyChanged,
-  first,
-  map,
-  pluck,
-  switchMap,
-} from 'rxjs/operators';
+import { concatMap, distinctUntilKeyChanged, first, map, pluck, switchMap } from 'rxjs/operators';
 import { Context } from '../context';
 import { evaluateFilter } from './filters';
 import { Filter, SubscribeProvider, Subscription, OperationContent } from './interface';
@@ -23,8 +16,8 @@ const applyFilter = (filter: Filter) =>
       for (const ops of block.operations) {
         for (const op of ops) {
           for (const content of op.contents) {
-            if (evaluateFilter({hash: op.hash, ...content}, filter)) {
-              sub.next({hash: op.hash, ...content});
+            if (evaluateFilter({ hash: op.hash, ...content }, filter)) {
+              sub.next({ hash: op.hash, ...content });
             }
           }
         }
