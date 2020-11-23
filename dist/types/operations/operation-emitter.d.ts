@@ -12,8 +12,8 @@ export interface PreparedOperation {
 }
 export declare abstract class OperationEmitter {
     protected context: Context;
-    readonly rpc: RpcClient;
-    readonly signer: import("../taquito").Signer;
+    get rpc(): RpcClient;
+    get signer(): import("../taquito").Signer;
     constructor(context: Context);
     protected prepareOperation({ operation, source, }: PrepareOperationParams): Promise<PreparedOperation>;
     protected prepareAndForge(params: PrepareOperationParams): Promise<{

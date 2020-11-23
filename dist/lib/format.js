@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.format = void 0;
 var bignumber_js_1 = require("bignumber.js");
 var TZ_DECIMALS = 6;
 var MTZ_DECIMALS = 3;

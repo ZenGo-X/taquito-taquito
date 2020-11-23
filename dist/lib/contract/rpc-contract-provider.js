@@ -3,7 +3,7 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
@@ -60,6 +60,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.RpcContractProvider = void 0;
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
 var utils_1 = require("@taquito/utils");
 var delegate_operation_1 = require("../operations/delegate-operation");
@@ -99,7 +100,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         schema = _a.sent();
                         _a.label = 2;
                     case 2:
-                        if (schema instanceof michelson_encoder_1.Schema) {
+                        if (michelson_encoder_1.Schema.isSchema(schema)) {
                             contractSchema = schema;
                         }
                         else {
@@ -137,7 +138,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         schema = _a.sent();
                         _a.label = 2;
                     case 2:
-                        if (schema instanceof michelson_encoder_1.Schema) {
+                        if (michelson_encoder_1.Schema.isSchema(schema)) {
                             contractSchema = schema;
                         }
                         else {
@@ -486,7 +487,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.rpc.getEntrypoints(address)];
                     case 2:
                         entrypoints = _a.sent();
-                        return [2 /*return*/, new contract_1.Contract(address, script, this, entrypoints)];
+                        return [2 /*return*/, new contract_1.ContractAbstraction(address, script, this, this, entrypoints)];
                 }
             });
         });

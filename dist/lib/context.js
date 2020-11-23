@@ -47,29 +47,49 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Context = exports.defaultConfig = void 0;
 var rpc_1 = require("@taquito/rpc");
-var noop_1 = require("./signer/noop");
 var rpc_forger_1 = require("./forger/rpc-forger");
 var rpc_injector_1 = require("./injector/rpc-injector");
+var noop_1 = require("./signer/noop");
+var opreation_factory_1 = require("./wallet/opreation-factory");
+var rpc_tz_provider_1 = require("./tz/rpc-tz-provider");
+var rpc_estimate_provider_1 = require("./contract/rpc-estimate-provider");
+var rpc_contract_provider_1 = require("./contract/rpc-contract-provider");
+var rpc_batch_provider_1 = require("./batch/rpc-batch-provider");
+var wallet_1 = require("./wallet");
 exports.defaultConfig = {
     confirmationPollingIntervalSecond: 10,
     defaultConfirmationCount: 1,
     confirmationPollingTimeoutSecond: 180,
+    shouldObservableSubscriptionRetry: false
 };
 /**
  * @description Encapsulate common service used throughout different part of the library
  */
 var Context = /** @class */ (function () {
-    function Context(_rpcClient, _signer, _proto, _config, forger, injector) {
-        if (_rpcClient === void 0) { _rpcClient = new rpc_1.RpcClient(); }
+    function Context(_rpc, _signer, _proto, _config, forger, injector, wallet) {
         if (_signer === void 0) { _signer = new noop_1.NoopSigner(); }
-        this._rpcClient = _rpcClient;
+        this._rpc = _rpc;
         this._signer = _signer;
         this._proto = _proto;
         this._config = _config;
+        this.tz = new rpc_tz_provider_1.RpcTzProvider(this);
+        this.estimate = new rpc_estimate_provider_1.RPCEstimateProvider(this);
+        this.contract = new rpc_contract_provider_1.RpcContractProvider(this, this.estimate);
+        this.batch = new rpc_batch_provider_1.RPCBatchProvider(this, this.estimate);
+        this.wallet = new wallet_1.Wallet(this);
+        if (typeof this._rpc === 'string') {
+            this._rpcClient = new rpc_1.RpcClient(this._rpc);
+        }
+        else {
+            this._rpcClient = this._rpc;
+        }
         this.config = _config;
         this._forger = forger ? forger : new rpc_forger_1.RpcForger(this);
         this._injector = injector ? injector : new rpc_injector_1.RpcInjector(this);
+        this.operationFactory = new opreation_factory_1.OperationFactory(this);
+        this._walletProvider = wallet ? wallet : new wallet_1.LegacyWalletProvider(this);
     }
     Object.defineProperty(Context.prototype, "config", {
         get: function () {
@@ -78,7 +98,7 @@ var Context = /** @class */ (function () {
         set: function (value) {
             this._config = __assign(__assign({}, exports.defaultConfig), value);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Context.prototype, "rpc", {
@@ -88,7 +108,7 @@ var Context = /** @class */ (function () {
         set: function (value) {
             this._rpcClient = value;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Context.prototype, "injector", {
@@ -98,7 +118,7 @@ var Context = /** @class */ (function () {
         set: function (value) {
             this._injector = value;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Context.prototype, "forger", {
@@ -108,7 +128,7 @@ var Context = /** @class */ (function () {
         set: function (value) {
             this._forger = value;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Context.prototype, "signer", {
@@ -118,7 +138,17 @@ var Context = /** @class */ (function () {
         set: function (value) {
             this._signer = value;
         },
-        enumerable: true,
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Context.prototype, "walletProvider", {
+        get: function () {
+            return this._walletProvider;
+        },
+        set: function (value) {
+            this._walletProvider = value;
+        },
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Context.prototype, "proto", {
@@ -128,7 +158,7 @@ var Context = /** @class */ (function () {
         set: function (value) {
             this._proto = value;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Context.prototype.isAnyProtocolActive = function (protocol) {

@@ -1,39 +1,13 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 var __read = (this && this.__read) || function (o, n) {
     var m = typeof Symbol === "function" && o[Symbol.iterator];
@@ -55,73 +29,87 @@ var __spread = (this && this.__spread) || function () {
     for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
     return ar;
 };
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TezosToolkit = exports.PollingSubscribeProvider = exports.OpKind = exports.TezosPreapplyFailureError = exports.TezosOperationError = exports.RpcForger = exports.CompositeForger = exports.UnitValue = exports.MichelsonMap = void 0;
 var rpc_1 = require("@taquito/rpc");
-var signer_1 = require("@taquito/signer");
 var context_1 = require("./context");
-var rpc_contract_provider_1 = require("./contract/rpc-contract-provider");
-var rpc_estimate_provider_1 = require("./contract/rpc-estimate-provider");
+var rpc_forger_1 = require("./forger/rpc-forger");
 var format_1 = require("./format");
 var noop_1 = require("./signer/noop");
 var polling_provider_1 = require("./subscribe/polling-provider");
-var rpc_tz_provider_1 = require("./tz/rpc-tz-provider");
-var rpc_forger_1 = require("./forger/rpc-forger");
-var rpc_batch_provider_1 = require("./batch/rpc-batch-provider");
-__export(require("./contract"));
-__export(require("./contract/big-map"));
-__export(require("./constants"));
-var types_1 = require("./operations/types");
-exports.OpKind = types_1.OpKind;
-var polling_provider_2 = require("./subscribe/polling-provider");
-exports.PollingSubscribeProvider = polling_provider_2.PollingSubscribeProvider;
-var rpc_forger_2 = require("./forger/rpc-forger");
-exports.RpcForger = rpc_forger_2.RpcForger;
-var composite_forger_1 = require("./forger/composite-forger");
-exports.CompositeForger = composite_forger_1.CompositeForger;
+var wallet_1 = require("./wallet");
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
-exports.MichelsonMap = michelson_encoder_1.MichelsonMap;
-exports.MapTypecheckError = michelson_encoder_1.MapTypecheckError;
-exports.UnitValue = michelson_encoder_1.UnitValue;
+Object.defineProperty(exports, "MichelsonMap", { enumerable: true, get: function () { return michelson_encoder_1.MichelsonMap; } });
+Object.defineProperty(exports, "UnitValue", { enumerable: true, get: function () { return michelson_encoder_1.UnitValue; } });
+__exportStar(require("./constants"), exports);
+__exportStar(require("./context"), exports);
+__exportStar(require("./contract"), exports);
+__exportStar(require("./contract/big-map"), exports);
+var composite_forger_1 = require("./forger/composite-forger");
+Object.defineProperty(exports, "CompositeForger", { enumerable: true, get: function () { return composite_forger_1.CompositeForger; } });
+__exportStar(require("./forger/interface"), exports);
+var rpc_forger_2 = require("./forger/rpc-forger");
+Object.defineProperty(exports, "RpcForger", { enumerable: true, get: function () { return rpc_forger_2.RpcForger; } });
 var operation_errors_1 = require("./operations/operation-errors");
-exports.TezosOperationError = operation_errors_1.TezosOperationError;
-exports.TezosPreapplyFailureError = operation_errors_1.TezosPreapplyFailureError;
+Object.defineProperty(exports, "TezosOperationError", { enumerable: true, get: function () { return operation_errors_1.TezosOperationError; } });
+Object.defineProperty(exports, "TezosPreapplyFailureError", { enumerable: true, get: function () { return operation_errors_1.TezosPreapplyFailureError; } });
+var types_1 = require("./operations/types");
+Object.defineProperty(exports, "OpKind", { enumerable: true, get: function () { return types_1.OpKind; } });
+__exportStar(require("./signer/interface"), exports);
+__exportStar(require("./subscribe/interface"), exports);
+var polling_provider_2 = require("./subscribe/polling-provider");
+Object.defineProperty(exports, "PollingSubscribeProvider", { enumerable: true, get: function () { return polling_provider_2.PollingSubscribeProvider; } });
+__exportStar(require("./tz/interface"), exports);
+__exportStar(require("./wallet"), exports);
 /**
  * @description Facade class that surfaces all of the libraries capability and allow it's configuration
+ *
+ * @param _rpc The RPC server to use
  */
 var TezosToolkit = /** @class */ (function () {
-    function TezosToolkit() {
-        this._rpcClient = new rpc_1.RpcClient();
+    function TezosToolkit(_rpc, _context) {
+        if (_context === void 0) { _context = new context_1.Context(_rpc); }
+        this._rpc = _rpc;
+        this._context = _context;
         this._options = {};
-        this._context = new context_1.Context();
-        this._tz = new rpc_tz_provider_1.RpcTzProvider(this._context);
-        this._estimate = new rpc_estimate_provider_1.RPCEstimateProvider(this._context);
-        this._contract = new rpc_contract_provider_1.RpcContractProvider(this._context, this._estimate);
-        this._batch = new rpc_batch_provider_1.RPCBatchProvider(this._context, this._estimate);
         this.format = format_1.format;
-        this.batch = this._batch.batch.bind(this._batch);
+        this.batch = this._context.batch.batch.bind(this._context.batch);
+        if (typeof this._rpc === 'string') {
+            this._rpcClient = new rpc_1.RpcClient(this._rpc);
+        }
+        else {
+            this._rpcClient = this._rpc;
+        }
+        this._wallet = new wallet_1.Wallet(this._context);
         this.setProvider({ rpc: this._rpcClient });
     }
     /**
      * @description Sets configuration on the Tezos Taquito instance. Allows user to choose which signer, rpc client, rpc url, forger and so forth
      *
-     * @param options rpc url or rpcClient to use to interact with the Tezos network and  url to use to interact with the Tezos network
+     * @param options rpc url or rpcClient to use to interact with the Tezos network
      *
-     * @example Tezos.setProvider({signer: new InMemorySigner(“edsk...”)})
-     * @example Tezos.setProvider({config: {confirmationPollingTimeoutSecond: 300}})
+     * @example Tezos.setProvider({rpc: 'https://api.tez.ie/rpc/mainnet', signer: new InMemorySigner.fromSecretKey(“edsk...”)})
+     * @example Tezos.setProvider({ config: { confirmationPollingTimeoutSecond: 300 }})
      *
      */
     TezosToolkit.prototype.setProvider = function (_a) {
-        var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger;
+        var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger, wallet = _a.wallet;
         this.setRpcProvider(rpc);
         this.setStreamProvider(stream);
         this.setSignerProvider(signer);
         this.setForgerProvider(forger);
+        this.setWalletProvider(wallet);
         this._context.proto = protocol;
         this._context.config = config;
     };
+    /**
+     * @description Sets signer provider on the Tezos Taquito instance.
+     *
+     * @param options signer to use to interact with the Tezos network
+     *
+     * @example Tezos.setSignerProvider(new InMemorySigner.fromSecretKey('edsk...'))
+     *
+     */
     TezosToolkit.prototype.setSignerProvider = function (signer) {
         if (!this._options.signer && typeof signer === 'undefined') {
             this._context.signer = new noop_1.NoopSigner();
@@ -132,6 +120,14 @@ var TezosToolkit = /** @class */ (function () {
             this._options.signer = signer;
         }
     };
+    /**
+     * @description Sets rpc provider on the Tezos Taquito instance
+     *
+     * @param options rpc url or rpcClient to use to interact with the Tezos network
+     *
+     * @example Tezos.setRpcProvider('https://api.tez.ie/rpc/mainnet')
+     *
+     */
     TezosToolkit.prototype.setRpcProvider = function (rpc) {
         if (typeof rpc === 'string') {
             this._rpcClient = new rpc_1.RpcClient(rpc);
@@ -139,17 +135,33 @@ var TezosToolkit = /** @class */ (function () {
         else if (rpc instanceof rpc_1.RpcClient) {
             this._rpcClient = rpc;
         }
-        else if (this._options.rpc === undefined) {
-            this._rpcClient = new rpc_1.RpcClient();
-        }
-        this._options.rpc = rpc;
+        /*     else if (this._options.rpc === undefined) {
+              this._rpcClient = new RpcClient();
+            } */
+        this._options.rpc = this._rpcClient;
         this._context.rpc = this._rpcClient;
     };
+    /**
+     * @description Sets forger provider on the Tezos Taquito instance
+     *
+     * @param options forger to use to interact with the Tezos network
+     *
+     * @example Tezos.setForgerProvider(localForger)
+     *
+     */
     TezosToolkit.prototype.setForgerProvider = function (forger) {
-        var f = typeof forger === 'undefined' ? new rpc_forger_1.RpcForger(this._context) : forger;
+        var f = typeof forger === 'undefined' ? this.getFactory(rpc_forger_1.RpcForger)() : forger;
         this._options.forger = f;
         this._context.forger = f;
     };
+    /**
+     * @description Sets stream provider on the Tezos Taquito instance
+     *
+     * @param options stream to use to interact with the Tezos network
+     *
+     * @example Tezos.setStreamProvider(...)
+     *
+     */
     TezosToolkit.prototype.setStreamProvider = function (stream) {
         if (typeof stream === 'string') {
             this._stream = new polling_provider_1.PollingSubscribeProvider(new context_1.Context(new rpc_1.RpcClient(stream)));
@@ -158,18 +170,37 @@ var TezosToolkit = /** @class */ (function () {
             this._stream = stream;
         }
         else if (this._options.stream === undefined) {
-            this._stream = new polling_provider_1.PollingSubscribeProvider(this._context);
+            this._stream = this.getFactory(polling_provider_1.PollingSubscribeProvider)();
         }
         this._options.stream = stream;
+    };
+    /**
+     * @description Sets wallet provider on the Tezos Taquito instance
+     *
+     * @param options wallet to use to interact with the Tezos network
+     *
+     * @example Tezos.setWalletProvider(...)
+     *
+     */
+    TezosToolkit.prototype.setWalletProvider = function (wallet) {
+        if (!this._options.wallet && typeof wallet === 'undefined') {
+            var w = this.getFactory(wallet_1.LegacyWalletProvider)();
+            this._options.wallet = w;
+            this._context.walletProvider = w;
+        }
+        else if (typeof wallet !== 'undefined') {
+            this._options.wallet = wallet;
+            this._context.walletProvider = wallet;
+        }
     };
     Object.defineProperty(TezosToolkit.prototype, "tz", {
         /**
          * @description Provide access to tezos account management
          */
         get: function () {
-            return this._tz;
+            return this._context.tz;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "contract", {
@@ -177,9 +208,23 @@ var TezosToolkit = /** @class */ (function () {
          * @description Provide access to smart contract utilities
          */
         get: function () {
-            return this._contract;
+            return this._context.contract;
         },
-        enumerable: true,
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TezosToolkit.prototype, "wallet", {
+        get: function () {
+            return this._wallet;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TezosToolkit.prototype, "operation", {
+        get: function () {
+            return this._context.operationFactory;
+        },
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "estimate", {
@@ -187,9 +232,9 @@ var TezosToolkit = /** @class */ (function () {
          * @description Provide access to operation estimation utilities
          */
         get: function () {
-            return this._estimate;
+            return this._context.estimate;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "stream", {
@@ -199,7 +244,7 @@ var TezosToolkit = /** @class */ (function () {
         get: function () {
             return this._stream;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "rpc", {
@@ -209,7 +254,7 @@ var TezosToolkit = /** @class */ (function () {
         get: function () {
             return this._context.rpc;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "signer", {
@@ -219,62 +264,9 @@ var TezosToolkit = /** @class */ (function () {
         get: function () {
             return this._context.signer;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
-    TezosToolkit.prototype.importKey = function (privateKeyOrEmail, passphrase, mnemonic, secret) {
-        return __awaiter(this, void 0, void 0, function () {
-            var previousSigner, signer, pkh, op, ex_1, isInvalidActivationError, ex_2;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (!(privateKeyOrEmail && passphrase && mnemonic && secret)) return [3 /*break*/, 11];
-                        previousSigner = this.signer;
-                        signer = signer_1.InMemorySigner.fromFundraiser(privateKeyOrEmail, passphrase, mnemonic);
-                        return [4 /*yield*/, signer.publicKeyHash()];
-                    case 1:
-                        pkh = _a.sent();
-                        this.setSignerProvider(signer);
-                        _a.label = 2;
-                    case 2:
-                        _a.trys.push([2, 9, , 10]);
-                        op = void 0;
-                        _a.label = 3;
-                    case 3:
-                        _a.trys.push([3, 5, , 6]);
-                        return [4 /*yield*/, this.tz.activate(pkh, secret)];
-                    case 4:
-                        op = _a.sent();
-                        return [3 /*break*/, 6];
-                    case 5:
-                        ex_1 = _a.sent();
-                        isInvalidActivationError = ex_1 && ex_1.body && /Invalid activation/.test(ex_1.body);
-                        if (!isInvalidActivationError) {
-                            throw ex_1;
-                        }
-                        return [3 /*break*/, 6];
-                    case 6:
-                        if (!op) return [3 /*break*/, 8];
-                        return [4 /*yield*/, op.confirmation()];
-                    case 7:
-                        _a.sent();
-                        _a.label = 8;
-                    case 8: return [3 /*break*/, 10];
-                    case 9:
-                        ex_2 = _a.sent();
-                        // Restore to previous signer in case of error
-                        this.setSignerProvider(previousSigner);
-                        throw ex_2;
-                    case 10: return [3 /*break*/, 12];
-                    case 11:
-                        // Fallback to regular import
-                        this.setSignerProvider(new signer_1.InMemorySigner(privateKeyOrEmail, passphrase));
-                        _a.label = 12;
-                    case 12: return [2 /*return*/];
-                }
-            });
-        });
-    };
     TezosToolkit.prototype.getFactory = function (ctor) {
         var _this = this;
         return function () {
@@ -288,8 +280,4 @@ var TezosToolkit = /** @class */ (function () {
     return TezosToolkit;
 }());
 exports.TezosToolkit = TezosToolkit;
-/**
- * @description Default Tezos toolkit instance
- */
-exports.Tezos = new TezosToolkit();
 //# sourceMappingURL=taquito.js.map

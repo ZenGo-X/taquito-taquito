@@ -18,9 +18,9 @@ import {
   ForgedBytes,
   TransferParams,
 } from '../operations/types';
-import { Contract } from './contract';
+import { ContractAbstraction } from './contract';
 import { InvalidDelegationSource } from './errors';
-import { ContractProvider, ContractSchema, EstimationProvider } from './interface';
+import { ContractProvider, ContractSchema, EstimationProvider, StorageProvider } from './interface';
 import {
   createOriginationOperation,
   createRegisterDelegateOperation,
@@ -30,7 +30,7 @@ import {
 import { smartContractAbstractionSemantic } from './semantic';
 import { protocols } from '../constants';
 
-export class RpcContractProvider extends OperationEmitter implements ContractProvider {
+export class RpcContractProvider extends OperationEmitter implements ContractProvider, StorageProvider {
   constructor(context: Context, private estimator: EstimationProvider) {
     super(context);
   }
@@ -50,7 +50,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     }
 
     let contractSchema: Schema;
-    if (schema instanceof Schema) {
+    if (Schema.isSchema(schema)) {
       contractSchema = schema;
     } else {
       contractSchema = Schema.fromRPCResponse({ script: schema as ScriptResponse });
@@ -79,7 +79,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     }
 
     let contractSchema: Schema;
-    if (schema instanceof Schema) {
+    if (Schema.isSchema(schema)) {
       contractSchema = schema;
     } else {
       contractSchema = Schema.fromRPCResponse({ script: schema as ScriptResponse });
@@ -87,6 +87,7 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
 
     const encodedKey = contractSchema.EncodeBigMapKey(key);
 
+    // tslint:disable-next-line: deprecation
     const val = await this.rpc.getBigMapKey(contract, encodedKey);
 
     return contractSchema.ExecuteOnBigMapValue(val) as T; // Cast into T because only the caller can know the true type of the storage
@@ -333,10 +334,10 @@ export class RpcContractProvider extends OperationEmitter implements ContractPro
     );
   }
 
-  async at(address: string): Promise<Contract> {
+  async at(address: string): Promise<ContractAbstraction<ContractProvider>> {
     const script = await this.rpc.getScript(address);
     const entrypoints = await this.rpc.getEntrypoints(address);
-    return new Contract(address, script, this, entrypoints);
+    return new ContractAbstraction(address, script, this, this, entrypoints);
   }
 }
 

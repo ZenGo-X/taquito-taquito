@@ -1,11 +1,12 @@
 import { Observable } from 'rxjs';
 import { Subscription } from './interface';
 export declare class ObservableSubscription<T> implements Subscription<T> {
+    private shouldRetry;
     private errorListeners;
     private messageListeners;
     private closeListeners;
     private completed$;
-    constructor(obs: Observable<T>);
+    constructor(obs: Observable<T>, shouldRetry?: boolean);
     private call;
     private remove;
     on(type: 'error', cb: (error: Error) => void): void;

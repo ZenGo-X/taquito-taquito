@@ -1,4 +1,4 @@
-import { OperationContentsAndResult } from '@taquito/rpc';
+import { OperationContentsAndResult, OperationContentsAndResultReveal } from '@taquito/rpc';
 import { Context } from '../context';
 import { ForgedBytes } from './types';
 /**
@@ -15,7 +15,7 @@ export declare class Operation {
     private polling$;
     private confirmed$;
     protected _foundAt: number;
-    readonly includedInBlock: number;
+    get includedInBlock(): number;
     /**
      *
      * @param hash Operation hash
@@ -23,7 +23,9 @@ export declare class Operation {
      * @param context Taquito context allowing access to rpc and signer
      */
     constructor(hash: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
-    readonly status: "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get revealOperation(): false | OperationContentsAndResultReveal | undefined;
+    get revealStatus(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
     /**
      *
      * @param confirmations [0] Number of confirmation to wait for

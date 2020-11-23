@@ -3,7 +3,7 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
@@ -13,6 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DelegateOperation = void 0;
 var operations_1 = require("./operations");
 /**
  * @description Delegation operation provide utility function to fetch newly issued delegation
@@ -34,42 +35,55 @@ var DelegateOperation = /** @class */ (function (_super) {
             var result = delegationOp && delegationOp.metadata && delegationOp.metadata.operation_result;
             return result ? result : undefined;
         },
-        enumerable: true,
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "status", {
+        get: function () {
+            var operationResults = this.operationResults;
+            if (operationResults) {
+                return operationResults.status;
+            }
+            else {
+                return 'unknown';
+            }
+        },
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DelegateOperation.prototype, "delegate", {
         get: function () {
             return this.delegate;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DelegateOperation.prototype, "isRegisterOperation", {
         get: function () {
             return this.delegate === this.source;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DelegateOperation.prototype, "fee", {
         get: function () {
             return this.params.fee;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DelegateOperation.prototype, "gasLimit", {
         get: function () {
             return this.params.gas_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DelegateOperation.prototype, "storageLimit", {
         get: function () {
             return this.params.storage_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DelegateOperation.prototype, "consumedGas", {
@@ -77,14 +91,14 @@ var DelegateOperation = /** @class */ (function (_super) {
             var consumedGas = this.operationResults && this.operationResults.consumed_gas;
             return consumedGas ? consumedGas : undefined;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(DelegateOperation.prototype, "errors", {
         get: function () {
             return this.operationResults && this.operationResults.errors;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return DelegateOperation;

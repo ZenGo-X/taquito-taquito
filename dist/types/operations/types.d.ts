@@ -1,9 +1,15 @@
-import { OperationObject, InternalOperationResultKindEnum, OpKind } from '@taquito/rpc';
+import { OperationObject, InternalOperationResultKindEnum, OpKind, TransactionOperationParameter } from '@taquito/rpc';
 export { OpKind } from '@taquito/rpc';
 export declare type withKind<T, K extends OpKind> = T & {
     kind: K;
 };
 export declare type ParamsWithKind = withKind<OriginateParams, OpKind.ORIGINATION> | withKind<DelegateParams, OpKind.DELEGATION> | withKind<TransferParams, OpKind.TRANSACTION> | withKind<ActivationParams, OpKind.ACTIVATION>;
+export declare const attachKind: <T, K extends OpKind>(op: T, kind: K) => withKind<T, K>;
+export declare const findWithKind: <T extends {
+    kind: OpKind;
+}, K extends OpKind>(arr: T[], kind: K) => (T & {
+    kind: K;
+}) | undefined;
 export declare const isKind: <T extends {
     kind: OpKind;
 }, K extends OpKind>(op: T, kind: K) => op is withKind<T, K>;
@@ -19,6 +25,25 @@ export declare type SourceKinds = InternalOperationResultKindEnum;
 export declare const isSourceOp: <T extends {
     kind: OpKind;
 }>(op: T) => op is withKind<T, InternalOperationResultKindEnum>;
+export declare const hasMetadata: <T extends {
+    kind: OpKind;
+}, K>(op: T) => op is T & {
+    metadata: K;
+};
+export declare const hasMetadataWithResult: <T extends {
+    kind: OpKind;
+}, K>(op: T) => op is T & {
+    metadata: {
+        operation_result: K;
+    };
+};
+export declare const hasMetadataWithInternalOperationResult: <T extends {
+    kind: OpKind;
+}, K>(op: T) => op is T & {
+    metadata: {
+        internal_operation_results?: K | undefined;
+    };
+};
 export interface GasConsumingOperation {
     consumedGas?: string;
     gasLimit: number;
@@ -44,8 +69,10 @@ export declare type OriginateParamsBase = {
  */
 export declare type OriginateParams = OriginateParamsBase & ({
     init?: never;
+    /** JS representation of a storage object */
     storage: any;
 } | {
+    /** Initial storage object value. Either Micheline or JSON encoded */
     init: string | object;
     storage?: never;
 });
@@ -125,14 +152,10 @@ export interface TransferParams {
     source?: string;
     amount: number;
     fee?: number;
-    parameter?: string | object | {
-        entrypoint: string;
-        value: object;
-    };
+    parameter?: TransactionOperationParameter;
     gasLimit?: number;
     storageLimit?: number;
     mutez?: boolean;
-    rawParam?: boolean;
 }
 /**
  * @description RPC transfer operation
@@ -145,7 +168,7 @@ export interface RPCTransferOperation {
     amount: string;
     source?: string;
     destination: string;
-    parameters?: any;
+    parameters?: TransactionOperationParameter;
 }
 /**
  * @description RPC activate account operation

@@ -1,4 +1,4 @@
-import { DEFAULT_FEE, DEFAULT_GAS_LIMIT } from '../constants';
+import { DEFAULT_FEE, Protocols } from '../constants';
 import { OriginateParams, TransferParams, ParamsWithKind } from '../operations/types';
 import { Estimate } from './estimate';
 import { EstimationProvider } from './interface';
@@ -6,6 +6,9 @@ import { EstimationProvider } from './interface';
  * @description Naïve implementation of an estimate provider. Will work for basic transaction but your operation risk to fail if they are more complex (smart contract interaction)
  */
 export declare class NaiveEstimateProvider implements EstimationProvider {
+    private readonly protocol;
+    private _costPerByte;
+    constructor(protocol: Protocols);
     /**
      *
      * @description Estimate gasLimit, storageLimit and fees for an origination operation
@@ -34,7 +37,7 @@ export declare class NaiveEstimateProvider implements EstimationProvider {
      */
     setDelegate({ fee, gasLimit, }: {
         fee?: DEFAULT_FEE | undefined;
-        gasLimit?: DEFAULT_GAS_LIMIT | undefined;
+        gasLimit?: number | undefined;
     }): Promise<Estimate>;
     /**
      *
@@ -46,7 +49,7 @@ export declare class NaiveEstimateProvider implements EstimationProvider {
      */
     registerDelegate({ fee, gasLimit, }: {
         fee?: DEFAULT_FEE | undefined;
-        gasLimit?: DEFAULT_GAS_LIMIT | undefined;
+        gasLimit?: number | undefined;
     }): Promise<Estimate>;
     batch(params: ParamsWithKind[]): Promise<Estimate[]>;
 }

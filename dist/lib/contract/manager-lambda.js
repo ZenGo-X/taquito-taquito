@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.MANAGER_LAMBDA = void 0;
 var setDelegate = function (key) {
     return [
         { prim: 'DROP' },

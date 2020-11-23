@@ -1,33 +1,34 @@
-import { RpcClient, OpKind } from '@taquito/rpc';
+import { OpKind, RpcClient } from '@taquito/rpc';
 export { OpKind } from '@taquito/rpc';
-import { InMemorySigner } from '@taquito/signer';
-import { Schema, ParameterSchema } from '@taquito/michelson-encoder';
-export { MapTypecheckError, MichelsonMap, UnitValue } from '@taquito/michelson-encoder';
-import { ml2mic, sexp2mic, encodeExpr } from '@taquito/utils';
-import { ReplaySubject, defer, timer, from, Subject, Observable } from 'rxjs';
-import { switchMap, filter, first, tap, map, mapTo, switchMapTo, shareReplay, takeUntil, pluck, concatMap, distinctUntilKeyChanged } from 'rxjs/operators';
+import { combineLatest, ReplaySubject, from, defer, timer, throwError, of, range, concat, Subject, NEVER, Observable } from 'rxjs';
+import { distinctUntilChanged, map, takeWhile, tap, shareReplay, filter, first, switchMap, distinctUntilKeyChanged, timeoutWith, startWith, concatMap, mapTo, switchMapTo, takeUntil, retry, catchError, pluck } from 'rxjs/operators';
 import BigNumber from 'bignumber.js';
+import { Schema, ParameterSchema } from '@taquito/michelson-encoder';
+export { MichelsonMap, UnitValue } from '@taquito/michelson-encoder';
+import { Parser } from '@taquito/michel-codec';
+import { encodeExpr } from '@taquito/utils';
+import { HttpResponseError, STATUS_CODE } from '@taquito/http-utils';
 
 /*! *****************************************************************************
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
+Copyright (c) Microsoft Corporation.
 
-THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-MERCHANTABLITY OR NON-INFRINGEMENT.
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-See the Apache Version 2.0 License for specific language governing permissions
-and limitations under the License.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
 /* global Reflect, Promise */
 
 var extendStatics = function(d, b) {
     extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
     return extendStatics(d, b);
 };
 
@@ -61,10 +62,11 @@ function __rest(s, e) {
 }
 
 function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
         function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 }
@@ -98,14 +100,15 @@ function __generator(thisArg, body) {
 }
 
 function __values(o) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator], i = 0;
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
-    return {
+    if (o && typeof o.length === "number") return {
         next: function () {
             if (o && i >= o.length) o = void 0;
             return { value: o && o[i++], done: !o };
         }
     };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 }
 
 function __read(o, n) {
@@ -130,6 +133,27 @@ function __spread() {
         ar = ar.concat(__read(arguments[i]));
     return ar;
 }
+
+var RpcForger = /** @class */ (function () {
+    function RpcForger(context) {
+        this.context = context;
+    }
+    RpcForger.prototype.forge = function (_a) {
+        var branch = _a.branch, contents = _a.contents;
+        return this.context.rpc.forgeOperations({ branch: branch, contents: contents });
+    };
+    return RpcForger;
+}());
+
+var RpcInjector = /** @class */ (function () {
+    function RpcInjector(context) {
+        this.context = context;
+    }
+    RpcInjector.prototype.inject = function (signedOperationBytes) {
+        return this.context.rpc.injectOperation(signedOperationBytes);
+    };
+    return RpcInjector;
+}());
 
 var UnconfiguredSignerError = /** @class */ (function () {
     function UnconfiguredSignerError() {
@@ -175,353 +199,34 @@ var NoopSigner = /** @class */ (function () {
     return NoopSigner;
 }());
 
-var RpcForger = /** @class */ (function () {
-    function RpcForger(context) {
-        this.context = context;
-    }
-    RpcForger.prototype.forge = function (_a) {
-        var branch = _a.branch, contents = _a.contents;
-        return this.context.rpc.forgeOperations({ branch: branch, contents: contents });
-    };
-    return RpcForger;
-}());
-
-var RpcInjector = /** @class */ (function () {
-    function RpcInjector(context) {
-        this.context = context;
-    }
-    RpcInjector.prototype.inject = function (signedOperationBytes) {
-        return this.context.rpc.injectOperation(signedOperationBytes);
-    };
-    return RpcInjector;
-}());
-
-var defaultConfig = {
-    confirmationPollingIntervalSecond: 10,
-    defaultConfirmationCount: 1,
-    confirmationPollingTimeoutSecond: 180,
+var attachKind = function (op, kind) {
+    return __assign(__assign({}, op), { kind: kind });
 };
-/**
- * @description Encapsulate common service used throughout different part of the library
- */
-var Context = /** @class */ (function () {
-    function Context(_rpcClient, _signer, _proto, _config, forger, injector) {
-        if (_rpcClient === void 0) { _rpcClient = new RpcClient(); }
-        if (_signer === void 0) { _signer = new NoopSigner(); }
-        this._rpcClient = _rpcClient;
-        this._signer = _signer;
-        this._proto = _proto;
-        this._config = _config;
-        this.config = _config;
-        this._forger = forger ? forger : new RpcForger(this);
-        this._injector = injector ? injector : new RpcInjector(this);
-    }
-    Object.defineProperty(Context.prototype, "config", {
-        get: function () {
-            return this._config;
-        },
-        set: function (value) {
-            this._config = __assign(__assign({}, defaultConfig), value);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Context.prototype, "rpc", {
-        get: function () {
-            return this._rpcClient;
-        },
-        set: function (value) {
-            this._rpcClient = value;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Context.prototype, "injector", {
-        get: function () {
-            return this._injector;
-        },
-        set: function (value) {
-            this._injector = value;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Context.prototype, "forger", {
-        get: function () {
-            return this._forger;
-        },
-        set: function (value) {
-            this._forger = value;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Context.prototype, "signer", {
-        get: function () {
-            return this._signer;
-        },
-        set: function (value) {
-            this._signer = value;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Context.prototype, "proto", {
-        get: function () {
-            return this._proto;
-        },
-        set: function (value) {
-            this._proto = value;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Context.prototype.isAnyProtocolActive = function (protocol) {
-        if (protocol === void 0) { protocol = []; }
-        return __awaiter(this, void 0, void 0, function () {
-            var next_protocol;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (!this._proto) return [3 /*break*/, 1];
-                        return [2 /*return*/, protocol.includes(this._proto)];
-                    case 1: return [4 /*yield*/, this.rpc.getBlockMetadata()];
-                    case 2:
-                        next_protocol = (_a.sent()).next_protocol;
-                        return [2 /*return*/, protocol.includes(next_protocol)];
-                }
-            });
-        });
-    };
-    /**
-     * @description Create a copy of the current context. Useful when you have long running operation and you do not want a context change to affect the operation
-     */
-    Context.prototype.clone = function () {
-        return new Context(this.rpc, this.signer, this.proto, this.config, this.forger, this._injector);
-    };
-    return Context;
-}());
-
-/**
- * @description Utility class to interact with Tezos operations
- */
-var Operation = /** @class */ (function () {
-    /**
-     *
-     * @param hash Operation hash
-     * @param raw Raw operation that was injected
-     * @param context Taquito context allowing access to rpc and signer
-     */
-    function Operation(hash, raw, results, context) {
-        var _this = this;
-        this.hash = hash;
-        this.raw = raw;
-        this.results = results;
-        this.context = context;
-        this._pollingConfig$ = new ReplaySubject(1);
-        this._currentHeadPromise = undefined;
-        // Caching the current head for one second
-        this.currentHead$ = defer(function () {
-            if (!_this._currentHeadPromise) {
-                _this._currentHeadPromise = _this.context.rpc.getBlock();
-                timer(1000)
-                    .pipe(first())
-                    .subscribe(function () {
-                    _this._currentHeadPromise = undefined;
-                });
-            }
-            return from(_this._currentHeadPromise);
-        });
-        // Polling observable that emit until timeout is reached
-        this.polling$ = defer(function () {
-            return _this._pollingConfig$.pipe(tap(function (_a) {
-                var timeout = _a.timeout, interval = _a.interval;
-                if (timeout <= 0) {
-                    throw new Error('Timeout must be more than 0');
-                }
-                if (interval <= 0) {
-                    throw new Error('Interval must be more than 0');
-                }
-            }), map(function (config) { return (__assign(__assign({}, config), { timeoutAt: Math.ceil(config.timeout / config.interval) + 1, count: 0 })); }), switchMap(function (config) { return timer(0, config.interval * 1000).pipe(mapTo(config)); }), tap(function (config) {
-                config.count++;
-                if (config.count > config.timeoutAt) {
-                    throw new Error("Confirmation polling timed out");
-                }
-            }));
-        });
-        // Observable that emit once operation is seen in a block
-        this.confirmed$ = this.polling$.pipe(switchMapTo(this.currentHead$), map(function (head) {
-            for (var i = 3; i >= 0; i--) {
-                head.operations[i].forEach(function (op) {
-                    if (op.hash === _this.hash) {
-                        _this._foundAt = head.header.level;
-                    }
-                });
-            }
-            if (head.header.level - _this._foundAt >= 0) {
-                return _this._foundAt;
-            }
-        }), filter(function (x) { return x !== undefined; }), first(), shareReplay());
-        this._foundAt = Number.POSITIVE_INFINITY;
-        this.confirmed$.pipe(first()).subscribe();
-    }
-    Object.defineProperty(Operation.prototype, "includedInBlock", {
-        get: function () {
-            return this._foundAt;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Operation.prototype, "status", {
-        get: function () {
-            return (this.results.map(function (result) {
-                if (result.metadata && result.metadata.operation_result) {
-                    return result.metadata.operation_result.status;
-                }
-                else {
-                    return 'unknown';
-                }
-            })[0] || 'unknown');
-        },
-        enumerable: true,
-        configurable: true
-    });
-    /**
-     *
-     * @param confirmations [0] Number of confirmation to wait for
-     * @param interval [10] Polling interval
-     * @param timeout [180] Timeout
-     */
-    Operation.prototype.confirmation = function (confirmations, interval, timeout) {
-        var _this = this;
-        if (typeof confirmations !== 'undefined' && confirmations < 1) {
-            throw new Error('Confirmation count must be at least 1');
+var findWithKind = function (arr, kind) {
+    if (Array.isArray(arr)) {
+        var found = arr.find(function (op) { return op.kind === kind; });
+        if (found && isKind(found, kind)) {
+            return found;
         }
-        var _a = this.context.config, defaultConfirmationCount = _a.defaultConfirmationCount, confirmationPollingIntervalSecond = _a.confirmationPollingIntervalSecond, confirmationPollingTimeoutSecond = _a.confirmationPollingTimeoutSecond;
-        this._pollingConfig$.next({
-            interval: interval || confirmationPollingIntervalSecond,
-            timeout: timeout || confirmationPollingTimeoutSecond,
-        });
-        var conf = confirmations !== undefined ? confirmations : defaultConfirmationCount;
-        return new Promise(function (resolve, reject) {
-            _this.confirmed$
-                .pipe(switchMap(function () { return _this.polling$; }), switchMap(function () { return _this.currentHead$; }), filter(function (head) { return head.header.level - _this._foundAt >= conf - 1; }), first())
-                .subscribe(function (_) {
-                resolve(_this._foundAt + (conf - 1));
-            }, reject);
-        });
-    };
-    return Operation;
-}());
-
-/**
- * @description Delegation operation provide utility function to fetch newly issued delegation
- *
- * @warn Currently support only one delegation per operation
- */
-var DelegateOperation = /** @class */ (function (_super) {
-    __extends(DelegateOperation, _super);
-    function DelegateOperation(hash, params, source, raw, results, context) {
-        var _this = _super.call(this, hash, raw, results, context) || this;
-        _this.params = params;
-        _this.source = source;
-        return _this;
     }
-    Object.defineProperty(DelegateOperation.prototype, "operationResults", {
-        get: function () {
-            var delegationOp = Array.isArray(this.results) &&
-                this.results.find(function (op) { return op.kind === 'delegation'; });
-            var result = delegationOp && delegationOp.metadata && delegationOp.metadata.operation_result;
-            return result ? result : undefined;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DelegateOperation.prototype, "delegate", {
-        get: function () {
-            return this.delegate;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DelegateOperation.prototype, "isRegisterOperation", {
-        get: function () {
-            return this.delegate === this.source;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DelegateOperation.prototype, "fee", {
-        get: function () {
-            return this.params.fee;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DelegateOperation.prototype, "gasLimit", {
-        get: function () {
-            return this.params.gas_limit;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DelegateOperation.prototype, "storageLimit", {
-        get: function () {
-            return this.params.storage_limit;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DelegateOperation.prototype, "consumedGas", {
-        get: function () {
-            var consumedGas = this.operationResults && this.operationResults.consumed_gas;
-            return consumedGas ? consumedGas : undefined;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(DelegateOperation.prototype, "errors", {
-        get: function () {
-            return this.operationResults && this.operationResults.errors;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return DelegateOperation;
-}(Operation));
-
-var DEFAULT_GAS_LIMIT;
-(function (DEFAULT_GAS_LIMIT) {
-    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["DELEGATION"] = 10600] = "DELEGATION";
-    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["ORIGINATION"] = 10600] = "ORIGINATION";
-    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["TRANSFER"] = 10600] = "TRANSFER";
-    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["REVEAL"] = 10600] = "REVEAL";
-})(DEFAULT_GAS_LIMIT || (DEFAULT_GAS_LIMIT = {}));
-var DEFAULT_FEE;
-(function (DEFAULT_FEE) {
-    DEFAULT_FEE[DEFAULT_FEE["DELEGATION"] = 1257] = "DELEGATION";
-    DEFAULT_FEE[DEFAULT_FEE["ORIGINATION"] = 10000] = "ORIGINATION";
-    DEFAULT_FEE[DEFAULT_FEE["TRANSFER"] = 10000] = "TRANSFER";
-    DEFAULT_FEE[DEFAULT_FEE["REVEAL"] = 1420] = "REVEAL";
-})(DEFAULT_FEE || (DEFAULT_FEE = {}));
-var DEFAULT_STORAGE_LIMIT;
-(function (DEFAULT_STORAGE_LIMIT) {
-    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["DELEGATION"] = 0] = "DELEGATION";
-    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["ORIGINATION"] = 257] = "ORIGINATION";
-    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["TRANSFER"] = 257] = "TRANSFER";
-    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["REVEAL"] = 0] = "REVEAL";
-})(DEFAULT_STORAGE_LIMIT || (DEFAULT_STORAGE_LIMIT = {}));
-var Protocols;
-(function (Protocols) {
-    Protocols["Pt24m4xi"] = "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd";
-    Protocols["PsBABY5H"] = "PsBABY5HQTSkA4297zNHfsZNKtxULfL18y95qb3m53QJiXGmrbU";
-    Protocols["PsBabyM1"] = "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS";
-    Protocols["PsCARTHA"] = "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb";
-})(Protocols || (Protocols = {}));
-var protocols = {
-    '004': [Protocols.Pt24m4xi],
-    '005': [Protocols.PsBABY5H, Protocols.PsBabyM1],
-    '006': [Protocols.PsCARTHA],
+};
+var isKind = function (op, kind) {
+    return op.kind === kind;
+};
+var isOpWithFee = function (op) {
+    return ['transaction', 'delegation', 'origination', 'reveal'].indexOf(op.kind) !== -1;
+};
+var isOpRequireReveal = function (op) {
+    return ['transaction', 'delegation', 'origination'].indexOf(op.kind) !== -1;
+};
+var hasMetadata = function (op) {
+    return 'metadata' in op;
+};
+var hasMetadataWithResult = function (op) {
+    return hasMetadata(op) && 'operation_result' in op.metadata;
+};
+var hasMetadataWithInternalOperationResult = function (op) {
+    return hasMetadata(op) && 'internal_operation_results' in op.metadata;
 };
 
 var isErrorWithMessage = function (error) {
@@ -550,18 +255,21 @@ var TezosPreapplyFailureError = /** @class */ (function () {
     }
     return TezosPreapplyFailureError;
 }());
+// Flatten all operation content results and internal operation results into a single array
+// Some cases where we can have multiple operation results or internal operation results are:
+// - When an operation includes a reveal operation
+// - When an operation is made using the batch API
+// - Smart contract call can contains internal operation results when they call other smart contract internally or originate contracts
 var flattenOperationResult = function (response) {
     var results = Array.isArray(response) ? response : [response];
     var returnedResults = [];
     for (var i = 0; i < results.length; i++) {
         for (var j = 0; j < results[i].contents.length; j++) {
             var content = results[i].contents[j];
-            if ('metadata' in content && typeof content.metadata.operation_result !== 'undefined') {
-                returnedResults.push(content.metadata.operation_result);
+            if (hasMetadataWithResult(content)) {
+                returnedResults.push(__assign({ fee: content.fee }, content.metadata.operation_result));
                 if (Array.isArray(content.metadata.internal_operation_results)) {
-                    content.metadata.internal_operation_results.forEach(function (x) {
-                        return returnedResults.push(x.result);
-                    });
+                    content.metadata.internal_operation_results.forEach(function (x) { return returnedResults.push(x.result); });
                 }
             }
         }
@@ -580,12 +288,12 @@ var flattenErrors = function (response, status) {
     for (var i = 0; i < results.length; i++) {
         for (var j = 0; j < results[i].contents.length; j++) {
             var content = results[i].contents[j];
-            if ('metadata' in content) {
-                if (typeof content.metadata.operation_result !== 'undefined' &&
-                    content.metadata.operation_result.status === status) {
+            if (hasMetadata(content)) {
+                if (hasMetadataWithResult(content) && content.metadata.operation_result.status === status) {
                     errors = errors.concat(content.metadata.operation_result.errors || []);
                 }
-                if (Array.isArray(content.metadata.internal_operation_results)) {
+                if (hasMetadataWithInternalOperationResult(content) &&
+                    Array.isArray(content.metadata.internal_operation_results)) {
                     try {
                         for (var _b = (e_1 = void 0, __values(content.metadata.internal_operation_results)), _c = _b.next(); !_c.done; _c = _b.next()) {
                             var internalResult = _c.value;
@@ -608,11 +316,511 @@ var flattenErrors = function (response, status) {
     return errors;
 };
 
-var isOpWithFee = function (op) {
-    return ['transaction', 'delegation', 'origination', 'reveal'].indexOf(op.kind) !== -1;
+var receiptFromOperation = function (op, _a) {
+    var _b = _a === void 0 ? {
+        ALLOCATION_BURN: 257,
+        ORIGINATION_BURN: 257,
+    } : _a, ALLOCATION_BURN = _b.ALLOCATION_BURN, ORIGINATION_BURN = _b.ORIGINATION_BURN;
+    var operationResults = flattenOperationResult({ contents: op });
+    var totalGas = new BigNumber(0);
+    var totalStorage = new BigNumber(0);
+    var totalFee = new BigNumber(0);
+    var totalOriginationBurn = new BigNumber(0);
+    var totalAllocationBurn = new BigNumber(0);
+    var totalPaidStorageDiff = new BigNumber(0);
+    operationResults.forEach(function (result) {
+        totalFee = totalFee.plus(result.fee || 0);
+        totalOriginationBurn = totalOriginationBurn.plus(Array.isArray(result.originated_contracts)
+            ? result.originated_contracts.length * ORIGINATION_BURN
+            : 0);
+        totalAllocationBurn = totalAllocationBurn.plus('allocated_destination_contract' in result ? ALLOCATION_BURN : 0);
+        totalGas = totalGas.plus(result.consumed_gas || 0);
+        totalPaidStorageDiff = totalPaidStorageDiff.plus('paid_storage_size_diff' in result ? Number(result.paid_storage_size_diff) || 0 : 0);
+    });
+    totalStorage = totalStorage
+        .plus(totalAllocationBurn)
+        .plus(totalOriginationBurn)
+        .plus(totalPaidStorageDiff);
+    return {
+        totalFee: totalFee,
+        totalGas: totalGas,
+        totalStorage: totalStorage,
+        totalAllocationBurn: totalAllocationBurn,
+        totalOriginationBurn: totalOriginationBurn,
+        totalPaidStorageDiff: totalPaidStorageDiff,
+        totalStorageBurn: new BigNumber(totalStorage.multipliedBy(1000)),
+    };
 };
-var isOpRequireReveal = function (op) {
-    return ['transaction', 'delegation', 'origination'].indexOf(op.kind) !== -1;
+
+var MissedBlockDuringConfirmationError = /** @class */ (function () {
+    function MissedBlockDuringConfirmationError() {
+        this.name = 'MissedBlockDuringConfirmationError';
+        this.message = 'Taquito missed a block while waiting for operation confirmation and was not able to find the operation';
+    }
+    return MissedBlockDuringConfirmationError;
+}());
+var MAX_BRANCH_ANCESTORS = 60;
+/**
+ * @description WalletOperation allows to monitor operation inclusion on chains and surface information related to the operation
+ */
+var WalletOperation = /** @class */ (function () {
+    /**
+     *
+     * @param opHash Operation hash
+     * @param raw Raw operation that was injected
+     * @param context Taquito context allowing access to rpc and signer
+     */
+    function WalletOperation(opHash, context, _newHead$) {
+        var _this = this;
+        this.opHash = opHash;
+        this.context = context;
+        this._newHead$ = _newHead$;
+        this._operationResult = new ReplaySubject(1);
+        this._includedInBlock = new ReplaySubject(1);
+        this._included = false;
+        this.newHead$ = this._newHead$.pipe(tap(function (newHead) {
+            if (!_this._included &&
+                _this.lastHead &&
+                newHead.header.level - _this.lastHead.header.level > 1) {
+                throw new MissedBlockDuringConfirmationError();
+            }
+            _this.lastHead = newHead;
+        }), shareReplay({ bufferSize: 1, refCount: true }));
+        // Observable that emit once operation is seen in a block
+        this.confirmed$ = this.newHead$.pipe(map(function (head) {
+            var e_1, _a, e_2, _b;
+            try {
+                for (var _c = __values(head.operations), _d = _c.next(); !_d.done; _d = _c.next()) {
+                    var opGroup = _d.value;
+                    try {
+                        for (var opGroup_1 = (e_2 = void 0, __values(opGroup)), opGroup_1_1 = opGroup_1.next(); !opGroup_1_1.done; opGroup_1_1 = opGroup_1.next()) {
+                            var op = opGroup_1_1.value;
+                            if (op.hash === _this.opHash) {
+                                _this._included = true;
+                                _this._includedInBlock.next(head);
+                                _this._operationResult.next(op.contents);
+                                // Return the block where the operation was found
+                                return head;
+                            }
+                        }
+                    }
+                    catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                    finally {
+                        try {
+                            if (opGroup_1_1 && !opGroup_1_1.done && (_b = opGroup_1.return)) _b.call(opGroup_1);
+                        }
+                        finally { if (e_2) throw e_2.error; }
+                    }
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_d && !_d.done && (_a = _c.return)) _a.call(_c);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+        }), filter(function (x) {
+            return typeof x !== 'undefined';
+        }), first(), shareReplay({ bufferSize: 1, refCount: true }));
+        this.confirmed$.pipe(first()).subscribe();
+    }
+    WalletOperation.prototype.operationResults = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this._operationResult.pipe(first()).toPromise()];
+            });
+        });
+    };
+    /**
+     * @description Receipt expose the total amount of tezos token burn and spent on fees
+     * The promise returned by receipt will resolve only once the transaction is included
+     */
+    WalletOperation.prototype.receipt = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _a = receiptFromOperation;
+                        return [4 /*yield*/, this.operationResults()];
+                    case 1: return [2 /*return*/, _a.apply(void 0, [_b.sent()])];
+                }
+            });
+        });
+    };
+    WalletOperation.prototype.getCurrentConfirmation = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                if (!this._included) {
+                    return [2 /*return*/, 0];
+                }
+                return [2 /*return*/, combineLatest([this._includedInBlock, from(this.context.rpc.getBlock())])
+                        .pipe(map(function (_a) {
+                        var _b = __read(_a, 2), foundAtBlock = _b[0], head = _b[1];
+                        return head.header.level - foundAtBlock.header.level + 1;
+                    }), first())
+                        .toPromise()];
+            });
+        });
+    };
+    WalletOperation.prototype.isInCurrentBranch = function (tipBlockIdentifier) {
+        if (tipBlockIdentifier === void 0) { tipBlockIdentifier = 'head'; }
+        return __awaiter(this, void 0, void 0, function () {
+            var tipBlockHeader, inclusionBlock, levelDiff, tipBlockLevel, blocks, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        // By default it is assumed that the operation is in the current branch
+                        if (!this._included) {
+                            return [2 /*return*/, true];
+                        }
+                        return [4 /*yield*/, this.context.rpc.getBlockHeader({ block: tipBlockIdentifier })];
+                    case 1:
+                        tipBlockHeader = _b.sent();
+                        return [4 /*yield*/, this._includedInBlock.pipe(first()).toPromise()];
+                    case 2:
+                        inclusionBlock = _b.sent();
+                        levelDiff = tipBlockHeader.level - inclusionBlock.header.level;
+                        // Block produced before the operation is included are assumed to be part of the current branch
+                        if (levelDiff <= 0) {
+                            return [2 /*return*/, true];
+                        }
+                        tipBlockLevel = Math.min(inclusionBlock.header.level + levelDiff, inclusionBlock.header.level + MAX_BRANCH_ANCESTORS);
+                        _a = Set.bind;
+                        return [4 /*yield*/, this.context.rpc.getLiveBlocks({ block: String(tipBlockLevel) })];
+                    case 3:
+                        blocks = new (_a.apply(Set, [void 0, _b.sent()]))();
+                        return [2 /*return*/, blocks.has(inclusionBlock.hash)];
+                }
+            });
+        });
+    };
+    WalletOperation.prototype.confirmationObservable = function (confirmations) {
+        var _this = this;
+        if (typeof confirmations !== 'undefined' && confirmations < 1) {
+            throw new Error('Confirmation count must be at least 1');
+        }
+        var defaultConfirmationCount = this.context.config.defaultConfirmationCount;
+        var conf = confirmations !== undefined ? confirmations : defaultConfirmationCount;
+        return combineLatest([this._includedInBlock, this.newHead$]).pipe(distinctUntilChanged(function (_a, _b) {
+            var _c = __read(_a, 2), previousHead = _c[1];
+            var _d = __read(_b, 2), newHead = _d[1];
+            return previousHead.hash === newHead.hash;
+        }), map(function (_a) {
+            var _b = __read(_a, 2), foundAtBlock = _b[0], head = _b[1];
+            return {
+                block: head,
+                expectedConfirmation: conf,
+                currentConfirmation: head.header.level - foundAtBlock.header.level + 1,
+                completed: head.header.level - foundAtBlock.header.level >= conf - 1,
+                isInCurrentBranch: function () { return _this.isInCurrentBranch(head.hash); },
+            };
+        }), takeWhile(function (_a) {
+            var completed = _a.completed;
+            return !completed;
+        }, true));
+    };
+    /**
+     *
+     * @param confirmations [0] Number of confirmation to wait for
+     */
+    WalletOperation.prototype.confirmation = function (confirmations) {
+        return this.confirmationObservable(confirmations).toPromise();
+    };
+    return WalletOperation;
+}());
+
+var DelegationWalletOperation = /** @class */ (function (_super) {
+    __extends(DelegationWalletOperation, _super);
+    function DelegationWalletOperation(opHash, context, newHead$) {
+        var _this = _super.call(this, opHash, context, newHead$) || this;
+        _this.opHash = opHash;
+        _this.context = context;
+        return _this;
+    }
+    DelegationWalletOperation.prototype.revealOperation = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var operationResult;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.operationResults()];
+                    case 1:
+                        operationResult = _a.sent();
+                        return [2 /*return*/, operationResult.find(function (x) { return x.kind === OpKind.REVEAL; })];
+                }
+            });
+        });
+    };
+    DelegationWalletOperation.prototype.delegationOperation = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var operationResult;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.operationResults()];
+                    case 1:
+                        operationResult = _a.sent();
+                        return [2 /*return*/, operationResult.find(function (x) { return x.kind === OpKind.DELEGATION; })];
+                }
+            });
+        });
+    };
+    DelegationWalletOperation.prototype.status = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var op;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!this._included) {
+                            return [2 /*return*/, 'pending'];
+                        }
+                        return [4 /*yield*/, this.delegationOperation()];
+                    case 1:
+                        op = _a.sent();
+                        if (!op) {
+                            return [2 /*return*/, 'unknown'];
+                        }
+                        return [2 /*return*/, op.metadata.operation_result.status];
+                }
+            });
+        });
+    };
+    return DelegationWalletOperation;
+}(WalletOperation));
+
+var OriginationWalletOperation = /** @class */ (function (_super) {
+    __extends(OriginationWalletOperation, _super);
+    function OriginationWalletOperation(opHash, context, newHead$) {
+        var _this = _super.call(this, opHash, context, newHead$) || this;
+        _this.opHash = opHash;
+        _this.context = context;
+        return _this;
+    }
+    OriginationWalletOperation.prototype.originationOperation = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var operationResult;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.operationResults()];
+                    case 1:
+                        operationResult = _a.sent();
+                        return [2 /*return*/, findWithKind(operationResult, OpKind.ORIGINATION)];
+                }
+            });
+        });
+    };
+    OriginationWalletOperation.prototype.revealOperation = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var operationResult;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.operationResults()];
+                    case 1:
+                        operationResult = _a.sent();
+                        return [2 /*return*/, findWithKind(operationResult, OpKind.REVEAL)];
+                }
+            });
+        });
+    };
+    OriginationWalletOperation.prototype.status = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var op;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!this._included) {
+                            return [2 /*return*/, 'pending'];
+                        }
+                        return [4 /*yield*/, this.originationOperation()];
+                    case 1:
+                        op = _a.sent();
+                        if (!op) {
+                            return [2 /*return*/, 'unknown'];
+                        }
+                        return [2 /*return*/, op.metadata.operation_result.status];
+                }
+            });
+        });
+    };
+    OriginationWalletOperation.prototype.contract = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var op, address;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.originationOperation()];
+                    case 1:
+                        op = _a.sent();
+                        address = (op.metadata.operation_result.originated_contracts || [])[0];
+                        return [2 /*return*/, this.context.wallet.at(address)];
+                }
+            });
+        });
+    };
+    return OriginationWalletOperation;
+}(WalletOperation));
+
+var TransactionWalletOperation = /** @class */ (function (_super) {
+    __extends(TransactionWalletOperation, _super);
+    function TransactionWalletOperation(opHash, context, newHead$) {
+        var _this = _super.call(this, opHash, context, newHead$) || this;
+        _this.opHash = opHash;
+        _this.context = context;
+        return _this;
+    }
+    TransactionWalletOperation.prototype.revealOperation = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var operationResult;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.operationResults()];
+                    case 1:
+                        operationResult = _a.sent();
+                        return [2 /*return*/, operationResult.find(function (x) { return x.kind === OpKind.REVEAL; })];
+                }
+            });
+        });
+    };
+    TransactionWalletOperation.prototype.transactionOperation = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var operationResult;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.operationResults()];
+                    case 1:
+                        operationResult = _a.sent();
+                        return [2 /*return*/, operationResult.find(function (x) { return x.kind === OpKind.TRANSACTION; })];
+                }
+            });
+        });
+    };
+    TransactionWalletOperation.prototype.status = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var op;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!this._included) {
+                            return [2 /*return*/, 'pending'];
+                        }
+                        return [4 /*yield*/, this.transactionOperation()];
+                    case 1:
+                        op = _a.sent();
+                        if (!op) {
+                            return [2 /*return*/, 'unknown'];
+                        }
+                        return [2 /*return*/, op.metadata.operation_result.status];
+                }
+            });
+        });
+    };
+    return TransactionWalletOperation;
+}(WalletOperation));
+
+var cacheUntil = function (cacheUntilObs) { return function (source) {
+    var subject = null;
+    return defer(function () {
+        if (!subject) {
+            subject = new ReplaySubject();
+            source.pipe(first()).subscribe(subject);
+            cacheUntilObs.pipe(first()).subscribe(function () {
+                subject = null;
+            });
+        }
+        return subject;
+    });
+}; };
+var createNewPollingBasedHeadObservable = function (pollingTimer, sharedHeadOb, context, scheduler) {
+    return pollingTimer.pipe(switchMap(function () { return sharedHeadOb; }), distinctUntilKeyChanged('hash'), timeoutWith(context.config.confirmationPollingTimeoutSecond * 1000, throwError(new Error('Confirmation polling timed out')), scheduler), shareReplay({
+        refCount: true,
+        scheduler: scheduler,
+    }));
+};
+var OperationFactory = /** @class */ (function () {
+    function OperationFactory(context) {
+        var _this = this;
+        this.context = context;
+        // Cache the last block for one second across all operations
+        this.sharedHeadObs = defer(function () { return from(_this.context.rpc.getBlock()); }).pipe(cacheUntil(timer(0, 1000)));
+    }
+    OperationFactory.prototype.createNewHeadObservable = function () {
+        return createNewPollingBasedHeadObservable(timer(0, this.context.config.confirmationPollingIntervalSecond * 1000), this.sharedHeadObs, this.context);
+    };
+    OperationFactory.prototype.createPastBlockWalker = function (startBlock, count) {
+        var _this = this;
+        if (count === void 0) { count = 1; }
+        return from(this.context.rpc.getBlock({ block: startBlock })).pipe(switchMap(function (block) {
+            if (count === 1) {
+                return of(block);
+            }
+            return range(block.header.level, count - 1).pipe(startWith(block), concatMap(function (level) { return __awaiter(_this, void 0, void 0, function () {
+                return __generator(this, function (_a) {
+                    return [2 /*return*/, this.context.rpc.getBlock({ block: String(level) })];
+                });
+            }); }));
+        }));
+    };
+    OperationFactory.prototype.createHeadObservableFromConfig = function (_a) {
+        var blockIdentifier = _a.blockIdentifier;
+        var observableSequence = [];
+        if (blockIdentifier) {
+            observableSequence.push(this.createPastBlockWalker(blockIdentifier));
+        }
+        observableSequence.push(this.createNewHeadObservable());
+        return concat.apply(void 0, __spread(observableSequence));
+    };
+    OperationFactory.prototype.createOperation = function (hash, config) {
+        if (config === void 0) { config = {}; }
+        return new WalletOperation(hash, this.context.clone(), this.createHeadObservableFromConfig(config));
+    };
+    OperationFactory.prototype.createTransactionOperation = function (hash, config) {
+        if (config === void 0) { config = {}; }
+        return new TransactionWalletOperation(hash, this.context.clone(), this.createHeadObservableFromConfig(config));
+    };
+    OperationFactory.prototype.createDelegationOperation = function (hash, config) {
+        if (config === void 0) { config = {}; }
+        return new DelegationWalletOperation(hash, this.context.clone(), this.createHeadObservableFromConfig(config));
+    };
+    OperationFactory.prototype.createOriginationOperation = function (hash, config) {
+        if (config === void 0) { config = {}; }
+        return new OriginationWalletOperation(hash, this.context.clone(), this.createHeadObservableFromConfig(config));
+    };
+    return OperationFactory;
+}());
+
+var DEFAULT_GAS_LIMIT;
+(function (DEFAULT_GAS_LIMIT) {
+    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["DELEGATION"] = 10600] = "DELEGATION";
+    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["ORIGINATION"] = 10600] = "ORIGINATION";
+    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["TRANSFER"] = 10600] = "TRANSFER";
+    DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["REVEAL"] = 10600] = "REVEAL";
+})(DEFAULT_GAS_LIMIT || (DEFAULT_GAS_LIMIT = {}));
+var DEFAULT_FEE;
+(function (DEFAULT_FEE) {
+    DEFAULT_FEE[DEFAULT_FEE["DELEGATION"] = 1257] = "DELEGATION";
+    DEFAULT_FEE[DEFAULT_FEE["ORIGINATION"] = 10000] = "ORIGINATION";
+    DEFAULT_FEE[DEFAULT_FEE["TRANSFER"] = 10000] = "TRANSFER";
+    DEFAULT_FEE[DEFAULT_FEE["REVEAL"] = 1420] = "REVEAL";
+})(DEFAULT_FEE || (DEFAULT_FEE = {}));
+var DEFAULT_STORAGE_LIMIT;
+(function (DEFAULT_STORAGE_LIMIT) {
+    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["DELEGATION"] = 0] = "DELEGATION";
+    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["ORIGINATION"] = 257] = "ORIGINATION";
+    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["TRANSFER"] = 257] = "TRANSFER";
+    DEFAULT_STORAGE_LIMIT[DEFAULT_STORAGE_LIMIT["REVEAL"] = 0] = "REVEAL";
+})(DEFAULT_STORAGE_LIMIT || (DEFAULT_STORAGE_LIMIT = {}));
+var Protocols;
+(function (Protocols) {
+    Protocols["Pt24m4xi"] = "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd";
+    Protocols["PsBABY5H"] = "PsBABY5HQTSkA4297zNHfsZNKtxULfL18y95qb3m53QJiXGmrbU";
+    Protocols["PsBabyM1"] = "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS";
+    Protocols["PsCARTHA"] = "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb";
+    Protocols["PsDELPH1"] = "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo";
+})(Protocols || (Protocols = {}));
+var protocols = {
+    '004': [Protocols.Pt24m4xi],
+    '005': [Protocols.PsBABY5H, Protocols.PsBabyM1],
+    '006': [Protocols.PsCARTHA],
+    '007': [Protocols.PsDELPH1]
 };
 
 var OperationEmitter = /** @class */ (function () {
@@ -623,21 +831,22 @@ var OperationEmitter = /** @class */ (function () {
         get: function () {
             return this.context.rpc;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OperationEmitter.prototype, "signer", {
         get: function () {
             return this.context.signer;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     // Originally from sotez (Copyright (c) 2018 Andrew Kishino)
     OperationEmitter.prototype.prepareOperation = function (_a) {
         var operation = _a.operation, source = _a.source;
         return __awaiter(this, void 0, void 0, function () {
-            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, managerPromise, i, counter_1, _b, header, metadata, headCounter, manager, haveManager, reveal, _c, getFee, getSource, constructOps, branch, contents, protocol;
+            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, managerPromise, i, counter_1, _b, header, metadata, headCounter, manager, haveManager, reveal, getFee, getSource, constructOps, branch, contents, protocol;
+            var _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
                     case 0:
@@ -681,7 +890,7 @@ var OperationEmitter = /** @class */ (function () {
                     case 6:
                         _b = __read.apply(void 0, [_d.sent(), 4]), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
                         if (!header) {
-                            throw new Error('Unable to latest block header');
+                            throw new Error('Unable to fetch latest block header');
                         }
                         if (!metadata) {
                             throw new Error('Unable to fetch latest metadata');
@@ -863,7 +1072,8 @@ var OperationEmitter = /** @class */ (function () {
     };
     OperationEmitter.prototype.inject = function (forgedBytes, prefixSig, sbytes) {
         return __awaiter(this, void 0, void 0, function () {
-            var opResponse, results, i, j, errors, _a;
+            var opResponse, results, i, j, errors;
+            var _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -901,6 +1111,868 @@ var OperationEmitter = /** @class */ (function () {
 }());
 
 /**
+ * @description Utility class to interact with Tezos operations
+ */
+var Operation = /** @class */ (function () {
+    /**
+     *
+     * @param hash Operation hash
+     * @param raw Raw operation that was injected
+     * @param context Taquito context allowing access to rpc and signer
+     */
+    function Operation(hash, raw, results, context) {
+        var _this = this;
+        this.hash = hash;
+        this.raw = raw;
+        this.results = results;
+        this.context = context;
+        this._pollingConfig$ = new ReplaySubject(1);
+        this._currentHeadPromise = undefined;
+        // Caching the current head for one second
+        this.currentHead$ = defer(function () {
+            if (!_this._currentHeadPromise) {
+                _this._currentHeadPromise = _this.context.rpc.getBlock();
+                timer(1000)
+                    .pipe(first())
+                    .subscribe(function () {
+                    _this._currentHeadPromise = undefined;
+                });
+            }
+            return from(_this._currentHeadPromise);
+        });
+        // Polling observable that emit until timeout is reached
+        this.polling$ = defer(function () {
+            return _this._pollingConfig$.pipe(tap(function (_a) {
+                var timeout = _a.timeout, interval = _a.interval;
+                if (timeout <= 0) {
+                    throw new Error('Timeout must be more than 0');
+                }
+                if (interval <= 0) {
+                    throw new Error('Interval must be more than 0');
+                }
+            }), map(function (config) { return (__assign(__assign({}, config), { timeoutAt: Math.ceil(config.timeout / config.interval) + 1, count: 0 })); }), switchMap(function (config) { return timer(0, config.interval * 1000).pipe(mapTo(config)); }), tap(function (config) {
+                config.count++;
+                if (config.count > config.timeoutAt) {
+                    throw new Error("Confirmation polling timed out");
+                }
+            }));
+        });
+        // Observable that emit once operation is seen in a block
+        this.confirmed$ = this.polling$.pipe(switchMapTo(this.currentHead$), map(function (head) {
+            for (var i = 3; i >= 0; i--) {
+                head.operations[i].forEach(function (op) {
+                    if (op.hash === _this.hash) {
+                        _this._foundAt = head.header.level;
+                    }
+                });
+            }
+            if (head.header.level - _this._foundAt >= 0) {
+                return _this._foundAt;
+            }
+        }), filter(function (x) { return x !== undefined; }), first(), shareReplay());
+        this._foundAt = Number.POSITIVE_INFINITY;
+        this.confirmed$.pipe(first()).subscribe();
+    }
+    Object.defineProperty(Operation.prototype, "includedInBlock", {
+        get: function () {
+            return this._foundAt;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Operation.prototype, "revealOperation", {
+        get: function () {
+            return (Array.isArray(this.results) &&
+                this.results.find(function (op) { return op.kind === 'reveal'; }));
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Operation.prototype, "revealStatus", {
+        get: function () {
+            if (this.revealOperation) {
+                return this.revealOperation.metadata.operation_result.status;
+            }
+            else {
+                return 'unknown';
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Operation.prototype, "status", {
+        get: function () {
+            return (this.results.map(function (result) {
+                if (hasMetadataWithResult(result)) {
+                    return result.metadata.operation_result.status;
+                }
+                else {
+                    return 'unknown';
+                }
+            })[0] || 'unknown');
+        },
+        enumerable: false,
+        configurable: true
+    });
+    /**
+     *
+     * @param confirmations [0] Number of confirmation to wait for
+     * @param interval [10] Polling interval
+     * @param timeout [180] Timeout
+     */
+    Operation.prototype.confirmation = function (confirmations, interval, timeout) {
+        var _this = this;
+        if (typeof confirmations !== 'undefined' && confirmations < 1) {
+            throw new Error('Confirmation count must be at least 1');
+        }
+        var _a = this.context.config, defaultConfirmationCount = _a.defaultConfirmationCount, confirmationPollingIntervalSecond = _a.confirmationPollingIntervalSecond, confirmationPollingTimeoutSecond = _a.confirmationPollingTimeoutSecond;
+        this._pollingConfig$.next({
+            interval: interval || confirmationPollingIntervalSecond,
+            timeout: timeout || confirmationPollingTimeoutSecond,
+        });
+        var conf = confirmations !== undefined ? confirmations : defaultConfirmationCount;
+        return new Promise(function (resolve, reject) {
+            _this.confirmed$
+                .pipe(switchMap(function () { return _this.polling$; }), switchMap(function () { return _this.currentHead$; }), filter(function (head) { return head.header.level - _this._foundAt >= conf - 1; }), first())
+                .subscribe(function (_) {
+                resolve(_this._foundAt + (conf - 1));
+            }, reject);
+        });
+    };
+    return Operation;
+}());
+
+var RpcTzProvider = /** @class */ (function (_super) {
+    __extends(RpcTzProvider, _super);
+    function RpcTzProvider(context) {
+        return _super.call(this, context) || this;
+    }
+    RpcTzProvider.prototype.getBalance = function (address) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this.rpc.getBalance(address)];
+            });
+        });
+    };
+    RpcTzProvider.prototype.getDelegate = function (address) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this.rpc.getDelegate(address)];
+            });
+        });
+    };
+    RpcTzProvider.prototype.activate = function (pkh, secret) {
+        return __awaiter(this, void 0, void 0, function () {
+            var operation, forgedBytes, bytes, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        operation = {
+                            kind: OpKind.ACTIVATION,
+                            pkh: pkh,
+                            secret: secret,
+                        };
+                        return [4 /*yield*/, this.prepareAndForge({ operation: [operation], source: pkh })];
+                    case 1:
+                        forgedBytes = _b.sent();
+                        bytes = forgedBytes.opbytes + "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+                        _a = Operation.bind;
+                        return [4 /*yield*/, this.rpc.injectOperation(bytes)];
+                    case 2: return [2 /*return*/, new (_a.apply(Operation, [void 0, _b.sent(), __assign(__assign({}, forgedBytes), { opbytes: bytes }), [],
+                            this.context.clone()]))()];
+                }
+            });
+        });
+    };
+    return RpcTzProvider;
+}(OperationEmitter));
+
+var MINIMAL_FEE_MUTEZ = 100;
+var MINIMAL_FEE_PER_BYTE_MUTEZ = 1;
+var MINIMAL_FEE_PER_GAS_MUTEZ = 0.1;
+var GAS_BUFFER = 100;
+/**
+ * Examples of use :
+ *
+ *  Estimate a transfer operation :
+ * ```
+ * // Assuming that provider and signer are already configured...
+ *
+ * const amount = 2;
+ * const address = 'tz1h3rQ8wBxFd8L9B3d7Jhaawu6Z568XU3xY';
+ *
+ * // Estimate gasLimit, storageLimit and fees for a transfer operation
+ * const est = await Tezos.estimate.transfer({ to: address, amount: amount })
+ * console.log(est.burnFeeMutez, est.gasLimit, est.minimalFeeMutez, est.storageLimit,
+ *  est.suggestedFeeMutez, est.totalCost, est.usingBaseFeeMutez)
+ *
+ * ```
+ *
+ * Estimate a contract origination :
+ * ```
+ * // generic.json is referring to a Michelson Smart Contract
+ *
+ * const genericMultisigJSON = require('./generic.json')
+ * const est = await Tezos.estimate.originate({
+ *   code: genericMultisigJSON,
+ *   storage: {
+ *     stored_counter: 0,
+ *     threshold: 1,
+ *     keys: ['edpkuLxx9PQD8fZ45eUzrK3BhfDZJHhBuK4Zi49DcEGANwd2rpX82t']
+ *   }
+ * })
+ * console.log(est.burnFeeMutez, est.gasLimit, est.minimalFeeMutez, est.storageLimit,
+ *   est.suggestedFeeMutez, est.totalCost, est.usingBaseFeeMutez)
+ *
+ * ```
+ */
+var Estimate = /** @class */ (function () {
+    function Estimate(_milligasLimit, _storageLimit, opSize, minimalFeePerStorageByteMutez, 
+    /**
+     * @description Base fee in mutez (1 mutez = 1e10−6 tez)
+     */
+    baseFeeMutez) {
+        if (baseFeeMutez === void 0) { baseFeeMutez = MINIMAL_FEE_MUTEZ; }
+        this._milligasLimit = _milligasLimit;
+        this._storageLimit = _storageLimit;
+        this.opSize = opSize;
+        this.minimalFeePerStorageByteMutez = minimalFeePerStorageByteMutez;
+        this.baseFeeMutez = baseFeeMutez;
+    }
+    Object.defineProperty(Estimate.prototype, "burnFeeMutez", {
+        /**
+         * @description The number of Mutez that will be burned for the storage of the [operation](https://tezos.gitlab.io/user/glossary.html#operations). (Storage + Allocation fees)
+         */
+        get: function () {
+            return this.roundUp(Number(this.storageLimit) * Number(this.minimalFeePerStorageByteMutez));
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Estimate.prototype, "storageLimit", {
+        /**
+         * @description  The limit on the amount of storage an [operation](https://tezos.gitlab.io/user/glossary.html#operations) can use.
+         */
+        get: function () {
+            var limit = Math.max(Number(this._storageLimit), 0);
+            return limit > 0 ? limit : 0;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Estimate.prototype, "gasLimit", {
+        /**
+         * @description The limit on the amount of [gas](https://tezos.gitlab.io/user/glossary.html#gas) a given operation can consume.
+         */
+        get: function () {
+            return this.roundUp(Number(this._milligasLimit) / 1000 + GAS_BUFFER);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Estimate.prototype, "operationFeeMutez", {
+        get: function () {
+            return ((Number(this._milligasLimit) / 1000 + GAS_BUFFER) * MINIMAL_FEE_PER_GAS_MUTEZ + Number(this.opSize) * MINIMAL_FEE_PER_BYTE_MUTEZ);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Estimate.prototype.roundUp = function (nanotez) {
+        return Math.ceil(Number(nanotez));
+    };
+    Object.defineProperty(Estimate.prototype, "minimalFeeMutez", {
+        /**
+         * @description Minimum fees for the [operation](https://tezos.gitlab.io/user/glossary.html#operations) according to [baker](https://tezos.gitlab.io/user/glossary.html#baker) defaults.
+         */
+        get: function () {
+            return this.roundUp(MINIMAL_FEE_MUTEZ + this.operationFeeMutez);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Estimate.prototype, "suggestedFeeMutez", {
+        /**
+         * @description The suggested fee for the operation which includes minimal fees and a small buffer.
+         */
+        get: function () {
+            return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 2);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Estimate.prototype, "usingBaseFeeMutez", {
+        /**
+         * @description Fees according to your specified base fee will ensure that at least minimum fees are used.
+         */
+        get: function () {
+            return (Math.max(Number(this.baseFeeMutez), MINIMAL_FEE_MUTEZ) + this.roundUp(this.operationFeeMutez));
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Estimate.prototype, "totalCost", {
+        /**
+         * @description The sum of `minimalFeeMutez` + `burnFeeMutez`.
+         */
+        get: function () {
+            return this.minimalFeeMutez + this.burnFeeMutez;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Estimate.prototype, "consumedMilligas", {
+        /**
+         * @description Since Delphinet, consumed gas is provided in milligas for more precision.
+         * This function returns an estimation of the gas that operation will consume in milligas.
+         */
+        get: function () {
+            return Number(this._milligasLimit);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return Estimate;
+}());
+
+var TZ_DECIMALS = 6;
+var MTZ_DECIMALS = 3;
+function getDecimal(format) {
+    switch (format) {
+        case 'tz':
+            return TZ_DECIMALS;
+        case 'mtz':
+            return MTZ_DECIMALS;
+        case 'mutez':
+        default:
+            return 0;
+    }
+}
+function format(from, to, amount) {
+    if (from === void 0) { from = 'mutez'; }
+    if (to === void 0) { to = 'mutez'; }
+    var bigNum = new BigNumber(amount);
+    if (bigNum.isNaN()) {
+        return amount;
+    }
+    return bigNum
+        .multipliedBy(Math.pow(10, getDecimal(from)))
+        .dividedBy(Math.pow(10, getDecimal(to)));
+}
+
+var createOriginationOperation = function (_a) {
+    var code = _a.code, init = _a.init, _b = _a.balance, balance = _b === void 0 ? "0" : _b, delegate = _a.delegate, storage = _a.storage, _c = _a.fee, fee = _c === void 0 ? DEFAULT_FEE.ORIGINATION : _c, _d = _a.gasLimit, gasLimit = _d === void 0 ? DEFAULT_GAS_LIMIT.ORIGINATION : _d, _e = _a.storageLimit, storageLimit = _e === void 0 ? DEFAULT_STORAGE_LIMIT.ORIGINATION : _e;
+    return __awaiter(void 0, void 0, void 0, function () {
+        var parser, contractCode, c, c, order_1, contractStorage, storageType, schema, c, script, operation;
+        return __generator(this, function (_f) {
+            // tslint:disable-next-line: strict-type-predicates
+            if (storage !== undefined && init !== undefined) {
+                throw new Error("Storage and Init cannot be set a the same time. Please either use storage or init but not both.");
+            }
+            parser = new Parser({ expandMacros: true });
+            if (typeof code === 'string') {
+                c = parser.parseScript(code);
+                if (c === null) {
+                    throw new Error('Empty Michelson source');
+                }
+                contractCode = c;
+            }
+            else {
+                c = parser.parseJSON(code);
+                if (!Array.isArray(c)) {
+                    throw new Error('JSON encoded Michelson script must be an array');
+                }
+                order_1 = ['parameter', 'storage', 'code'];
+                // Ensure correct ordering for RPC
+                contractCode = c.sort(function (a, b) { return order_1.indexOf(a.prim) - order_1.indexOf(b.prim); });
+            }
+            if (storage !== undefined) {
+                storageType = contractCode.find(function (p) { return ('prim' in p) && p.prim === 'storage'; });
+                if ((storageType === null || storageType === void 0 ? void 0 : storageType.args) === undefined) {
+                    throw new Error('Missing storage section');
+                }
+                schema = new Schema(storageType.args[0]);
+                contractStorage = schema.Encode(storage);
+            }
+            else if (typeof init === 'string') {
+                c = parser.parseMichelineExpression(init);
+                if (c === null) {
+                    throw new Error('Empty initial storage value');
+                }
+                contractStorage = c;
+            }
+            else if (typeof init === 'object') {
+                contractStorage = parser.parseJSON(init);
+            }
+            script = {
+                code: contractCode,
+                storage: contractStorage,
+            };
+            operation = {
+                kind: OpKind.ORIGINATION,
+                fee: fee,
+                gas_limit: gasLimit,
+                storage_limit: storageLimit,
+                balance: format("tz", "mutez", balance).toString(),
+                script: script,
+            };
+            if (delegate) {
+                operation.delegate = delegate;
+            }
+            return [2 /*return*/, operation];
+        });
+    });
+};
+var createTransferOperation = function (_a) {
+    var to = _a.to, amount = _a.amount, parameter = _a.parameter, _b = _a.fee, fee = _b === void 0 ? DEFAULT_FEE.TRANSFER : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? DEFAULT_GAS_LIMIT.TRANSFER : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? DEFAULT_STORAGE_LIMIT.TRANSFER : _d, _e = _a.mutez, mutez = _e === void 0 ? false : _e;
+    return __awaiter(void 0, void 0, void 0, function () {
+        var operation;
+        return __generator(this, function (_f) {
+            operation = {
+                kind: OpKind.TRANSACTION,
+                fee: fee,
+                gas_limit: gasLimit,
+                storage_limit: storageLimit,
+                amount: mutez
+                    ? amount.toString()
+                    : format("tz", "mutez", amount).toString(),
+                destination: to,
+                parameters: parameter,
+            };
+            return [2 /*return*/, operation];
+        });
+    });
+};
+var createSetDelegateOperation = function (_a) {
+    var delegate = _a.delegate, source = _a.source, _b = _a.fee, fee = _b === void 0 ? DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
+    return __awaiter(void 0, void 0, void 0, function () {
+        var operation;
+        return __generator(this, function (_e) {
+            operation = {
+                kind: OpKind.DELEGATION,
+                source: source,
+                fee: fee,
+                gas_limit: gasLimit,
+                storage_limit: storageLimit,
+                delegate: delegate,
+            };
+            return [2 /*return*/, operation];
+        });
+    });
+};
+var createRegisterDelegateOperation = function (_a, source) {
+    var _b = _a.fee, fee = _b === void 0 ? DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
+    return __awaiter(void 0, void 0, void 0, function () {
+        return __generator(this, function (_e) {
+            return [2 /*return*/, {
+                    kind: OpKind.DELEGATION,
+                    fee: fee,
+                    gas_limit: gasLimit,
+                    storage_limit: storageLimit,
+                    delegate: source,
+                }];
+        });
+    });
+};
+
+var mergeLimits = function (userDefinedLimit, defaultLimits) {
+    return {
+        fee: typeof userDefinedLimit.fee === 'undefined' ? defaultLimits.fee : userDefinedLimit.fee,
+        gasLimit: typeof userDefinedLimit.gasLimit === 'undefined'
+            ? defaultLimits.gasLimit
+            : userDefinedLimit.gasLimit,
+        storageLimit: typeof userDefinedLimit.storageLimit === 'undefined'
+            ? defaultLimits.storageLimit
+            : userDefinedLimit.storageLimit,
+    };
+};
+// RPC requires a signature but does not verify it
+var SIGNATURE_STUB = 'edsigtkpiSSschcaCt9pUVrpNPf7TTcgvgDEDD6NCEHMy8NNQJCGnMfLZzYoQj74yLjo9wx6MPVV29CvVzgi7qEcEUok3k7AuMg';
+var RPCEstimateProvider = /** @class */ (function (_super) {
+    __extends(RPCEstimateProvider, _super);
+    function RPCEstimateProvider() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.ALLOCATION_STORAGE = 257;
+        _this.ORIGINATION_STORAGE = 257;
+        return _this;
+    }
+    // Maximum values defined by the protocol
+    RPCEstimateProvider.prototype.getAccountLimits = function (pkh) {
+        return __awaiter(this, void 0, void 0, function () {
+            var balance, _a, hard_gas_limit_per_operation, hard_storage_limit_per_operation, cost_per_byte;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.rpc.getBalance(pkh)];
+                    case 1:
+                        balance = _b.sent();
+                        return [4 /*yield*/, this.rpc.getConstants()];
+                    case 2:
+                        _a = _b.sent(), hard_gas_limit_per_operation = _a.hard_gas_limit_per_operation, hard_storage_limit_per_operation = _a.hard_storage_limit_per_operation, cost_per_byte = _a.cost_per_byte;
+                        return [2 /*return*/, {
+                                fee: 0,
+                                gasLimit: hard_gas_limit_per_operation.toNumber(),
+                                storageLimit: Math.floor(BigNumber.min(balance.dividedBy(cost_per_byte), hard_storage_limit_per_operation).toNumber()),
+                            }];
+                }
+            });
+        });
+    };
+    RPCEstimateProvider.prototype.createEstimateFromOperationContent = function (content, size, costPerByte) {
+        var _this = this;
+        var operationResults = flattenOperationResult({ contents: [content] });
+        var totalGas = 0;
+        var totalMilligas = 0;
+        var totalStorage = 0;
+        operationResults.forEach(function (result) {
+            totalStorage +=
+                'originated_contracts' in result && typeof result.originated_contracts !== 'undefined'
+                    ? result.originated_contracts.length * _this.ORIGINATION_STORAGE
+                    : 0;
+            totalStorage += 'allocated_destination_contract' in result ? _this.ALLOCATION_STORAGE : 0;
+            totalGas += Number(result.consumed_gas) || 0;
+            totalMilligas += Number(result.consumed_milligas) || 0;
+            totalStorage +=
+                'paid_storage_size_diff' in result ? Number(result.paid_storage_size_diff) || 0 : 0;
+        });
+        if (totalGas !== 0 && totalMilligas === 0) {
+            // This will convert gas to milligas for Carthagenet where result does not contain consumed gas in milligas.
+            totalMilligas = totalGas * 1000;
+        }
+        if (isOpWithFee(content)) {
+            return new Estimate(totalMilligas || 0, Number(totalStorage || 0), size, costPerByte.toNumber());
+        }
+        else {
+            return new Estimate(0, 0, size, costPerByte.toNumber(), 0);
+        }
+    };
+    RPCEstimateProvider.prototype.createEstimate = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, opbytes, _b, branch, contents, operation, opResponse, cost_per_byte, errors;
+            var _c;
+            var _this = this;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0: return [4 /*yield*/, this.prepareAndForge(params)];
+                    case 1:
+                        _a = _d.sent(), opbytes = _a.opbytes, _b = _a.opOb, branch = _b.branch, contents = _b.contents;
+                        _c = {
+                            operation: { branch: branch, contents: contents, signature: SIGNATURE_STUB }
+                        };
+                        return [4 /*yield*/, this.rpc.getChainId()];
+                    case 2:
+                        operation = (_c.chain_id = _d.sent(),
+                            _c);
+                        return [4 /*yield*/, this.simulate(operation)];
+                    case 3:
+                        opResponse = (_d.sent()).opResponse;
+                        return [4 /*yield*/, this.rpc.getConstants()];
+                    case 4:
+                        cost_per_byte = (_d.sent()).cost_per_byte;
+                        errors = __spread(flattenErrors(opResponse, 'backtracked'), flattenErrors(opResponse));
+                        // Fail early in case of errors
+                        if (errors.length) {
+                            throw new TezosOperationError(errors);
+                        }
+                        while (opResponse.contents.length !== (Array.isArray(params.operation) ? params.operation.length : 1)) {
+                            opResponse.contents.shift();
+                        }
+                        return [2 /*return*/, opResponse.contents.map(function (x) {
+                                return _this.createEstimateFromOperationContent(x, opbytes.length / 2 / opResponse.contents.length, cost_per_byte);
+                            })];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees for an origination operation
+     *
+     * @returns An estimation of gasLimit, storageLimit and fees for the operation
+     *
+     * @param OriginationOperation Originate operation parameter
+     */
+    RPCEstimateProvider.prototype.originate = function (_a) {
+        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
+        return __awaiter(this, void 0, void 0, function () {
+            var pkh, DEFAULT_PARAMS, op;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1:
+                        pkh = _b.sent();
+                        return [4 /*yield*/, this.getAccountLimits(pkh)];
+                    case 2:
+                        DEFAULT_PARAMS = _b.sent();
+                        return [4 /*yield*/, createOriginationOperation(__assign(__assign({}, rest), mergeLimits({ fee: fee, storageLimit: storageLimit, gasLimit: gasLimit }, DEFAULT_PARAMS)))];
+                    case 3:
+                        op = _b.sent();
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
+                    case 4: return [2 /*return*/, (_b.sent())[0]];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees for an transfer operation
+     *
+     * @returns An estimation of gasLimit, storageLimit and fees for the operation
+     *
+     * @param TransferOperation Originate operation parameter
+     */
+    RPCEstimateProvider.prototype.transfer = function (_a) {
+        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
+        return __awaiter(this, void 0, void 0, function () {
+            var pkh, DEFAULT_PARAMS, op;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1:
+                        pkh = _b.sent();
+                        return [4 /*yield*/, this.getAccountLimits(pkh)];
+                    case 2:
+                        DEFAULT_PARAMS = _b.sent();
+                        return [4 /*yield*/, createTransferOperation(__assign(__assign({}, rest), mergeLimits({ fee: fee, storageLimit: storageLimit, gasLimit: gasLimit }, DEFAULT_PARAMS)))];
+                    case 3:
+                        op = _b.sent();
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
+                    case 4: return [2 /*return*/, (_b.sent())[0]];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees for a delegate operation
+     *
+     * @returns An estimation of gasLimit, storageLimit and fees for the operation
+     *
+     * @param Estimate
+     */
+    RPCEstimateProvider.prototype.setDelegate = function (_a) {
+        var fee = _a.fee, gasLimit = _a.gasLimit, storageLimit = _a.storageLimit, rest = __rest(_a, ["fee", "gasLimit", "storageLimit"]);
+        return __awaiter(this, void 0, void 0, function () {
+            var sourceOrDefault, _b, DEFAULT_PARAMS, op;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        _b = rest.source;
+                        if (_b) return [3 /*break*/, 2];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1:
+                        _b = (_c.sent());
+                        _c.label = 2;
+                    case 2:
+                        sourceOrDefault = _b;
+                        return [4 /*yield*/, this.getAccountLimits(sourceOrDefault)];
+                    case 3:
+                        DEFAULT_PARAMS = _c.sent();
+                        return [4 /*yield*/, createSetDelegateOperation(__assign(__assign({}, rest), mergeLimits({ fee: fee, storageLimit: storageLimit, gasLimit: gasLimit }, DEFAULT_PARAMS)))];
+                    case 4:
+                        op = _c.sent();
+                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
+                    case 5: return [2 /*return*/, (_c.sent())[0]];
+                }
+            });
+        });
+    };
+    RPCEstimateProvider.prototype.batch = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var operations, DEFAULT_PARAMS, _a, params_1, params_1_1, param, _b, _c, _d, _e, _f, _g, _h, e_1_1;
+            var e_1, _j;
+            return __generator(this, function (_k) {
+                switch (_k.label) {
+                    case 0:
+                        operations = [];
+                        _a = this.getAccountLimits;
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1: return [4 /*yield*/, _a.apply(this, [_k.sent()])];
+                    case 2:
+                        DEFAULT_PARAMS = _k.sent();
+                        _k.label = 3;
+                    case 3:
+                        _k.trys.push([3, 15, 16, 17]);
+                        params_1 = __values(params), params_1_1 = params_1.next();
+                        _k.label = 4;
+                    case 4:
+                        if (!!params_1_1.done) return [3 /*break*/, 14];
+                        param = params_1_1.value;
+                        _b = param.kind;
+                        switch (_b) {
+                            case OpKind.TRANSACTION: return [3 /*break*/, 5];
+                            case OpKind.ORIGINATION: return [3 /*break*/, 7];
+                            case OpKind.DELEGATION: return [3 /*break*/, 9];
+                            case OpKind.ACTIVATION: return [3 /*break*/, 11];
+                        }
+                        return [3 /*break*/, 12];
+                    case 5:
+                        _d = (_c = operations).push;
+                        return [4 /*yield*/, createTransferOperation(__assign(__assign({}, param), mergeLimits(param, DEFAULT_PARAMS)))];
+                    case 6:
+                        _d.apply(_c, [_k.sent()]);
+                        return [3 /*break*/, 13];
+                    case 7:
+                        _f = (_e = operations).push;
+                        return [4 /*yield*/, createOriginationOperation(__assign(__assign({}, param), mergeLimits(param, DEFAULT_PARAMS)))];
+                    case 8:
+                        _f.apply(_e, [_k.sent()]);
+                        return [3 /*break*/, 13];
+                    case 9:
+                        _h = (_g = operations).push;
+                        return [4 /*yield*/, createSetDelegateOperation(__assign(__assign({}, param), mergeLimits(param, DEFAULT_PARAMS)))];
+                    case 10:
+                        _h.apply(_g, [_k.sent()]);
+                        return [3 /*break*/, 13];
+                    case 11:
+                        operations.push(__assign(__assign({}, param), DEFAULT_PARAMS));
+                        return [3 /*break*/, 13];
+                    case 12: throw new Error("Unsupported operation kind: " + param.kind);
+                    case 13:
+                        params_1_1 = params_1.next();
+                        return [3 /*break*/, 4];
+                    case 14: return [3 /*break*/, 17];
+                    case 15:
+                        e_1_1 = _k.sent();
+                        e_1 = { error: e_1_1 };
+                        return [3 /*break*/, 17];
+                    case 16:
+                        try {
+                            if (params_1_1 && !params_1_1.done && (_j = params_1.return)) _j.call(params_1);
+                        }
+                        finally { if (e_1) throw e_1.error; }
+                        return [7 /*endfinally*/];
+                    case 17: return [2 /*return*/, this.createEstimate({ operation: operations })];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees for a delegate operation
+     *
+     * @returns An estimation of gasLimit, storageLimit and fees for the operation
+     *
+     * @param Estimate
+     */
+    RPCEstimateProvider.prototype.registerDelegate = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var DEFAULT_PARAMS, _a, op, _b, _c, _d;
+            var _e;
+            return __generator(this, function (_f) {
+                switch (_f.label) {
+                    case 0:
+                        _a = this.getAccountLimits;
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1: return [4 /*yield*/, _a.apply(this, [_f.sent()])];
+                    case 2:
+                        DEFAULT_PARAMS = _f.sent();
+                        _b = createRegisterDelegateOperation;
+                        _c = [__assign(__assign({}, params), DEFAULT_PARAMS)];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 3: return [4 /*yield*/, _b.apply(void 0, _c.concat([_f.sent()]))];
+                    case 4:
+                        op = _f.sent();
+                        _d = this.createEstimate;
+                        _e = { operation: op };
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 5: return [4 /*yield*/, _d.apply(this, [(_e.source = _f.sent(), _e)])];
+                    case 6: return [2 /*return*/, (_f.sent())[0]];
+                }
+            });
+        });
+    };
+    return RPCEstimateProvider;
+}(OperationEmitter));
+
+/**
+ * @description Delegation operation provide utility function to fetch newly issued delegation
+ *
+ * @warn Currently support only one delegation per operation
+ */
+var DelegateOperation = /** @class */ (function (_super) {
+    __extends(DelegateOperation, _super);
+    function DelegateOperation(hash, params, source, raw, results, context) {
+        var _this = _super.call(this, hash, raw, results, context) || this;
+        _this.params = params;
+        _this.source = source;
+        return _this;
+    }
+    Object.defineProperty(DelegateOperation.prototype, "operationResults", {
+        get: function () {
+            var delegationOp = Array.isArray(this.results) &&
+                this.results.find(function (op) { return op.kind === 'delegation'; });
+            var result = delegationOp && delegationOp.metadata && delegationOp.metadata.operation_result;
+            return result ? result : undefined;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "status", {
+        get: function () {
+            var operationResults = this.operationResults;
+            if (operationResults) {
+                return operationResults.status;
+            }
+            else {
+                return 'unknown';
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "delegate", {
+        get: function () {
+            return this.delegate;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "isRegisterOperation", {
+        get: function () {
+            return this.delegate === this.source;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "fee", {
+        get: function () {
+            return this.params.fee;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "gasLimit", {
+        get: function () {
+            return this.params.gas_limit;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "storageLimit", {
+        get: function () {
+            return this.params.storage_limit;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "consumedGas", {
+        get: function () {
+            var consumedGas = this.operationResults && this.operationResults.consumed_gas;
+            return consumedGas ? consumedGas : undefined;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(DelegateOperation.prototype, "errors", {
+        get: function () {
+            return this.operationResults && this.operationResults.errors;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return DelegateOperation;
+}(Operation));
+
+/**
  * @description Origination operation provide utility function to fetch newly originated contract
  *
  * @warn Currently support only one origination per operation
@@ -917,34 +1989,50 @@ var OriginationOperation = /** @class */ (function (_super) {
         }
         return _this;
     }
+    Object.defineProperty(OriginationOperation.prototype, "status", {
+        get: function () {
+            var operationResults = this.operationResults;
+            if (operationResults) {
+                return operationResults.status;
+            }
+            else {
+                return 'unknown';
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(OriginationOperation.prototype, "operationResults", {
         get: function () {
-            var originationOp = Array.isArray(this.results) && this.results.find(function (op) { return op.kind === 'origination'; });
-            var result = originationOp && originationOp.metadata && originationOp.metadata.operation_result;
+            var originationOp = Array.isArray(this.results) &&
+                this.results.find(function (op) { return op.kind === 'origination'; });
+            var result = originationOp &&
+                hasMetadataWithResult(originationOp) &&
+                originationOp.metadata.operation_result;
             return result ? result : undefined;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OriginationOperation.prototype, "fee", {
         get: function () {
             return this.params.fee;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OriginationOperation.prototype, "gasLimit", {
         get: function () {
             return this.params.gas_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OriginationOperation.prototype, "storageLimit", {
         get: function () {
             return this.params.storage_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OriginationOperation.prototype, "consumedGas", {
@@ -952,7 +2040,7 @@ var OriginationOperation = /** @class */ (function (_super) {
             var consumedGas = this.operationResults && this.operationResults.consumed_gas;
             return consumedGas ? consumedGas : undefined;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OriginationOperation.prototype, "storageDiff", {
@@ -960,7 +2048,7 @@ var OriginationOperation = /** @class */ (function (_super) {
             var storageDiff = this.operationResults && this.operationResults.paid_storage_size_diff;
             return storageDiff ? storageDiff : undefined;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OriginationOperation.prototype, "storageSize", {
@@ -968,14 +2056,14 @@ var OriginationOperation = /** @class */ (function (_super) {
             var storageSize = this.operationResults && this.operationResults.storage_size;
             return storageSize ? storageSize : undefined;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OriginationOperation.prototype, "errors", {
         get: function () {
             return this.operationResults && this.operationResults.errors;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     /**
@@ -1019,42 +2107,56 @@ var TransactionOperation = /** @class */ (function (_super) {
                 this.results.find(function (op) { return op.kind === 'transaction'; });
             return transactionOp ? [transactionOp] : [];
         },
-        enumerable: true,
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TransactionOperation.prototype, "status", {
+        get: function () {
+            var operationResults = this.operationResults;
+            var txResult = operationResults[0];
+            if (txResult) {
+                return txResult.metadata.operation_result.status;
+            }
+            else {
+                return 'unknown';
+            }
+        },
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "amount", {
         get: function () {
             return new BigNumber(this.params.amount);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "destination", {
         get: function () {
             return this.params.destination;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "fee", {
         get: function () {
             return this.params.fee;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "gasLimit", {
         get: function () {
             return this.params.gas_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageLimit", {
         get: function () {
             return this.params.storage_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     TransactionOperation.prototype.sumProp = function (arr, prop) {
@@ -1066,28 +2168,28 @@ var TransactionOperation = /** @class */ (function (_super) {
         get: function () {
             return String(this.sumProp(flattenOperationResult({ contents: this.operationResults }), 'consumed_gas'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageDiff", {
         get: function () {
             return String(this.sumProp(flattenOperationResult({ contents: this.operationResults }), 'paid_storage_size_diff'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageSize", {
         get: function () {
             return String(this.sumProp(flattenOperationResult({ contents: this.operationResults }), 'storage_size'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "errors", {
         get: function () {
             return flattenErrors({ contents: this.operationResults });
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return TransactionOperation;
@@ -1099,7 +2201,7 @@ var InvalidParameterError = /** @class */ (function () {
         this.sigs = sigs;
         this.args = args;
         this.name = 'Invalid parameters error';
-        this.message = smartContractMethodName + " Received " + args.length + " arguments while expecting on of the follow signatures (" + JSON.stringify(sigs) + ")";
+        this.message = smartContractMethodName + " Received " + args.length + " arguments while expecting one of the following signatures (" + JSON.stringify(sigs) + ")";
     }
     return InvalidParameterError;
 }());
@@ -1112,7 +2214,456 @@ var InvalidDelegationSource = /** @class */ (function () {
     return InvalidDelegationSource;
 }());
 
-var DEFAULT_SMART_CONTRACT_METHOD_NAME = 'main';
+var setDelegate = function (key) {
+    return [
+        { prim: 'DROP' },
+        { prim: 'NIL', args: [{ prim: 'operation' }] },
+        {
+            prim: 'PUSH',
+            args: [{ prim: 'key_hash' }, { string: key }],
+        },
+        { prim: 'SOME' },
+        { prim: 'SET_DELEGATE' },
+        { prim: 'CONS' },
+    ];
+};
+var transferImplicit = function (key, mutez) {
+    return [
+        { prim: 'DROP' },
+        { prim: 'NIL', args: [{ prim: 'operation' }] },
+        {
+            prim: 'PUSH',
+            args: [{ prim: 'key_hash' }, { string: key }],
+        },
+        { prim: 'IMPLICIT_ACCOUNT' },
+        {
+            prim: 'PUSH',
+            args: [{ prim: 'mutez' }, { int: "" + mutez }],
+        },
+        { prim: 'UNIT' },
+        { prim: 'TRANSFER_TOKENS' },
+        { prim: 'CONS' },
+    ];
+};
+var removeDelegate = function () {
+    return [
+        { prim: 'DROP' },
+        { prim: 'NIL', args: [{ prim: 'operation' }] },
+        { prim: 'NONE', args: [{ prim: 'key_hash' }] },
+        { prim: 'SET_DELEGATE' },
+        { prim: 'CONS' },
+    ];
+};
+var transferToContract = function (key, amount) {
+    return [
+        { prim: 'DROP' },
+        { prim: 'NIL', args: [{ prim: 'operation' }] },
+        {
+            prim: 'PUSH',
+            args: [{ prim: 'address' }, { string: key }],
+        },
+        { prim: 'CONTRACT', args: [{ prim: 'unit' }] },
+        [
+            {
+                prim: 'IF_NONE',
+                args: [[[{ prim: 'UNIT' }, { prim: 'FAILWITH' }]], []],
+            },
+        ],
+        {
+            prim: 'PUSH',
+            args: [{ prim: 'mutez' }, { int: "" + amount }],
+        },
+        { prim: 'UNIT' },
+        { prim: 'TRANSFER_TOKENS' },
+        { prim: 'CONS' },
+    ];
+};
+var MANAGER_LAMBDA = {
+    setDelegate: setDelegate,
+    removeDelegate: removeDelegate,
+    transferImplicit: transferImplicit,
+    transferToContract: transferToContract,
+};
+
+var WalletOperationBatch = /** @class */ (function () {
+    function WalletOperationBatch(walletProvider, operationFactory) {
+        this.walletProvider = walletProvider;
+        this.operationFactory = operationFactory;
+        this.operations = [];
+    }
+    /**
+     *
+     * @description Add a transaction operation to the batch
+     *
+     * @param params Transfer operation parameter
+     */
+    WalletOperationBatch.prototype.withTransfer = function (params) {
+        this.operations.push(__assign({ kind: OpKind.TRANSACTION }, params));
+        return this;
+    };
+    /**
+     *
+     * @description Add a transaction operation to the batch
+     *
+     * @param params Transfer operation parameter
+     */
+    WalletOperationBatch.prototype.withContractCall = function (params) {
+        return this.withTransfer(params.toTransferParams());
+    };
+    /**
+     *
+     * @description Add a delegation operation to the batch
+     *
+     * @param params Delegation operation parameter
+     */
+    WalletOperationBatch.prototype.withDelegation = function (params) {
+        this.operations.push(__assign({ kind: OpKind.DELEGATION }, params));
+        return this;
+    };
+    /**
+     *
+     * @description Add an origination operation to the batch
+     *
+     * @param params Origination operation parameter
+     */
+    WalletOperationBatch.prototype.withOrigination = function (params) {
+        this.operations.push(__assign({ kind: OpKind.ORIGINATION }, params));
+        return this;
+    };
+    WalletOperationBatch.prototype.mapOperation = function (param) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (param.kind) {
+                    case OpKind.TRANSACTION:
+                        return [2 /*return*/, this.walletProvider.mapTransferParamsToWalletParams(__assign({}, param))];
+                    case OpKind.ORIGINATION:
+                        return [2 /*return*/, this.walletProvider.mapOriginateParamsToWalletParams(__assign({}, param))];
+                    case OpKind.DELEGATION:
+                        return [2 /*return*/, this.walletProvider.mapDelegateParamsToWalletParams(__assign({}, param))];
+                    default:
+                        throw new Error("Unsupported operation kind: " + param.kind);
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Add a group operation to the batch. Operation will be applied in the order they are in the params array
+     *
+     * @param params Operations parameter
+     */
+    WalletOperationBatch.prototype.with = function (params) {
+        var e_1, _a;
+        try {
+            for (var params_1 = __values(params), params_1_1 = params_1.next(); !params_1_1.done; params_1_1 = params_1.next()) {
+                var param = params_1_1.value;
+                switch (param.kind) {
+                    case OpKind.TRANSACTION:
+                        this.withTransfer(param);
+                        break;
+                    case OpKind.ORIGINATION:
+                        this.withOrigination(param);
+                        break;
+                    case OpKind.DELEGATION:
+                        this.withDelegation(param);
+                        break;
+                    default:
+                        throw new Error("Unsupported operation kind: " + param.kind);
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (params_1_1 && !params_1_1.done && (_a = params_1.return)) _a.call(params_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return this;
+    };
+    /**
+     *
+     * @description Submit batch operation to wallet
+     *
+     */
+    WalletOperationBatch.prototype.send = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var ops, _a, _b, op, _c, _d, e_2_1, opHash;
+            var e_2, _e;
+            return __generator(this, function (_f) {
+                switch (_f.label) {
+                    case 0:
+                        ops = [];
+                        _f.label = 1;
+                    case 1:
+                        _f.trys.push([1, 6, 7, 8]);
+                        _a = __values(this.operations), _b = _a.next();
+                        _f.label = 2;
+                    case 2:
+                        if (!!_b.done) return [3 /*break*/, 5];
+                        op = _b.value;
+                        _d = (_c = ops).push;
+                        return [4 /*yield*/, this.mapOperation(op)];
+                    case 3:
+                        _d.apply(_c, [_f.sent()]);
+                        _f.label = 4;
+                    case 4:
+                        _b = _a.next();
+                        return [3 /*break*/, 2];
+                    case 5: return [3 /*break*/, 8];
+                    case 6:
+                        e_2_1 = _f.sent();
+                        e_2 = { error: e_2_1 };
+                        return [3 /*break*/, 8];
+                    case 7:
+                        try {
+                            if (_b && !_b.done && (_e = _a.return)) _e.call(_a);
+                        }
+                        finally { if (e_2) throw e_2.error; }
+                        return [7 /*endfinally*/];
+                    case 8: return [4 /*yield*/, this.walletProvider.sendOperations(ops)];
+                    case 9:
+                        opHash = _f.sent();
+                        return [2 /*return*/, this.operationFactory.createOperation(opHash)];
+                }
+            });
+        });
+    };
+    return WalletOperationBatch;
+}());
+var Wallet = /** @class */ (function () {
+    function Wallet(context) {
+        this.context = context;
+        this.walletCommand = function (send) {
+            return {
+                send: send,
+            };
+        };
+    }
+    Object.defineProperty(Wallet.prototype, "walletProvider", {
+        get: function () {
+            return this.context.walletProvider;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    /**
+     * @description Retrieve the PKH of the account that is currently in use by the wallet
+     *
+     * @param option Option to use while fetching the PKH.
+     * If forceRefetch is specified the wallet provider implementation will refetch the PKH from the wallet
+     */
+    Wallet.prototype.pkh = function (_a) {
+        var forceRefetch = (_a === void 0 ? {} : _a).forceRefetch;
+        return __awaiter(this, void 0, void 0, function () {
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (!(!this._pkh || forceRefetch)) return [3 /*break*/, 2];
+                        _b = this;
+                        return [4 /*yield*/, this.walletProvider.getPKH()];
+                    case 1:
+                        _b._pkh = _c.sent();
+                        _c.label = 2;
+                    case 2: return [2 /*return*/, this._pkh];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Originate a new contract according to the script in parameters.
+     *
+     * @returns An operation handle with the result from the rpc node
+     *
+     * @param originateParams Originate operation parameter
+     */
+    Wallet.prototype.originate = function (params) {
+        var _this = this;
+        return this.walletCommand(function () { return __awaiter(_this, void 0, void 0, function () {
+            var mappedParams, opHash;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.walletProvider.mapOriginateParamsToWalletParams(__assign({}, params))];
+                    case 1:
+                        mappedParams = _a.sent();
+                        return [4 /*yield*/, this.walletProvider.sendOperations([mappedParams])];
+                    case 2:
+                        opHash = _a.sent();
+                        return [2 /*return*/, this.context.operationFactory.createOriginationOperation(opHash)];
+                }
+            });
+        }); });
+    };
+    /**
+     *
+     * @description Set the delegate for a contract.
+     *
+     * @returns An operation handle with the result from the rpc node
+     *
+     * @param delegateParams operation parameter
+     */
+    Wallet.prototype.setDelegate = function (params) {
+        var _this = this;
+        return this.walletCommand(function () { return __awaiter(_this, void 0, void 0, function () {
+            var mappedParams, opHash;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.walletProvider.mapDelegateParamsToWalletParams(__assign({}, params))];
+                    case 1:
+                        mappedParams = _a.sent();
+                        return [4 /*yield*/, this.walletProvider.sendOperations([mappedParams])];
+                    case 2:
+                        opHash = _a.sent();
+                        return [2 /*return*/, this.context.operationFactory.createDelegationOperation(opHash)];
+                }
+            });
+        }); });
+    };
+    /**
+     *
+     * @description Register the current address as delegate.
+     *
+     * @returns An operation handle with the result from the rpc node
+     *
+     */
+    Wallet.prototype.registerDelegate = function () {
+        var _this = this;
+        return this.walletCommand(function () { return __awaiter(_this, void 0, void 0, function () {
+            var mappedParams, _a, _b, opHash;
+            var _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        _b = (_a = this.walletProvider).mapDelegateParamsToWalletParams;
+                        _c = {};
+                        return [4 /*yield*/, this.pkh()];
+                    case 1: return [4 /*yield*/, _b.apply(_a, [(_c.delegate = _d.sent(),
+                                _c)])];
+                    case 2:
+                        mappedParams = _d.sent();
+                        return [4 /*yield*/, this.walletProvider.sendOperations([mappedParams])];
+                    case 3:
+                        opHash = _d.sent();
+                        return [2 /*return*/, this.context.operationFactory.createDelegationOperation(opHash)];
+                }
+            });
+        }); });
+    };
+    /**
+     *
+     * @description Transfer tezos tokens from current address to a specific address or call a smart contract.
+     *
+     * @returns A wallet command from which we can send the operation to the wallet
+     *
+     * @param params operation parameter
+     */
+    Wallet.prototype.transfer = function (params) {
+        var _this = this;
+        return this.walletCommand(function () { return __awaiter(_this, void 0, void 0, function () {
+            var mappedParams, opHash;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.walletProvider.mapTransferParamsToWalletParams(params)];
+                    case 1:
+                        mappedParams = _a.sent();
+                        return [4 /*yield*/, this.walletProvider.sendOperations([mappedParams])];
+                    case 2:
+                        opHash = _a.sent();
+                        return [2 /*return*/, this.context.operationFactory.createTransactionOperation(opHash)];
+                }
+            });
+        }); });
+    };
+    /**
+     *
+     * @description Create a batch of operation
+     *
+     * @returns A batch object from which we can add more operation or send a command to the wallet to execute the batch
+     *
+     * @param params List of operation to initialize the batch with
+     */
+    Wallet.prototype.batch = function (params) {
+        var batch = new WalletOperationBatch(this.walletProvider, this.context.operationFactory);
+        batch.with(params);
+        return batch;
+    };
+    /**
+     *
+     * @description Create an smart contract abstraction for the address specified. Calling entrypoints with the returned
+     * smart contract abstraction will leverage the wallet provider to make smart contract calls
+     *
+     * @param address Smart contract address
+     */
+    Wallet.prototype.at = function (address) {
+        return __awaiter(this, void 0, void 0, function () {
+            var script, entrypoints;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.context.rpc.getScript(address)];
+                    case 1:
+                        script = _a.sent();
+                        return [4 /*yield*/, this.context.rpc.getEntrypoints(address)];
+                    case 2:
+                        entrypoints = _a.sent();
+                        return [2 /*return*/, new ContractAbstraction(address, script, this, this.context.contract, entrypoints)];
+                }
+            });
+        });
+    };
+    return Wallet;
+}());
+
+var LegacyWalletProvider = /** @class */ (function () {
+    function LegacyWalletProvider(context) {
+        this.context = context;
+    }
+    LegacyWalletProvider.prototype.getPKH = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this.context.signer.publicKeyHash()];
+            });
+        });
+    };
+    LegacyWalletProvider.prototype.mapTransferParamsToWalletParams = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, attachKind(params, OpKind.TRANSACTION)];
+            });
+        });
+    };
+    LegacyWalletProvider.prototype.mapOriginateParamsToWalletParams = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, attachKind(params, OpKind.ORIGINATION)];
+            });
+        });
+    };
+    LegacyWalletProvider.prototype.mapDelegateParamsToWalletParams = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, attachKind(params, OpKind.DELEGATION)];
+            });
+        });
+    };
+    LegacyWalletProvider.prototype.sendOperations = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var op;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.context.batch.batch(params).send()];
+                    case 1:
+                        op = _a.sent();
+                        return [2 /*return*/, op.hash];
+                }
+            });
+        });
+    };
+    return LegacyWalletProvider;
+}());
+
+var DEFAULT_SMART_CONTRACT_METHOD_NAME = 'default';
 /**
  * @description Utility class to send smart contract operation
  */
@@ -1137,7 +2688,7 @@ var ContractMethod = /** @class */ (function () {
                 ? this.parameterSchema.ExtractSchema()[this.name]
                 : this.parameterSchema.ExtractSchema();
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     /**
@@ -1148,7 +2699,13 @@ var ContractMethod = /** @class */ (function () {
      */
     ContractMethod.prototype.send = function (params) {
         if (params === void 0) { params = {}; }
-        return this.provider.transfer(this.toTransferParams(params));
+        if (this.provider instanceof Wallet) {
+            // TODO got around TS2352: Conversion of type 'T & Wallet' to type 'Wallet' by adding `as unknown`. Needs clarification
+            return this.provider.transfer(this.toTransferParams(params)).send();
+        }
+        else {
+            return this.provider.transfer(this.toTransferParams(params));
+        }
     };
     /**
      *
@@ -1172,7 +2729,6 @@ var ContractMethod = /** @class */ (function () {
                 value: this.isAnonymous
                     ? (_b = this.parameterSchema).Encode.apply(_b, __spread([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, __spread(this.args)),
             },
-            rawParam: true,
         };
         return fullTransferParams;
     };
@@ -1187,11 +2743,11 @@ var validateArgs = function (args, schema, name) {
 /**
  * @description Smart contract abstraction
  */
-var Contract = /** @class */ (function () {
-    function Contract(address, script, provider, entrypoints) {
+var ContractAbstraction = /** @class */ (function () {
+    function ContractAbstraction(address, script, provider, storageProvider, entrypoints) {
         this.address = address;
         this.script = script;
-        this.provider = provider;
+        this.storageProvider = storageProvider;
         this.entrypoints = entrypoints;
         /**
          * @description Contains methods that are implemented by the target Tezos Smart Contract, and offers the user to call the Smart Contract methods as if they were native TS/JS methods.
@@ -1203,7 +2759,7 @@ var Contract = /** @class */ (function () {
         this.parameterSchema = ParameterSchema.fromRPCResponse({ script: this.script });
         this._initializeMethods(address, provider, this.entrypoints.entrypoints);
     }
-    Contract.prototype._initializeMethods = function (address, provider, entrypoints) {
+    ContractAbstraction.prototype._initializeMethods = function (address, provider, entrypoints) {
         var _this = this;
         var parameterSchema = this.parameterSchema;
         var keys = Object.keys(entrypoints);
@@ -1251,138 +2807,25 @@ var Contract = /** @class */ (function () {
     /**
      * @description Return a friendly representation of the smart contract storage
      */
-    Contract.prototype.storage = function () {
-        return this.provider.getStorage(this.address, this.schema);
+    ContractAbstraction.prototype.storage = function () {
+        return this.storageProvider.getStorage(this.address, this.schema);
     };
     /**
      *
      * @description Return a friendly representation of the smart contract big map value
      *
      * @param key BigMap key to fetch
+     *
+     * @deprecated getBigMapKey has been deprecated in favor of getBigMapKeyByID
+     *
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
      */
-    Contract.prototype.bigMap = function (key) {
+    ContractAbstraction.prototype.bigMap = function (key) {
         // tslint:disable-next-line: deprecation
-        return this.provider.getBigMapKey(this.address, key, this.schema);
+        return this.storageProvider.getBigMapKey(this.address, key, this.schema);
     };
-    return Contract;
+    return ContractAbstraction;
 }());
-
-var TZ_DECIMALS = 6;
-var MTZ_DECIMALS = 3;
-function getDecimal(format) {
-    switch (format) {
-        case 'tz':
-            return TZ_DECIMALS;
-        case 'mtz':
-            return MTZ_DECIMALS;
-        case 'mutez':
-        default:
-            return 0;
-    }
-}
-function format(from, to, amount) {
-    if (from === void 0) { from = 'mutez'; }
-    if (to === void 0) { to = 'mutez'; }
-    var bigNum = new BigNumber(amount);
-    if (bigNum.isNaN()) {
-        return amount;
-    }
-    return bigNum
-        .multipliedBy(Math.pow(10, getDecimal(from)))
-        .dividedBy(Math.pow(10, getDecimal(to)));
-}
-
-var createOriginationOperation = function (_a) {
-    var code = _a.code, init = _a.init, _b = _a.balance, balance = _b === void 0 ? '0' : _b, delegate = _a.delegate, storage = _a.storage, _c = _a.fee, fee = _c === void 0 ? DEFAULT_FEE.ORIGINATION : _c, _d = _a.gasLimit, gasLimit = _d === void 0 ? DEFAULT_GAS_LIMIT.ORIGINATION : _d, _e = _a.storageLimit, storageLimit = _e === void 0 ? DEFAULT_STORAGE_LIMIT.ORIGINATION : _e;
-    return __awaiter(void 0, void 0, void 0, function () {
-        var contractCode, contractStorage, schema, script, operation;
-        return __generator(this, function (_f) {
-            // tslint:disable-next-line: strict-type-predicates
-            if (storage !== undefined && init !== undefined) {
-                throw new Error('Storage and Init cannot be set a the same time. Please either use storage or init but not both.');
-            }
-            contractCode = Array.isArray(code) ? code : ml2mic(code);
-            if (storage !== undefined) {
-                schema = new Schema(contractCode[1].args[0]);
-                contractStorage = schema.Encode(storage);
-            }
-            else {
-                contractStorage = typeof init === 'string' ? sexp2mic(init) : init;
-            }
-            script = {
-                code: Array.isArray(code) ? code : ml2mic(code),
-                storage: contractStorage,
-            };
-            operation = {
-                kind: OpKind.ORIGINATION,
-                fee: fee,
-                gas_limit: gasLimit,
-                storage_limit: storageLimit,
-                balance: format('tz', 'mutez', balance).toString(),
-                script: script,
-            };
-            if (delegate) {
-                operation.delegate = delegate;
-            }
-            return [2 /*return*/, operation];
-        });
-    });
-};
-var createTransferOperation = function (_a) {
-    var to = _a.to, amount = _a.amount, parameter = _a.parameter, _b = _a.fee, fee = _b === void 0 ? DEFAULT_FEE.TRANSFER : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? DEFAULT_GAS_LIMIT.TRANSFER : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? DEFAULT_STORAGE_LIMIT.TRANSFER : _d, _e = _a.mutez, mutez = _e === void 0 ? false : _e, _f = _a.rawParam, rawParam = _f === void 0 ? false : _f;
-    return __awaiter(void 0, void 0, void 0, function () {
-        var operation;
-        return __generator(this, function (_g) {
-            operation = {
-                kind: OpKind.TRANSACTION,
-                fee: fee,
-                gas_limit: gasLimit,
-                storage_limit: storageLimit,
-                amount: mutez ? amount.toString() : format('tz', 'mutez', amount).toString(),
-                destination: to,
-            };
-            if (parameter) {
-                operation.parameters = rawParam
-                    ? parameter
-                    : typeof parameter === 'string'
-                        ? sexp2mic(parameter)
-                        : parameter;
-            }
-            return [2 /*return*/, operation];
-        });
-    });
-};
-var createSetDelegateOperation = function (_a) {
-    var delegate = _a.delegate, source = _a.source, _b = _a.fee, fee = _b === void 0 ? DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
-    return __awaiter(void 0, void 0, void 0, function () {
-        var operation;
-        return __generator(this, function (_e) {
-            operation = {
-                kind: OpKind.DELEGATION,
-                source: source,
-                fee: fee,
-                gas_limit: gasLimit,
-                storage_limit: storageLimit,
-                delegate: delegate,
-            };
-            return [2 /*return*/, operation];
-        });
-    });
-};
-var createRegisterDelegateOperation = function (_a, source) {
-    var _b = _a.fee, fee = _b === void 0 ? DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? DEFAULT_GAS_LIMIT.DELEGATION : _c, _d = _a.storageLimit, storageLimit = _d === void 0 ? DEFAULT_STORAGE_LIMIT.DELEGATION : _d;
-    return __awaiter(void 0, void 0, void 0, function () {
-        return __generator(this, function (_e) {
-            return [2 /*return*/, {
-                    kind: OpKind.DELEGATION,
-                    fee: fee,
-                    gas_limit: gasLimit,
-                    storage_limit: storageLimit,
-                    delegate: source,
-                }];
-        });
-    });
-};
 
 var BigMapAbstraction = /** @class */ (function () {
     function BigMapAbstraction(id, schema, provider) {
@@ -1392,8 +2835,25 @@ var BigMapAbstraction = /** @class */ (function () {
     }
     BigMapAbstraction.prototype.get = function (keyToEncode) {
         return __awaiter(this, void 0, void 0, function () {
+            var id, e_1;
             return __generator(this, function (_a) {
-                return [2 /*return*/, this.provider.getBigMapKeyByID(this.id.toString(), keyToEncode, this.schema)];
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        return [4 /*yield*/, this.provider.getBigMapKeyByID(this.id.toString(), keyToEncode, this.schema)];
+                    case 1:
+                        id = _a.sent();
+                        return [2 /*return*/, id];
+                    case 2:
+                        e_1 = _a.sent();
+                        if (e_1 instanceof HttpResponseError && e_1.status === STATUS_CODE.NOT_FOUND) {
+                            return [2 /*return*/, undefined];
+                        }
+                        else {
+                            throw e_1;
+                        }
+                    case 3: return [2 /*return*/];
+                }
             });
         });
     };
@@ -1449,7 +2909,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         schema = _a.sent();
                         _a.label = 2;
                     case 2:
-                        if (schema instanceof Schema) {
+                        if (Schema.isSchema(schema)) {
                             contractSchema = schema;
                         }
                         else {
@@ -1487,7 +2947,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         schema = _a.sent();
                         _a.label = 2;
                     case 2:
-                        if (schema instanceof Schema) {
+                        if (Schema.isSchema(schema)) {
                             contractSchema = schema;
                         }
                         else {
@@ -1836,7 +3296,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         return [4 /*yield*/, this.rpc.getEntrypoints(address)];
                     case 2:
                         entrypoints = _a.sent();
-                        return [2 /*return*/, new Contract(address, script, this, entrypoints)];
+                        return [2 /*return*/, new ContractAbstraction(address, script, this, this, entrypoints)];
                 }
             });
         });
@@ -1860,733 +3320,6 @@ function operationContentsToDelegateParams(op) {
     };
 }
 
-var MINIMAL_FEE_MUTEZ = 100;
-var MINIMAL_FEE_PER_BYTE_MUTEZ = 1;
-var MINIMAL_FEE_PER_STORAGE_BYTE_MUTEZ = 1000;
-var MINIMAL_FEE_PER_GAS_MUTEZ = 0.1;
-var GAS_BUFFER = 100;
-var Estimate = /** @class */ (function () {
-    function Estimate(_gasLimit, _storageLimit, opSize, 
-    /**
-     * @description Base fee in mutez (1 mutez = 1e10−6 tez)
-     */
-    baseFeeMutez) {
-        if (baseFeeMutez === void 0) { baseFeeMutez = MINIMAL_FEE_MUTEZ; }
-        this._gasLimit = _gasLimit;
-        this._storageLimit = _storageLimit;
-        this.opSize = opSize;
-        this.baseFeeMutez = baseFeeMutez;
-    }
-    Object.defineProperty(Estimate.prototype, "burnFeeMutez", {
-        /**
-         * @description Burn fee in mutez
-         */
-        get: function () {
-            return this.roundUp(Number(this.storageLimit) * MINIMAL_FEE_PER_STORAGE_BYTE_MUTEZ);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Estimate.prototype, "storageLimit", {
-        /**
-         * @description Get the estimated storage limit
-         */
-        get: function () {
-            var limit = Math.max(Number(this._storageLimit), 0);
-            return limit > 0 ? limit : 0;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Estimate.prototype, "gasLimit", {
-        /**
-         * @description Suggested gasLimit for operation
-         */
-        get: function () {
-            return Number(this._gasLimit) + GAS_BUFFER;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Estimate.prototype, "operationFeeMutez", {
-        get: function () {
-            return (this.gasLimit * MINIMAL_FEE_PER_GAS_MUTEZ + Number(this.opSize) * MINIMAL_FEE_PER_BYTE_MUTEZ);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Estimate.prototype.roundUp = function (nanotez) {
-        return Math.ceil(Number(nanotez));
-    };
-    Object.defineProperty(Estimate.prototype, "minimalFeeMutez", {
-        /**
-         * @description Minimum fees for operation according to baker defaults
-         */
-        get: function () {
-            return this.roundUp(MINIMAL_FEE_MUTEZ + this.operationFeeMutez);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Estimate.prototype, "suggestedFeeMutez", {
-        /**
-         * @description Suggested fee for operation (minimal fees plus a small buffer)
-         */
-        get: function () {
-            return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 2);
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Estimate.prototype, "usingBaseFeeMutez", {
-        /**
-         * @description Fees according to your specified base fee will ensure that at least minimum fees are used
-         */
-        get: function () {
-            return (Math.max(Number(this.baseFeeMutez), MINIMAL_FEE_MUTEZ) + this.roundUp(this.operationFeeMutez));
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Estimate.prototype, "totalCost", {
-        get: function () {
-            return this.minimalFeeMutez + this.burnFeeMutez;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return Estimate;
-}());
-
-// RPC require a signature but do not verify it
-var SIGNATURE_STUB = 'edsigtkpiSSschcaCt9pUVrpNPf7TTcgvgDEDD6NCEHMy8NNQJCGnMfLZzYoQj74yLjo9wx6MPVV29CvVzgi7qEcEUok3k7AuMg';
-var RPCEstimateProvider = /** @class */ (function (_super) {
-    __extends(RPCEstimateProvider, _super);
-    function RPCEstimateProvider() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.ALLOCATION_STORAGE = 257;
-        _this.ORIGINATION_STORAGE = 257;
-        return _this;
-    }
-    // Maximum values defined by the protocol
-    RPCEstimateProvider.prototype.getAccountLimits = function (pkh) {
-        return __awaiter(this, void 0, void 0, function () {
-            var balance, _a, hard_gas_limit_per_operation, hard_storage_limit_per_operation, cost_per_byte;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0: return [4 /*yield*/, this.rpc.getBalance(pkh)];
-                    case 1:
-                        balance = _b.sent();
-                        return [4 /*yield*/, this.rpc.getConstants()];
-                    case 2:
-                        _a = _b.sent(), hard_gas_limit_per_operation = _a.hard_gas_limit_per_operation, hard_storage_limit_per_operation = _a.hard_storage_limit_per_operation, cost_per_byte = _a.cost_per_byte;
-                        return [2 /*return*/, {
-                                fee: 0,
-                                gasLimit: hard_gas_limit_per_operation.toNumber(),
-                                storageLimit: Math.floor(BigNumber.min(balance.dividedBy(cost_per_byte), hard_storage_limit_per_operation).toNumber()),
-                            }];
-                }
-            });
-        });
-    };
-    RPCEstimateProvider.prototype.createEstimateFromOperationContent = function (content, size) {
-        var _this = this;
-        var operationResults = flattenOperationResult({ contents: [content] });
-        var totalGas = 0;
-        var totalStorage = 0;
-        operationResults.forEach(function (result) {
-            totalStorage +=
-                'originated_contracts' in result && typeof result.originated_contracts !== 'undefined'
-                    ? result.originated_contracts.length * _this.ORIGINATION_STORAGE
-                    : 0;
-            totalStorage += 'allocated_destination_contract' in result ? _this.ALLOCATION_STORAGE : 0;
-            totalGas += Number(result.consumed_gas) || 0;
-            totalStorage +=
-                'paid_storage_size_diff' in result ? Number(result.paid_storage_size_diff) || 0 : 0;
-        });
-        if (isOpWithFee(content)) {
-            return new Estimate(totalGas || 0, Number(totalStorage || 0), size);
-        }
-        else {
-            return new Estimate(0, 0, size, 0);
-        }
-    };
-    RPCEstimateProvider.prototype.createEstimate = function (params) {
-        return __awaiter(this, void 0, void 0, function () {
-            var _a, opbytes, _b, branch, contents, operation, _c, opResponse, errors;
-            var _this = this;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
-                    case 0: return [4 /*yield*/, this.prepareAndForge(params)];
-                    case 1:
-                        _a = _d.sent(), opbytes = _a.opbytes, _b = _a.opOb, branch = _b.branch, contents = _b.contents;
-                        _c = {
-                            operation: { branch: branch, contents: contents, signature: SIGNATURE_STUB }
-                        };
-                        return [4 /*yield*/, this.rpc.getChainId()];
-                    case 2:
-                        operation = (_c.chain_id = _d.sent(),
-                            _c);
-                        return [4 /*yield*/, this.simulate(operation)];
-                    case 3:
-                        opResponse = (_d.sent()).opResponse;
-                        errors = __spread(flattenErrors(opResponse, 'backtracked'), flattenErrors(opResponse));
-                        // Fail early in case of errors
-                        if (errors.length) {
-                            throw new TezosOperationError(errors);
-                        }
-                        while (opResponse.contents.length !== (Array.isArray(params.operation) ? params.operation.length : 1)) {
-                            opResponse.contents.shift();
-                        }
-                        return [2 /*return*/, opResponse.contents.map(function (x) {
-                                return _this.createEstimateFromOperationContent(x, opbytes.length / 2 / opResponse.contents.length);
-                            })];
-                }
-            });
-        });
-    };
-    /**
-     *
-     * @description Estimate gasLimit, storageLimit and fees for an origination operation
-     *
-     * @returns An estimation of gasLimit, storageLimit and fees for the operation
-     *
-     * @param OriginationOperation Originate operation parameter
-     */
-    RPCEstimateProvider.prototype.originate = function (_a) {
-        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
-        return __awaiter(this, void 0, void 0, function () {
-            var pkh, DEFAULT_PARAMS, op;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1:
-                        pkh = _b.sent();
-                        return [4 /*yield*/, this.getAccountLimits(pkh)];
-                    case 2:
-                        DEFAULT_PARAMS = _b.sent();
-                        return [4 /*yield*/, createOriginationOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
-                    case 3:
-                        op = _b.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
-                    case 4: return [2 /*return*/, (_b.sent())[0]];
-                }
-            });
-        });
-    };
-    /**
-     *
-     * @description Estimate gasLimit, storageLimit and fees for an transfer operation
-     *
-     * @returns An estimation of gasLimit, storageLimit and fees for the operation
-     *
-     * @param TransferOperation Originate operation parameter
-     */
-    RPCEstimateProvider.prototype.transfer = function (_a) {
-        var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
-        return __awaiter(this, void 0, void 0, function () {
-            var pkh, mutezAmount, sourceBalancePromise, managerPromise, isNewImplicitAccountPromise, isDelegatedPromise, _b, sourceBalance, manager, isNewImplicitAccount, isDelegated, requireReveal, revealFee, _storageLimit, DEFAULT_PARAMS, op;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1:
-                        pkh = _c.sent();
-                        mutezAmount = rest.mutez
-                            ? rest.amount.toString()
-                            : format('tz', 'mutez', rest.amount).toString();
-                        sourceBalancePromise = this.rpc.getBalance(pkh);
-                        managerPromise = this.rpc.getManagerKey(pkh);
-                        isNewImplicitAccountPromise = this.isNewImplicitAccount(rest.to);
-                        isDelegatedPromise = this.isDelegated(pkh);
-                        return [4 /*yield*/, Promise.all([
-                                sourceBalancePromise,
-                                managerPromise,
-                                isNewImplicitAccountPromise,
-                                isDelegatedPromise,
-                            ])];
-                    case 2:
-                        _b = __read.apply(void 0, [_c.sent(), 4]), sourceBalance = _b[0], manager = _b[1], isNewImplicitAccount = _b[2], isDelegated = _b[3];
-                        requireReveal = !manager;
-                        revealFee = requireReveal ? DEFAULT_FEE.REVEAL : 0;
-                        _storageLimit = isNewImplicitAccount ? DEFAULT_STORAGE_LIMIT.TRANSFER : 0;
-                        DEFAULT_PARAMS = {
-                            fee: sourceBalance
-                                .minus(Number(mutezAmount) + revealFee + _storageLimit * 1000 + (isDelegated ? 1 : 0))
-                                .toNumber(),
-                            storageLimit: _storageLimit,
-                            gasLimit: DEFAULT_GAS_LIMIT.TRANSFER,
-                        };
-                        return [4 /*yield*/, createTransferOperation(__assign(__assign({}, rest), DEFAULT_PARAMS))];
-                    case 3:
-                        op = _c.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
-                    case 4: return [2 /*return*/, (_c.sent())[0]];
-                }
-            });
-        });
-    };
-    RPCEstimateProvider.prototype.isDelegated = function (address) {
-        return __awaiter(this, void 0, void 0, function () {
-            var isDelegated, delegate, err_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        _a.trys.push([0, 2, , 3]);
-                        return [4 /*yield*/, this.rpc.getDelegate(address)];
-                    case 1:
-                        delegate = _a.sent();
-                        isDelegated = !!delegate;
-                        return [3 /*break*/, 3];
-                    case 2:
-                        err_1 = _a.sent();
-                        // getDelegate returns 404 if no delegate
-                        isDelegated = false;
-                        return [3 /*break*/, 3];
-                    case 3: return [2 /*return*/, isDelegated];
-                }
-            });
-        });
-    };
-    RPCEstimateProvider.prototype.isNewImplicitAccount = function (address) {
-        return __awaiter(this, void 0, void 0, function () {
-            var pref, isImplicit, balance, e_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        pref = address.substring(0, 3);
-                        isImplicit = ['tz1', 'tz2', 'tz3'].includes(pref);
-                        if (!isImplicit) {
-                            return [2 /*return*/, false];
-                        }
-                        _a.label = 1;
-                    case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, this.rpc.getBalance(address)];
-                    case 2:
-                        balance = _a.sent();
-                        return [2 /*return*/, balance.eq(0)];
-                    case 3:
-                        e_1 = _a.sent();
-                        return [2 /*return*/, true];
-                    case 4: return [2 /*return*/];
-                }
-            });
-        });
-    };
-    /**
-     *
-     * @description Estimate gasLimit, storageLimit and fees for a delegate operation
-     *
-     * @returns An estimation of gasLimit, storageLimit and fees for the operation
-     *
-     * @param Estimate
-     */
-    RPCEstimateProvider.prototype.setDelegate = function (params) {
-        return __awaiter(this, void 0, void 0, function () {
-            var sourceBalancePromise, managerPromise, _a, sourceBalance, manager, requireReveal, revealFee, DEFAULT_PARAMS, op, sourceOrDefault, _b;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
-                    case 0:
-                        sourceBalancePromise = this.rpc.getBalance(params.source);
-                        managerPromise = this.rpc.getManagerKey(params.source);
-                        return [4 /*yield*/, Promise.all([sourceBalancePromise, managerPromise])];
-                    case 1:
-                        _a = __read.apply(void 0, [_c.sent(), 2]), sourceBalance = _a[0], manager = _a[1];
-                        requireReveal = !manager;
-                        revealFee = requireReveal ? DEFAULT_FEE.REVEAL : 0;
-                        DEFAULT_PARAMS = {
-                            fee: sourceBalance.toNumber() - 1 - revealFee,
-                            storageLimit: DEFAULT_STORAGE_LIMIT.DELEGATION,
-                            gasLimit: DEFAULT_GAS_LIMIT.DELEGATION,
-                        };
-                        return [4 /*yield*/, createSetDelegateOperation(__assign(__assign({}, params), DEFAULT_PARAMS))];
-                    case 2:
-                        op = _c.sent();
-                        _b = params.source;
-                        if (_b) return [3 /*break*/, 4];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 3:
-                        _b = (_c.sent());
-                        _c.label = 4;
-                    case 4:
-                        sourceOrDefault = _b;
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
-                    case 5: return [2 /*return*/, (_c.sent())[0]];
-                }
-            });
-        });
-    };
-    RPCEstimateProvider.prototype.batch = function (params) {
-        return __awaiter(this, void 0, void 0, function () {
-            var operations, DEFAULT_PARAMS, _a, params_1, params_1_1, param, _b, _c, _d, _e, _f, _g, _h, e_2_1;
-            var e_2, _j;
-            return __generator(this, function (_k) {
-                switch (_k.label) {
-                    case 0:
-                        operations = [];
-                        _a = this.getAccountLimits;
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1: return [4 /*yield*/, _a.apply(this, [_k.sent()])];
-                    case 2:
-                        DEFAULT_PARAMS = _k.sent();
-                        _k.label = 3;
-                    case 3:
-                        _k.trys.push([3, 15, 16, 17]);
-                        params_1 = __values(params), params_1_1 = params_1.next();
-                        _k.label = 4;
-                    case 4:
-                        if (!!params_1_1.done) return [3 /*break*/, 14];
-                        param = params_1_1.value;
-                        _b = param.kind;
-                        switch (_b) {
-                            case OpKind.TRANSACTION: return [3 /*break*/, 5];
-                            case OpKind.ORIGINATION: return [3 /*break*/, 7];
-                            case OpKind.DELEGATION: return [3 /*break*/, 9];
-                            case OpKind.ACTIVATION: return [3 /*break*/, 11];
-                        }
-                        return [3 /*break*/, 12];
-                    case 5:
-                        _d = (_c = operations).push;
-                        return [4 /*yield*/, createTransferOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                    case 6:
-                        _d.apply(_c, [_k.sent()]);
-                        return [3 /*break*/, 13];
-                    case 7:
-                        _f = (_e = operations).push;
-                        return [4 /*yield*/, createOriginationOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                    case 8:
-                        _f.apply(_e, [_k.sent()]);
-                        return [3 /*break*/, 13];
-                    case 9:
-                        _h = (_g = operations).push;
-                        return [4 /*yield*/, createSetDelegateOperation(__assign(__assign({}, param), DEFAULT_PARAMS))];
-                    case 10:
-                        _h.apply(_g, [_k.sent()]);
-                        return [3 /*break*/, 13];
-                    case 11:
-                        operations.push(__assign(__assign({}, param), DEFAULT_PARAMS));
-                        return [3 /*break*/, 13];
-                    case 12: throw new Error("Unsupported operation kind: " + param.kind);
-                    case 13:
-                        params_1_1 = params_1.next();
-                        return [3 /*break*/, 4];
-                    case 14: return [3 /*break*/, 17];
-                    case 15:
-                        e_2_1 = _k.sent();
-                        e_2 = { error: e_2_1 };
-                        return [3 /*break*/, 17];
-                    case 16:
-                        try {
-                            if (params_1_1 && !params_1_1.done && (_j = params_1.return)) _j.call(params_1);
-                        }
-                        finally { if (e_2) throw e_2.error; }
-                        return [7 /*endfinally*/];
-                    case 17: return [2 /*return*/, this.createEstimate({ operation: operations })];
-                }
-            });
-        });
-    };
-    /**
-     *
-     * @description Estimate gasLimit, storageLimit and fees for a delegate operation
-     *
-     * @returns An estimation of gasLimit, storageLimit and fees for the operation
-     *
-     * @param Estimate
-     */
-    RPCEstimateProvider.prototype.registerDelegate = function (params) {
-        return __awaiter(this, void 0, void 0, function () {
-            var DEFAULT_PARAMS, _a, op, _b, _c, _d, _e;
-            return __generator(this, function (_f) {
-                switch (_f.label) {
-                    case 0:
-                        _a = this.getAccountLimits;
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1: return [4 /*yield*/, _a.apply(this, [_f.sent()])];
-                    case 2:
-                        DEFAULT_PARAMS = _f.sent();
-                        _b = createRegisterDelegateOperation;
-                        _c = [__assign(__assign({}, params), DEFAULT_PARAMS)];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 3: return [4 /*yield*/, _b.apply(void 0, _c.concat([_f.sent()]))];
-                    case 4:
-                        op = _f.sent();
-                        _d = this.createEstimate;
-                        _e = { operation: op };
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 5: return [4 /*yield*/, _d.apply(this, [(_e.source = _f.sent(), _e)])];
-                    case 6: return [2 /*return*/, (_f.sent())[0]];
-                }
-            });
-        });
-    };
-    return RPCEstimateProvider;
-}(OperationEmitter));
-
-var opHashFilter = function (op, filter) { return op.hash === filter.opHash; };
-var sourceFilter = function (x, filter) {
-    switch (x.kind) {
-        case 'endorsement':
-            return 'metadata' in x && x.metadata.delegate === filter.source;
-        case 'activate_account':
-            return 'metadata' in x && x.pkh === filter.source;
-        default:
-            return 'source' in x && x.source === filter.source;
-    }
-};
-var kindFilter = function (x, filter) { return 'kind' in x && x.kind === filter.kind; };
-var destinationFilter = function (x, filter) {
-    switch (x.kind) {
-        case 'delegation':
-            return x.delegate === filter.destination;
-        case 'origination':
-            if ('metadata' in x &&
-                'operation_result' in x.metadata &&
-                'originated_contracts' in x.metadata.operation_result &&
-                Array.isArray(x.metadata.operation_result.originated_contracts)) {
-                return x.metadata.operation_result.originated_contracts.some(function (contract) { return contract === filter.destination; });
-            }
-            break;
-        case 'transaction':
-            return x.destination === filter.destination;
-        default:
-            return false;
-    }
-};
-var evaluateOpFilter = function (op, filter) {
-    if ('opHash' in filter) {
-        return opHashFilter(op, filter);
-    }
-    else if ('source' in filter) {
-        return sourceFilter(op, filter);
-    }
-    else if ('kind' in filter) {
-        return kindFilter(op, filter);
-    }
-    else if ('destination' in filter) {
-        return destinationFilter(op, filter);
-    }
-    return false;
-};
-var evaluateExpression = function (op, exp) {
-    if (Array.isArray(exp.and)) {
-        return exp.and.every(function (x) { return evaluateFilter(op, x); });
-    }
-    else if (Array.isArray(exp.or)) {
-        return exp.or.some(function (x) { return evaluateFilter(op, x); });
-    }
-    else {
-        throw new Error('Filter expression must contains either and/or property');
-    }
-};
-var evaluateFilter = function (op, filter) {
-    var filters = [];
-    if (!Array.isArray(filter)) {
-        filters.push(filter);
-    }
-    else {
-        filters.push.apply(filters, __spread(filter));
-    }
-    return filters.every(function (filterOrExp) {
-        if ('and' in filterOrExp || 'or' in filterOrExp) {
-            return evaluateExpression(op, filterOrExp);
-        }
-        else {
-            return evaluateOpFilter(op, filterOrExp);
-        }
-    });
-};
-
-var ObservableSubscription = /** @class */ (function () {
-    function ObservableSubscription(obs) {
-        var _this = this;
-        this.errorListeners = [];
-        this.messageListeners = [];
-        this.closeListeners = [];
-        this.completed$ = new Subject();
-        obs.pipe(takeUntil(this.completed$)).subscribe(function (data) {
-            _this.call(_this.messageListeners, data);
-        }, function (error) {
-            _this.call(_this.errorListeners, error);
-        }, function () {
-            _this.call(_this.closeListeners);
-        });
-    }
-    ObservableSubscription.prototype.call = function (listeners, value) {
-        var e_1, _a;
-        try {
-            for (var listeners_1 = __values(listeners), listeners_1_1 = listeners_1.next(); !listeners_1_1.done; listeners_1_1 = listeners_1.next()) {
-                var l = listeners_1_1.value;
-                try {
-                    l(value);
-                }
-                catch (ex) {
-                    console.error(ex);
-                }
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (listeners_1_1 && !listeners_1_1.done && (_a = listeners_1.return)) _a.call(listeners_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-    };
-    ObservableSubscription.prototype.remove = function (listeners, value) {
-        var idx = listeners.indexOf(value);
-        if (idx !== -1) {
-            listeners.splice(idx, 1);
-        }
-    };
-    ObservableSubscription.prototype.on = function (type, cb) {
-        switch (type) {
-            case 'data':
-                this.messageListeners.push(cb);
-                break;
-            case 'error':
-                this.errorListeners.push(cb);
-                break;
-            case 'close':
-                this.closeListeners.push(cb);
-                break;
-            default:
-                throw new Error("Trying to register on an unsupported event: " + type);
-        }
-    };
-    ObservableSubscription.prototype.off = function (type, cb) {
-        switch (type) {
-            case 'data':
-                this.remove(this.messageListeners, cb);
-                break;
-            case 'error':
-                this.remove(this.errorListeners, cb);
-                break;
-            case 'close':
-                this.remove(this.closeListeners, cb);
-                break;
-            default:
-                throw new Error("Trying to unregister on an unsupported event: " + type);
-        }
-    };
-    ObservableSubscription.prototype.close = function () {
-        this.completed$.next();
-    };
-    return ObservableSubscription;
-}());
-
-var getLastBlock = function (context) {
-    return from(context.rpc.getBlock()).pipe(first());
-};
-var applyFilter = function (filter) {
-    return concatMap(function (block) {
-        return new Observable(function (sub) {
-            var e_1, _a, e_2, _b, e_3, _c;
-            try {
-                for (var _d = __values(block.operations), _e = _d.next(); !_e.done; _e = _d.next()) {
-                    var ops = _e.value;
-                    try {
-                        for (var ops_1 = (e_2 = void 0, __values(ops)), ops_1_1 = ops_1.next(); !ops_1_1.done; ops_1_1 = ops_1.next()) {
-                            var op = ops_1_1.value;
-                            try {
-                                for (var _f = (e_3 = void 0, __values(op.contents)), _g = _f.next(); !_g.done; _g = _f.next()) {
-                                    var content = _g.value;
-                                    if (evaluateFilter(__assign({ hash: op.hash }, content), filter)) {
-                                        sub.next(__assign({ hash: op.hash }, content));
-                                    }
-                                }
-                            }
-                            catch (e_3_1) { e_3 = { error: e_3_1 }; }
-                            finally {
-                                try {
-                                    if (_g && !_g.done && (_c = _f.return)) _c.call(_f);
-                                }
-                                finally { if (e_3) throw e_3.error; }
-                            }
-                        }
-                    }
-                    catch (e_2_1) { e_2 = { error: e_2_1 }; }
-                    finally {
-                        try {
-                            if (ops_1_1 && !ops_1_1.done && (_b = ops_1.return)) _b.call(ops_1);
-                        }
-                        finally { if (e_2) throw e_2.error; }
-                    }
-                }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
-                }
-                finally { if (e_1) throw e_1.error; }
-            }
-            sub.complete();
-        });
-    });
-};
-var PollingSubscribeProvider = /** @class */ (function () {
-    function PollingSubscribeProvider(context, POLL_INTERVAL) {
-        var _this = this;
-        if (POLL_INTERVAL === void 0) { POLL_INTERVAL = 20000; }
-        this.context = context;
-        this.POLL_INTERVAL = POLL_INTERVAL;
-        this.newBlock$ = timer(0, this.POLL_INTERVAL).pipe(map(function () { return _this.context; }), switchMap(getLastBlock), distinctUntilKeyChanged('hash'));
-    }
-    PollingSubscribeProvider.prototype.subscribe = function (_filter) {
-        return new ObservableSubscription(this.newBlock$.pipe(pluck('hash')));
-    };
-    PollingSubscribeProvider.prototype.subscribeOperation = function (filter) {
-        return new ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)));
-    };
-    return PollingSubscribeProvider;
-}());
-
-var RpcTzProvider = /** @class */ (function (_super) {
-    __extends(RpcTzProvider, _super);
-    function RpcTzProvider(context) {
-        return _super.call(this, context) || this;
-    }
-    RpcTzProvider.prototype.getBalance = function (address) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                return [2 /*return*/, this.rpc.getBalance(address)];
-            });
-        });
-    };
-    RpcTzProvider.prototype.getDelegate = function (address) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                return [2 /*return*/, this.rpc.getDelegate(address)];
-            });
-        });
-    };
-    RpcTzProvider.prototype.activate = function (pkh, secret) {
-        return __awaiter(this, void 0, void 0, function () {
-            var operation, forgedBytes, bytes, _a;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        operation = {
-                            kind: OpKind.ACTIVATION,
-                            pkh: pkh,
-                            secret: secret,
-                        };
-                        return [4 /*yield*/, this.prepareAndForge({ operation: [operation], source: pkh })];
-                    case 1:
-                        forgedBytes = _b.sent();
-                        bytes = forgedBytes.opbytes + "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-                        _a = Operation.bind;
-                        return [4 /*yield*/, this.rpc.injectOperation(bytes)];
-                    case 2: return [2 /*return*/, new (_a.apply(Operation, [void 0, _b.sent(), __assign(__assign({}, forgedBytes), { opbytes: bytes }), [],
-                            this.context.clone()]))()];
-                }
-            });
-        });
-    };
-    return RpcTzProvider;
-}(OperationEmitter));
-
 var BatchOperation = /** @class */ (function (_super) {
     __extends(BatchOperation, _super);
     function BatchOperation(hash, params, source, raw, results, context) {
@@ -2600,51 +3333,73 @@ var BatchOperation = /** @class */ (function (_super) {
             return prop in current ? Number(current[prop]) + prev : prev;
         }, 0);
     };
+    Object.defineProperty(BatchOperation.prototype, "status", {
+        get: function () {
+            return (this.results
+                .filter(function (result) { return BATCH_KINDS.indexOf(result.kind) !== -1; })
+                .map(function (result) {
+                if (hasMetadataWithResult(result)) {
+                    return result.metadata.operation_result.status;
+                }
+                else {
+                    return 'unknown';
+                }
+            })[0] || 'unknown');
+        },
+        enumerable: false,
+        configurable: true
+    });
     Object.defineProperty(BatchOperation.prototype, "fee", {
         get: function () {
             return this.sumProp(this.params, 'fee');
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(BatchOperation.prototype, "gasLimit", {
         get: function () {
             return this.sumProp(this.params, 'gas_limit');
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(BatchOperation.prototype, "storageLimit", {
         get: function () {
             return this.sumProp(this.params, 'storage_limit');
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(BatchOperation.prototype, "consumedGas", {
         get: function () {
             return String(this.sumProp(flattenOperationResult({ contents: this.results }), 'consumed_gas'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(BatchOperation.prototype, "storageDiff", {
         get: function () {
             return String(this.sumProp(flattenOperationResult({ contents: this.results }), 'paid_storage_size_diff'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(BatchOperation.prototype, "errors", {
         get: function () {
             return flattenErrors({ contents: this.results });
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return BatchOperation;
 }(Operation));
 
+var BATCH_KINDS = [
+    OpKind.ACTIVATION,
+    OpKind.ORIGINATION,
+    OpKind.TRANSACTION,
+    OpKind.DELEGATION,
+];
 var OperationBatch = /** @class */ (function (_super) {
     __extends(OperationBatch, _super);
     function OperationBatch(context, estimator) {
@@ -2862,76 +3617,357 @@ var RPCBatchProvider = /** @class */ (function () {
     return RPCBatchProvider;
 }());
 
-var setDelegate = function (key) {
-    return [
-        { prim: 'DROP' },
-        { prim: 'NIL', args: [{ prim: 'operation' }] },
-        {
-            prim: 'PUSH',
-            args: [{ prim: 'key_hash' }, { string: key }],
-        },
-        { prim: 'SOME' },
-        { prim: 'SET_DELEGATE' },
-        { prim: 'CONS' },
-    ];
+var defaultConfig = {
+    confirmationPollingIntervalSecond: 10,
+    defaultConfirmationCount: 1,
+    confirmationPollingTimeoutSecond: 180,
+    shouldObservableSubscriptionRetry: false
 };
-var transferImplicit = function (key, mutez) {
-    return [
-        { prim: 'DROP' },
-        { prim: 'NIL', args: [{ prim: 'operation' }] },
-        {
-            prim: 'PUSH',
-            args: [{ prim: 'key_hash' }, { string: key }],
+/**
+ * @description Encapsulate common service used throughout different part of the library
+ */
+var Context = /** @class */ (function () {
+    function Context(_rpc, _signer, _proto, _config, forger, injector, wallet) {
+        if (_signer === void 0) { _signer = new NoopSigner(); }
+        this._rpc = _rpc;
+        this._signer = _signer;
+        this._proto = _proto;
+        this._config = _config;
+        this.tz = new RpcTzProvider(this);
+        this.estimate = new RPCEstimateProvider(this);
+        this.contract = new RpcContractProvider(this, this.estimate);
+        this.batch = new RPCBatchProvider(this, this.estimate);
+        this.wallet = new Wallet(this);
+        if (typeof this._rpc === 'string') {
+            this._rpcClient = new RpcClient(this._rpc);
+        }
+        else {
+            this._rpcClient = this._rpc;
+        }
+        this.config = _config;
+        this._forger = forger ? forger : new RpcForger(this);
+        this._injector = injector ? injector : new RpcInjector(this);
+        this.operationFactory = new OperationFactory(this);
+        this._walletProvider = wallet ? wallet : new LegacyWalletProvider(this);
+    }
+    Object.defineProperty(Context.prototype, "config", {
+        get: function () {
+            return this._config;
         },
-        { prim: 'IMPLICIT_ACCOUNT' },
-        {
-            prim: 'PUSH',
-            args: [{ prim: 'mutez' }, { int: "" + mutez }],
+        set: function (value) {
+            this._config = __assign(__assign({}, defaultConfig), value);
         },
-        { prim: 'UNIT' },
-        { prim: 'TRANSFER_TOKENS' },
-        { prim: 'CONS' },
-    ];
-};
-var removeDelegate = function () {
-    return [
-        { prim: 'DROP' },
-        { prim: 'NIL', args: [{ prim: 'operation' }] },
-        { prim: 'NONE', args: [{ prim: 'key_hash' }] },
-        { prim: 'SET_DELEGATE' },
-        { prim: 'CONS' },
-    ];
-};
-var transferToContract = function (key, amount) {
-    return [
-        { prim: 'DROP' },
-        { prim: 'NIL', args: [{ prim: 'operation' }] },
-        {
-            prim: 'PUSH',
-            args: [{ prim: 'address' }, { string: key }],
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Context.prototype, "rpc", {
+        get: function () {
+            return this._rpcClient;
         },
-        { prim: 'CONTRACT', args: [{ prim: 'unit' }] },
-        [
-            {
-                prim: 'IF_NONE',
-                args: [[[{ prim: 'UNIT' }, { prim: 'FAILWITH' }]], []],
-            },
-        ],
-        {
-            prim: 'PUSH',
-            args: [{ prim: 'mutez' }, { int: "" + amount }],
+        set: function (value) {
+            this._rpcClient = value;
         },
-        { prim: 'UNIT' },
-        { prim: 'TRANSFER_TOKENS' },
-        { prim: 'CONS' },
-    ];
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Context.prototype, "injector", {
+        get: function () {
+            return this._injector;
+        },
+        set: function (value) {
+            this._injector = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Context.prototype, "forger", {
+        get: function () {
+            return this._forger;
+        },
+        set: function (value) {
+            this._forger = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Context.prototype, "signer", {
+        get: function () {
+            return this._signer;
+        },
+        set: function (value) {
+            this._signer = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Context.prototype, "walletProvider", {
+        get: function () {
+            return this._walletProvider;
+        },
+        set: function (value) {
+            this._walletProvider = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Context.prototype, "proto", {
+        get: function () {
+            return this._proto;
+        },
+        set: function (value) {
+            this._proto = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Context.prototype.isAnyProtocolActive = function (protocol) {
+        if (protocol === void 0) { protocol = []; }
+        return __awaiter(this, void 0, void 0, function () {
+            var next_protocol;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!this._proto) return [3 /*break*/, 1];
+                        return [2 /*return*/, protocol.includes(this._proto)];
+                    case 1: return [4 /*yield*/, this.rpc.getBlockMetadata()];
+                    case 2:
+                        next_protocol = (_a.sent()).next_protocol;
+                        return [2 /*return*/, protocol.includes(next_protocol)];
+                }
+            });
+        });
+    };
+    /**
+     * @description Create a copy of the current context. Useful when you have long running operation and you do not want a context change to affect the operation
+     */
+    Context.prototype.clone = function () {
+        return new Context(this.rpc, this.signer, this.proto, this.config, this.forger, this._injector);
+    };
+    return Context;
+}());
+
+var opHashFilter = function (op, filter) { return op.hash === filter.opHash; };
+var sourceFilter = function (x, filter) {
+    switch (x.kind) {
+        case 'endorsement':
+            return 'metadata' in x && x.metadata.delegate === filter.source;
+        case 'activate_account':
+            return 'metadata' in x && x.pkh === filter.source;
+        default:
+            return 'source' in x && x.source === filter.source;
+    }
 };
-var MANAGER_LAMBDA = {
-    setDelegate: setDelegate,
-    removeDelegate: removeDelegate,
-    transferImplicit: transferImplicit,
-    transferToContract: transferToContract,
+var kindFilter = function (x, filter) { return 'kind' in x && x.kind === filter.kind; };
+var destinationFilter = function (x, filter) {
+    switch (x.kind) {
+        case 'delegation':
+            return x.delegate === filter.destination;
+        case 'origination':
+            if ('metadata' in x &&
+                'operation_result' in x.metadata &&
+                'originated_contracts' in x.metadata.operation_result &&
+                Array.isArray(x.metadata.operation_result.originated_contracts)) {
+                return x.metadata.operation_result.originated_contracts.some(function (contract) { return contract === filter.destination; });
+            }
+            break;
+        case 'transaction':
+            return x.destination === filter.destination;
+        default:
+            return false;
+    }
 };
+var evaluateOpFilter = function (op, filter) {
+    if ('opHash' in filter) {
+        return opHashFilter(op, filter);
+    }
+    else if ('source' in filter) {
+        return sourceFilter(op, filter);
+    }
+    else if ('kind' in filter) {
+        return kindFilter(op, filter);
+    }
+    else if ('destination' in filter) {
+        return destinationFilter(op, filter);
+    }
+    return false;
+};
+var evaluateExpression = function (op, exp) {
+    if (Array.isArray(exp.and)) {
+        return exp.and.every(function (x) { return evaluateFilter(op, x); });
+    }
+    else if (Array.isArray(exp.or)) {
+        return exp.or.some(function (x) { return evaluateFilter(op, x); });
+    }
+    else {
+        throw new Error('Filter expression must contains either and/or property');
+    }
+};
+var evaluateFilter = function (op, filter) {
+    var filters = [];
+    if (!Array.isArray(filter)) {
+        filters.push(filter);
+    }
+    else {
+        filters.push.apply(filters, __spread(filter));
+    }
+    return filters.every(function (filterOrExp) {
+        if ('and' in filterOrExp || 'or' in filterOrExp) {
+            return evaluateExpression(op, filterOrExp);
+        }
+        else {
+            return evaluateOpFilter(op, filterOrExp);
+        }
+    });
+};
+
+var ObservableSubscription = /** @class */ (function () {
+    function ObservableSubscription(obs, shouldRetry) {
+        var _this = this;
+        if (shouldRetry === void 0) { shouldRetry = false; }
+        this.shouldRetry = shouldRetry;
+        this.errorListeners = [];
+        this.messageListeners = [];
+        this.closeListeners = [];
+        this.completed$ = new Subject();
+        obs
+            .pipe(takeUntil(this.completed$), tap(function (data) {
+            _this.call(_this.messageListeners, data);
+        }, function (error) {
+            _this.call(_this.errorListeners, error);
+        }, function () {
+            _this.call(_this.closeListeners);
+        }), this.shouldRetry ? retry() : tap(), catchError(function () { return NEVER; }))
+            .subscribe();
+    }
+    ObservableSubscription.prototype.call = function (listeners, value) {
+        var e_1, _a;
+        try {
+            for (var listeners_1 = __values(listeners), listeners_1_1 = listeners_1.next(); !listeners_1_1.done; listeners_1_1 = listeners_1.next()) {
+                var l = listeners_1_1.value;
+                try {
+                    l(value);
+                }
+                catch (ex) {
+                    console.error(ex);
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (listeners_1_1 && !listeners_1_1.done && (_a = listeners_1.return)) _a.call(listeners_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+    };
+    ObservableSubscription.prototype.remove = function (listeners, value) {
+        var idx = listeners.indexOf(value);
+        if (idx !== -1) {
+            listeners.splice(idx, 1);
+        }
+    };
+    ObservableSubscription.prototype.on = function (type, cb) {
+        switch (type) {
+            case 'data':
+                this.messageListeners.push(cb);
+                break;
+            case 'error':
+                this.errorListeners.push(cb);
+                break;
+            case 'close':
+                this.closeListeners.push(cb);
+                break;
+            default:
+                throw new Error("Trying to register on an unsupported event: " + type);
+        }
+    };
+    ObservableSubscription.prototype.off = function (type, cb) {
+        switch (type) {
+            case 'data':
+                this.remove(this.messageListeners, cb);
+                break;
+            case 'error':
+                this.remove(this.errorListeners, cb);
+                break;
+            case 'close':
+                this.remove(this.closeListeners, cb);
+                break;
+            default:
+                throw new Error("Trying to unregister on an unsupported event: " + type);
+        }
+    };
+    ObservableSubscription.prototype.close = function () {
+        this.completed$.next();
+    };
+    return ObservableSubscription;
+}());
+
+var getLastBlock = function (context) {
+    return from(context.rpc.getBlock()).pipe(first());
+};
+var applyFilter = function (filter) {
+    return concatMap(function (block) {
+        return new Observable(function (sub) {
+            var e_1, _a, e_2, _b, e_3, _c;
+            try {
+                for (var _d = __values(block.operations), _e = _d.next(); !_e.done; _e = _d.next()) {
+                    var ops = _e.value;
+                    try {
+                        for (var ops_1 = (e_2 = void 0, __values(ops)), ops_1_1 = ops_1.next(); !ops_1_1.done; ops_1_1 = ops_1.next()) {
+                            var op = ops_1_1.value;
+                            try {
+                                for (var _f = (e_3 = void 0, __values(op.contents)), _g = _f.next(); !_g.done; _g = _f.next()) {
+                                    var content = _g.value;
+                                    if (evaluateFilter(__assign({ hash: op.hash }, content), filter)) {
+                                        sub.next(__assign({ hash: op.hash }, content));
+                                    }
+                                }
+                            }
+                            catch (e_3_1) { e_3 = { error: e_3_1 }; }
+                            finally {
+                                try {
+                                    if (_g && !_g.done && (_c = _f.return)) _c.call(_f);
+                                }
+                                finally { if (e_3) throw e_3.error; }
+                            }
+                        }
+                    }
+                    catch (e_2_1) { e_2 = { error: e_2_1 }; }
+                    finally {
+                        try {
+                            if (ops_1_1 && !ops_1_1.done && (_b = ops_1.return)) _b.call(ops_1);
+                        }
+                        finally { if (e_2) throw e_2.error; }
+                    }
+                }
+            }
+            catch (e_1_1) { e_1 = { error: e_1_1 }; }
+            finally {
+                try {
+                    if (_e && !_e.done && (_a = _d.return)) _a.call(_d);
+                }
+                finally { if (e_1) throw e_1.error; }
+            }
+            sub.complete();
+        });
+    });
+};
+var PollingSubscribeProvider = /** @class */ (function () {
+    function PollingSubscribeProvider(context, POLL_INTERVAL) {
+        var _this = this;
+        if (POLL_INTERVAL === void 0) { POLL_INTERVAL = 20000; }
+        this.context = context;
+        this.POLL_INTERVAL = POLL_INTERVAL;
+        this.newBlock$ = timer(0, this.POLL_INTERVAL).pipe(map(function () { return _this.context; }), switchMap(getLastBlock), distinctUntilKeyChanged('hash'));
+    }
+    PollingSubscribeProvider.prototype.subscribe = function (_filter) {
+        return new ObservableSubscription(this.newBlock$.pipe(pluck('hash')), this.context.config.shouldObservableSubscriptionRetry);
+    };
+    PollingSubscribeProvider.prototype.subscribeOperation = function (filter) {
+        return new ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)), this.context.config.shouldObservableSubscriptionRetry);
+    };
+    return PollingSubscribeProvider;
+}());
 
 var ForgingMismatchError = /** @class */ (function () {
     function ForgingMismatchError(results) {
@@ -2980,38 +4016,53 @@ var CompositeForger = /** @class */ (function () {
 
 /**
  * @description Facade class that surfaces all of the libraries capability and allow it's configuration
+ *
+ * @param _rpc The RPC server to use
  */
 var TezosToolkit = /** @class */ (function () {
-    function TezosToolkit() {
-        this._rpcClient = new RpcClient();
+    function TezosToolkit(_rpc, _context) {
+        if (_context === void 0) { _context = new Context(_rpc); }
+        this._rpc = _rpc;
+        this._context = _context;
         this._options = {};
-        this._context = new Context();
-        this._tz = new RpcTzProvider(this._context);
-        this._estimate = new RPCEstimateProvider(this._context);
-        this._contract = new RpcContractProvider(this._context, this._estimate);
-        this._batch = new RPCBatchProvider(this._context, this._estimate);
         this.format = format;
-        this.batch = this._batch.batch.bind(this._batch);
+        this.batch = this._context.batch.batch.bind(this._context.batch);
+        if (typeof this._rpc === 'string') {
+            this._rpcClient = new RpcClient(this._rpc);
+        }
+        else {
+            this._rpcClient = this._rpc;
+        }
+        this._wallet = new Wallet(this._context);
         this.setProvider({ rpc: this._rpcClient });
     }
     /**
      * @description Sets configuration on the Tezos Taquito instance. Allows user to choose which signer, rpc client, rpc url, forger and so forth
      *
-     * @param options rpc url or rpcClient to use to interact with the Tezos network and  url to use to interact with the Tezos network
+     * @param options rpc url or rpcClient to use to interact with the Tezos network
      *
-     * @example Tezos.setProvider({signer: new InMemorySigner(“edsk...”)})
-     * @example Tezos.setProvider({config: {confirmationPollingTimeoutSecond: 300}})
+     * @example Tezos.setProvider({rpc: 'https://api.tez.ie/rpc/mainnet', signer: new InMemorySigner.fromSecretKey(“edsk...”)})
+     * @example Tezos.setProvider({ config: { confirmationPollingTimeoutSecond: 300 }})
      *
      */
     TezosToolkit.prototype.setProvider = function (_a) {
-        var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger;
+        var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger, wallet = _a.wallet;
         this.setRpcProvider(rpc);
         this.setStreamProvider(stream);
         this.setSignerProvider(signer);
         this.setForgerProvider(forger);
+        this.setWalletProvider(wallet);
         this._context.proto = protocol;
         this._context.config = config;
     };
+    /**
+     * @description Sets signer provider on the Tezos Taquito instance.
+     *
+     * @param options signer to use to interact with the Tezos network
+     *
+     * @example Tezos.setSignerProvider(new InMemorySigner.fromSecretKey('edsk...'))
+     *
+     */
     TezosToolkit.prototype.setSignerProvider = function (signer) {
         if (!this._options.signer && typeof signer === 'undefined') {
             this._context.signer = new NoopSigner();
@@ -3022,6 +4073,14 @@ var TezosToolkit = /** @class */ (function () {
             this._options.signer = signer;
         }
     };
+    /**
+     * @description Sets rpc provider on the Tezos Taquito instance
+     *
+     * @param options rpc url or rpcClient to use to interact with the Tezos network
+     *
+     * @example Tezos.setRpcProvider('https://api.tez.ie/rpc/mainnet')
+     *
+     */
     TezosToolkit.prototype.setRpcProvider = function (rpc) {
         if (typeof rpc === 'string') {
             this._rpcClient = new RpcClient(rpc);
@@ -3029,17 +4088,33 @@ var TezosToolkit = /** @class */ (function () {
         else if (rpc instanceof RpcClient) {
             this._rpcClient = rpc;
         }
-        else if (this._options.rpc === undefined) {
-            this._rpcClient = new RpcClient();
-        }
-        this._options.rpc = rpc;
+        /*     else if (this._options.rpc === undefined) {
+              this._rpcClient = new RpcClient();
+            } */
+        this._options.rpc = this._rpcClient;
         this._context.rpc = this._rpcClient;
     };
+    /**
+     * @description Sets forger provider on the Tezos Taquito instance
+     *
+     * @param options forger to use to interact with the Tezos network
+     *
+     * @example Tezos.setForgerProvider(localForger)
+     *
+     */
     TezosToolkit.prototype.setForgerProvider = function (forger) {
-        var f = typeof forger === 'undefined' ? new RpcForger(this._context) : forger;
+        var f = typeof forger === 'undefined' ? this.getFactory(RpcForger)() : forger;
         this._options.forger = f;
         this._context.forger = f;
     };
+    /**
+     * @description Sets stream provider on the Tezos Taquito instance
+     *
+     * @param options stream to use to interact with the Tezos network
+     *
+     * @example Tezos.setStreamProvider(...)
+     *
+     */
     TezosToolkit.prototype.setStreamProvider = function (stream) {
         if (typeof stream === 'string') {
             this._stream = new PollingSubscribeProvider(new Context(new RpcClient(stream)));
@@ -3048,18 +4123,37 @@ var TezosToolkit = /** @class */ (function () {
             this._stream = stream;
         }
         else if (this._options.stream === undefined) {
-            this._stream = new PollingSubscribeProvider(this._context);
+            this._stream = this.getFactory(PollingSubscribeProvider)();
         }
         this._options.stream = stream;
+    };
+    /**
+     * @description Sets wallet provider on the Tezos Taquito instance
+     *
+     * @param options wallet to use to interact with the Tezos network
+     *
+     * @example Tezos.setWalletProvider(...)
+     *
+     */
+    TezosToolkit.prototype.setWalletProvider = function (wallet) {
+        if (!this._options.wallet && typeof wallet === 'undefined') {
+            var w = this.getFactory(LegacyWalletProvider)();
+            this._options.wallet = w;
+            this._context.walletProvider = w;
+        }
+        else if (typeof wallet !== 'undefined') {
+            this._options.wallet = wallet;
+            this._context.walletProvider = wallet;
+        }
     };
     Object.defineProperty(TezosToolkit.prototype, "tz", {
         /**
          * @description Provide access to tezos account management
          */
         get: function () {
-            return this._tz;
+            return this._context.tz;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "contract", {
@@ -3067,9 +4161,23 @@ var TezosToolkit = /** @class */ (function () {
          * @description Provide access to smart contract utilities
          */
         get: function () {
-            return this._contract;
+            return this._context.contract;
         },
-        enumerable: true,
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TezosToolkit.prototype, "wallet", {
+        get: function () {
+            return this._wallet;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TezosToolkit.prototype, "operation", {
+        get: function () {
+            return this._context.operationFactory;
+        },
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "estimate", {
@@ -3077,9 +4185,9 @@ var TezosToolkit = /** @class */ (function () {
          * @description Provide access to operation estimation utilities
          */
         get: function () {
-            return this._estimate;
+            return this._context.estimate;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "stream", {
@@ -3089,7 +4197,7 @@ var TezosToolkit = /** @class */ (function () {
         get: function () {
             return this._stream;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "rpc", {
@@ -3099,7 +4207,7 @@ var TezosToolkit = /** @class */ (function () {
         get: function () {
             return this._context.rpc;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TezosToolkit.prototype, "signer", {
@@ -3109,62 +4217,9 @@ var TezosToolkit = /** @class */ (function () {
         get: function () {
             return this._context.signer;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
-    TezosToolkit.prototype.importKey = function (privateKeyOrEmail, passphrase, mnemonic, secret) {
-        return __awaiter(this, void 0, void 0, function () {
-            var previousSigner, signer, pkh, op, ex_1, isInvalidActivationError, ex_2;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (!(privateKeyOrEmail && passphrase && mnemonic && secret)) return [3 /*break*/, 11];
-                        previousSigner = this.signer;
-                        signer = InMemorySigner.fromFundraiser(privateKeyOrEmail, passphrase, mnemonic);
-                        return [4 /*yield*/, signer.publicKeyHash()];
-                    case 1:
-                        pkh = _a.sent();
-                        this.setSignerProvider(signer);
-                        _a.label = 2;
-                    case 2:
-                        _a.trys.push([2, 9, , 10]);
-                        op = void 0;
-                        _a.label = 3;
-                    case 3:
-                        _a.trys.push([3, 5, , 6]);
-                        return [4 /*yield*/, this.tz.activate(pkh, secret)];
-                    case 4:
-                        op = _a.sent();
-                        return [3 /*break*/, 6];
-                    case 5:
-                        ex_1 = _a.sent();
-                        isInvalidActivationError = ex_1 && ex_1.body && /Invalid activation/.test(ex_1.body);
-                        if (!isInvalidActivationError) {
-                            throw ex_1;
-                        }
-                        return [3 /*break*/, 6];
-                    case 6:
-                        if (!op) return [3 /*break*/, 8];
-                        return [4 /*yield*/, op.confirmation()];
-                    case 7:
-                        _a.sent();
-                        _a.label = 8;
-                    case 8: return [3 /*break*/, 10];
-                    case 9:
-                        ex_2 = _a.sent();
-                        // Restore to previous signer in case of error
-                        this.setSignerProvider(previousSigner);
-                        throw ex_2;
-                    case 10: return [3 /*break*/, 12];
-                    case 11:
-                        // Fallback to regular import
-                        this.setSignerProvider(new InMemorySigner(privateKeyOrEmail, passphrase));
-                        _a.label = 12;
-                    case 12: return [2 /*return*/];
-                }
-            });
-        });
-    };
     TezosToolkit.prototype.getFactory = function (ctor) {
         var _this = this;
         return function () {
@@ -3177,10 +4232,6 @@ var TezosToolkit = /** @class */ (function () {
     };
     return TezosToolkit;
 }());
-/**
- * @description Default Tezos toolkit instance
- */
-var Tezos = new TezosToolkit();
 
-export { BigMapAbstraction, CompositeForger, DEFAULT_FEE, DEFAULT_GAS_LIMIT, DEFAULT_STORAGE_LIMIT, InvalidDelegationSource, InvalidParameterError, MANAGER_LAMBDA, PollingSubscribeProvider, Protocols, RpcForger, Tezos, TezosOperationError, TezosPreapplyFailureError, TezosToolkit, protocols };
+export { BigMapAbstraction, CompositeForger, Context, ContractAbstraction, ContractMethod, DEFAULT_FEE, DEFAULT_GAS_LIMIT, DEFAULT_STORAGE_LIMIT, DelegationWalletOperation, InvalidDelegationSource, InvalidParameterError, LegacyWalletProvider, MANAGER_LAMBDA, MissedBlockDuringConfirmationError, OriginationWalletOperation, PollingSubscribeProvider, Protocols, RpcForger, TezosOperationError, TezosPreapplyFailureError, TezosToolkit, TransactionWalletOperation, Wallet, WalletOperation, WalletOperationBatch, createOriginationOperation, createRegisterDelegateOperation, createSetDelegateOperation, createTransferOperation, defaultConfig, protocols };
 //# sourceMappingURL=taquito.es5.js.map

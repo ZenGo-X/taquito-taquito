@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.RpcInjector = void 0;
 var RpcInjector = /** @class */ (function () {
     function RpcInjector(context) {
         this.context = context;

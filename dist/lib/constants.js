@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.protocols = exports.Protocols = exports.DEFAULT_STORAGE_LIMIT = exports.DEFAULT_FEE = exports.DEFAULT_GAS_LIMIT = void 0;
 var DEFAULT_GAS_LIMIT;
 (function (DEFAULT_GAS_LIMIT) {
     DEFAULT_GAS_LIMIT[DEFAULT_GAS_LIMIT["DELEGATION"] = 10600] = "DELEGATION";
@@ -27,10 +28,12 @@ var Protocols;
     Protocols["PsBABY5H"] = "PsBABY5HQTSkA4297zNHfsZNKtxULfL18y95qb3m53QJiXGmrbU";
     Protocols["PsBabyM1"] = "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS";
     Protocols["PsCARTHA"] = "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb";
+    Protocols["PsDELPH1"] = "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo";
 })(Protocols = exports.Protocols || (exports.Protocols = {}));
 exports.protocols = {
     '004': [Protocols.Pt24m4xi],
     '005': [Protocols.PsBABY5H, Protocols.PsBabyM1],
     '006': [Protocols.PsCARTHA],
+    '007': [Protocols.PsDELPH1]
 };
 //# sourceMappingURL=constants.js.map

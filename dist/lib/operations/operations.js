@@ -11,8 +11,10 @@ var __assign = (this && this.__assign) || function () {
     return __assign.apply(this, arguments);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Operation = void 0;
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
+var types_1 = require("./types");
 /**
  * @description Utility class to interact with Tezos operations
  */
@@ -80,13 +82,33 @@ var Operation = /** @class */ (function () {
         get: function () {
             return this._foundAt;
         },
-        enumerable: true,
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Operation.prototype, "revealOperation", {
+        get: function () {
+            return (Array.isArray(this.results) &&
+                this.results.find(function (op) { return op.kind === 'reveal'; }));
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Operation.prototype, "revealStatus", {
+        get: function () {
+            if (this.revealOperation) {
+                return this.revealOperation.metadata.operation_result.status;
+            }
+            else {
+                return 'unknown';
+            }
+        },
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(Operation.prototype, "status", {
         get: function () {
             return (this.results.map(function (result) {
-                if (result.metadata && result.metadata.operation_result) {
+                if (types_1.hasMetadataWithResult(result)) {
                     return result.metadata.operation_result.status;
                 }
                 else {
@@ -94,7 +116,7 @@ var Operation = /** @class */ (function () {
                 }
             })[0] || 'unknown');
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     /**

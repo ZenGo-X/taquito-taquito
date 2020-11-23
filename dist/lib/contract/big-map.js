@@ -36,6 +36,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.BigMapAbstraction = void 0;
+var http_utils_1 = require("@taquito/http-utils");
 var BigMapAbstraction = /** @class */ (function () {
     function BigMapAbstraction(id, schema, provider) {
         this.id = id;
@@ -44,8 +46,26 @@ var BigMapAbstraction = /** @class */ (function () {
     }
     BigMapAbstraction.prototype.get = function (keyToEncode) {
         return __awaiter(this, void 0, void 0, function () {
+            var id, e_1;
             return __generator(this, function (_a) {
-                return [2 /*return*/, this.provider.getBigMapKeyByID(this.id.toString(), keyToEncode, this.schema)];
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        return [4 /*yield*/, this.provider.getBigMapKeyByID(this.id.toString(), keyToEncode, this.schema)];
+                    case 1:
+                        id = _a.sent();
+                        return [2 /*return*/, id];
+                    case 2:
+                        e_1 = _a.sent();
+                        if (e_1 instanceof http_utils_1.HttpResponseError && e_1.status === http_utils_1.STATUS_CODE.NOT_FOUND) {
+                            return [2 /*return*/, undefined];
+                        }
+                        else {
+                            throw e_1;
+                        }
+                        return [3 /*break*/, 3];
+                    case 3: return [2 /*return*/];
+                }
             });
         });
     };

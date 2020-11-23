@@ -22,6 +22,7 @@ var __values = (this && this.__values) || function(o) {
     throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.PollingSubscribeProvider = void 0;
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
 var filters_1 = require("./filters");
@@ -85,10 +86,10 @@ var PollingSubscribeProvider = /** @class */ (function () {
         this.newBlock$ = rxjs_1.timer(0, this.POLL_INTERVAL).pipe(operators_1.map(function () { return _this.context; }), operators_1.switchMap(getLastBlock), operators_1.distinctUntilKeyChanged('hash'));
     }
     PollingSubscribeProvider.prototype.subscribe = function (_filter) {
-        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(operators_1.pluck('hash')));
+        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(operators_1.pluck('hash')), this.context.config.shouldObservableSubscriptionRetry);
     };
     PollingSubscribeProvider.prototype.subscribeOperation = function (filter) {
-        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)));
+        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)), this.context.config.shouldObservableSubscriptionRetry);
     };
     return PollingSubscribeProvider;
 }());

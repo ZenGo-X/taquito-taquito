@@ -3,7 +3,7 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
@@ -13,6 +13,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TransactionOperation = void 0;
 var bignumber_js_1 = require("bignumber.js");
 var operation_errors_1 = require("./operation-errors");
 var operations_1 = require("./operations");
@@ -35,42 +36,56 @@ var TransactionOperation = /** @class */ (function (_super) {
                 this.results.find(function (op) { return op.kind === 'transaction'; });
             return transactionOp ? [transactionOp] : [];
         },
-        enumerable: true,
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(TransactionOperation.prototype, "status", {
+        get: function () {
+            var operationResults = this.operationResults;
+            var txResult = operationResults[0];
+            if (txResult) {
+                return txResult.metadata.operation_result.status;
+            }
+            else {
+                return 'unknown';
+            }
+        },
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "amount", {
         get: function () {
             return new bignumber_js_1.default(this.params.amount);
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "destination", {
         get: function () {
             return this.params.destination;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "fee", {
         get: function () {
             return this.params.fee;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "gasLimit", {
         get: function () {
             return this.params.gas_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageLimit", {
         get: function () {
             return this.params.storage_limit;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     TransactionOperation.prototype.sumProp = function (arr, prop) {
@@ -82,28 +97,28 @@ var TransactionOperation = /** @class */ (function (_super) {
         get: function () {
             return String(this.sumProp(operation_errors_1.flattenOperationResult({ contents: this.operationResults }), 'consumed_gas'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageDiff", {
         get: function () {
             return String(this.sumProp(operation_errors_1.flattenOperationResult({ contents: this.operationResults }), 'paid_storage_size_diff'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "storageSize", {
         get: function () {
             return String(this.sumProp(operation_errors_1.flattenOperationResult({ contents: this.operationResults }), 'storage_size'));
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(TransactionOperation.prototype, "errors", {
         get: function () {
             return operation_errors_1.flattenErrors({ contents: this.operationResults });
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     return TransactionOperation;

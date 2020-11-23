@@ -1,9 +1,12 @@
 import { Context } from '../context';
 import { ContractMethod } from '../contract/contract';
-import { EstimationProvider } from '../contract/interface';
+import { EstimationProvider, ContractProvider } from '../contract/interface';
 import { BatchOperation } from '../operations/batch-operation';
 import { OperationEmitter } from '../operations/operation-emitter';
 import { ActivationParams, DelegateParams, OriginateParams, TransferParams, ParamsWithKind } from '../operations/types';
+import { OpKind } from '@taquito/rpc';
+export declare const BATCH_KINDS: OpKind[];
+export declare type BatchKinds = OpKind.ACTIVATION | OpKind.ORIGINATION | OpKind.TRANSACTION | OpKind.DELEGATION;
 export declare class OperationBatch extends OperationEmitter {
     private estimator;
     private operations;
@@ -21,7 +24,7 @@ export declare class OperationBatch extends OperationEmitter {
      *
      * @param params Transfer operation parameter
      */
-    withContractCall(params: ContractMethod): this;
+    withContractCall(params: ContractMethod<ContractProvider>): this;
     /**
      *
      * @description Add a delegation operation to the batch

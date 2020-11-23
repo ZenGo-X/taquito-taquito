@@ -5,9 +5,9 @@ import { OperationEmitter } from '../operations/operation-emitter';
 import { OriginationOperation } from '../operations/origination-operation';
 import { TransactionOperation } from '../operations/transaction-operation';
 import { DelegateParams, OriginateParams, RegisterDelegateParams, ForgedBytes, TransferParams } from '../operations/types';
-import { Contract } from './contract';
-import { ContractProvider, ContractSchema, EstimationProvider } from './interface';
-export declare class RpcContractProvider extends OperationEmitter implements ContractProvider {
+import { ContractAbstraction } from './contract';
+import { ContractProvider, ContractSchema, EstimationProvider, StorageProvider } from './interface';
+export declare class RpcContractProvider extends OperationEmitter implements ContractProvider, StorageProvider {
     private estimator;
     constructor(context: Context, estimator: EstimationProvider);
     /**
@@ -122,5 +122,5 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      * @param sbytes signature bytes in hex
      */
     injectTransferSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<TransactionOperation>;
-    at(address: string): Promise<Contract>;
+    at(address: string): Promise<ContractAbstraction<ContractProvider>>;
 }
