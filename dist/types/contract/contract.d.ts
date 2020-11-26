@@ -1,7 +1,9 @@
 import { ParameterSchema, Schema } from '@taquito/michelson-encoder';
 import { EntrypointsResponse, ScriptResponse } from '@taquito/rpc';
-import { ContractProvider } from './interface';
+import { TransactionOperation } from '../operations/transaction-operation';
 import { TransferParams } from '../operations/types';
+import { TransactionWalletOperation, Wallet } from '../wallet';
+import { ContractProvider, StorageProvider } from './interface';
 interface SendParams {
     fee?: number;
     storageLimit?: number;
@@ -13,7 +15,7 @@ interface SendParams {
 /**
  * @description Utility class to send smart contract operation
  */
-export declare class ContractMethod {
+export declare class ContractMethod<T extends ContractProvider | Wallet> {
     private provider;
     private address;
     private parameterSchema;
@@ -21,18 +23,18 @@ export declare class ContractMethod {
     private args;
     private isMultipleEntrypoint;
     private isAnonymous;
-    constructor(provider: ContractProvider, address: string, parameterSchema: ParameterSchema, name: string, args: any[], isMultipleEntrypoint?: boolean, isAnonymous?: boolean);
+    constructor(provider: T, address: string, parameterSchema: ParameterSchema, name: string, args: any[], isMultipleEntrypoint?: boolean, isAnonymous?: boolean);
     /**
      * @description Get the schema of the smart contract method
      */
-    readonly schema: any;
+    get schema(): any;
     /**
      *
      * @description Send the smart contract operation
      *
      * @param Options generic operation parameter
      */
-    send(params?: Partial<SendParams>): Promise<import("../operations/transaction-operation").TransactionOperation>;
+    send(params?: Partial<SendParams>): Promise<T extends Wallet ? TransactionWalletOperation : TransactionOperation>;
     /**
      *
      * @description Create transfer params to be used with TezosToolkit.contract.transfer methods
@@ -41,13 +43,15 @@ export declare class ContractMethod {
      */
     toTransferParams({ fee, gasLimit, storageLimit, source, amount, mutez, }?: Partial<SendParams>): TransferParams;
 }
+export declare type Contract = ContractAbstraction<ContractProvider>;
+export declare type WalletContract = ContractAbstraction<Wallet>;
 /**
  * @description Smart contract abstraction
  */
-export declare class Contract {
+export declare class ContractAbstraction<T extends ContractProvider | Wallet> {
     readonly address: string;
     readonly script: ScriptResponse;
-    private provider;
+    private storageProvider;
     private entrypoints;
     /**
      * @description Contains methods that are implemented by the target Tezos Smart Contract, and offers the user to call the Smart Contract methods as if they were native TS/JS methods.
@@ -55,11 +59,11 @@ export declare class Contract {
      *
      */
     methods: {
-        [key: string]: (...args: any[]) => ContractMethod;
+        [key: string]: (...args: any[]) => ContractMethod<T>;
     };
     readonly schema: Schema;
     readonly parameterSchema: ParameterSchema;
-    constructor(address: string, script: ScriptResponse, provider: ContractProvider, entrypoints: EntrypointsResponse);
+    constructor(address: string, script: ScriptResponse, provider: T, storageProvider: StorageProvider, entrypoints: EntrypointsResponse);
     private _initializeMethods;
     /**
      * @description Return a friendly representation of the smart contract storage
@@ -70,6 +74,10 @@ export declare class Contract {
      * @description Return a friendly representation of the smart contract big map value
      *
      * @param key BigMap key to fetch
+     *
+     * @deprecated getBigMapKey has been deprecated in favor of getBigMapKeyByID
+     *
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
      */
     bigMap(key: string): Promise<unknown>;
 }

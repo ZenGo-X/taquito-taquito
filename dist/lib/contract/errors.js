@@ -1,12 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.InvalidDelegationSource = exports.InvalidParameterError = void 0;
 var InvalidParameterError = /** @class */ (function () {
     function InvalidParameterError(smartContractMethodName, sigs, args) {
         this.smartContractMethodName = smartContractMethodName;
         this.sigs = sigs;
         this.args = args;
         this.name = 'Invalid parameters error';
-        this.message = smartContractMethodName + " Received " + args.length + " arguments while expecting on of the follow signatures (" + JSON.stringify(sigs) + ")";
+        this.message = smartContractMethodName + " Received " + args.length + " arguments while expecting one of the following signatures (" + JSON.stringify(sigs) + ")";
     }
     return InvalidParameterError;
 }());

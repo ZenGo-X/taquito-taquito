@@ -20,10 +20,12 @@ export declare enum Protocols {
     Pt24m4xi = "Pt24m4xiPbLDhVgVfABUjirbmda3yohdN82Sp9FeuAXJ4eV9otd",
     PsBABY5H = "PsBABY5HQTSkA4297zNHfsZNKtxULfL18y95qb3m53QJiXGmrbU",
     PsBabyM1 = "PsBabyM1eUXZseaJdmXFApDSBqj8YBfwELoxZHHW77EMcAbbwAS",
-    PsCARTHA = "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb"
+    PsCARTHA = "PsCARTHAGazKbHtnKfLzQg3kms52kSRpgnDY982a9oYsSXRLQEb",
+    PsDELPH1 = "PsDELPH1Kxsxt8f9eWbxQeRxkjfbxoqM52jvs5Y5fBxWWh4ifpo"
 }
 export declare const protocols: {
     '004': Protocols[];
     '005': Protocols[];
     '006': Protocols[];
+    '007': Protocols[];
 };

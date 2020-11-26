@@ -12,15 +12,16 @@ export declare class TransactionOperation extends Operation implements GasConsum
     private readonly params;
     readonly source: string;
     constructor(hash: string, params: RPCTransferOperation, source: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
-    readonly operationResults: OperationContentsAndResultTransaction[];
-    readonly amount: BigNumber;
-    readonly destination: string;
-    readonly fee: number;
-    readonly gasLimit: number;
-    readonly storageLimit: number;
+    get operationResults(): OperationContentsAndResultTransaction[];
+    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get amount(): BigNumber;
+    get destination(): string;
+    get fee(): number;
+    get gasLimit(): number;
+    get storageLimit(): number;
     private sumProp;
-    readonly consumedGas: string;
-    readonly storageDiff: string;
-    readonly storageSize: string;
-    readonly errors: import("@taquito/rpc").TezosGenericOperationError[];
+    get consumedGas(): string;
+    get storageDiff(): string;
+    get storageSize(): string;
+    get errors(): import("@taquito/rpc").TezosGenericOperationError[];
 }

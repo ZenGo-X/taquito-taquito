@@ -20,6 +20,7 @@ var __spread = (this && this.__spread) || function () {
     return ar;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.evaluateFilter = exports.evaluateExpression = exports.evaluateOpFilter = void 0;
 var opHashFilter = function (op, filter) { return op.hash === filter.opHash; };
 var sourceFilter = function (x, filter) {
     switch (x.kind) {

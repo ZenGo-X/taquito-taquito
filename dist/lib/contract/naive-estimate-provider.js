@@ -47,13 +47,21 @@ var __values = (this && this.__values) || function(o) {
     throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.NaiveEstimateProvider = void 0;
 var constants_1 = require("../constants");
 var estimate_1 = require("./estimate");
 /**
  * @description Naïve implementation of an estimate provider. Will work for basic transaction but your operation risk to fail if they are more complex (smart contract interaction)
  */
 var NaiveEstimateProvider = /** @class */ (function () {
-    function NaiveEstimateProvider() {
+    function NaiveEstimateProvider(protocol) {
+        this.protocol = protocol;
+        if (this.protocol === constants_1.Protocols.PsCARTHA) {
+            this._costPerByte = 1000;
+        }
+        else {
+            this._costPerByte = 250;
+        }
     }
     /**
      *
@@ -64,10 +72,10 @@ var NaiveEstimateProvider = /** @class */ (function () {
      * @param OriginationOperation Originate operation parameter
      */
     NaiveEstimateProvider.prototype.originate = function (_a) {
-        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.ORIGINATION : _b, _c = _a.storageLimit, storageLimit = _c === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.ORIGINATION : _c, _d = _a.gasLimit, gasLimit = _d === void 0 ? constants_1.DEFAULT_GAS_LIMIT.ORIGINATION : _d;
+        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.ORIGINATION : _b, _c = _a.storageLimit, storageLimit = _c === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.ORIGINATION : _c, _d = _a.gasLimit, gasLimit = _d === void 0 ? constants_1.DEFAULT_GAS_LIMIT.ORIGINATION * 1000 : _d;
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_e) {
-                return [2 /*return*/, new estimate_1.Estimate(gasLimit, storageLimit, 185, fee)];
+                return [2 /*return*/, new estimate_1.Estimate(gasLimit, storageLimit, 185, this._costPerByte, fee)];
             });
         });
     };
@@ -80,10 +88,10 @@ var NaiveEstimateProvider = /** @class */ (function () {
      * @param TransferOperation Originate operation parameter
      */
     NaiveEstimateProvider.prototype.transfer = function (_a) {
-        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.TRANSFER : _b, _c = _a.storageLimit, storageLimit = _c === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER : _c, _d = _a.gasLimit, gasLimit = _d === void 0 ? constants_1.DEFAULT_GAS_LIMIT.TRANSFER : _d;
+        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.TRANSFER : _b, _c = _a.storageLimit, storageLimit = _c === void 0 ? constants_1.DEFAULT_STORAGE_LIMIT.TRANSFER : _c, _d = _a.gasLimit, gasLimit = _d === void 0 ? constants_1.DEFAULT_GAS_LIMIT.TRANSFER * 1000 : _d;
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_e) {
-                return [2 /*return*/, new estimate_1.Estimate(gasLimit, storageLimit, 162, fee)];
+                return [2 /*return*/, new estimate_1.Estimate(gasLimit, storageLimit, 162, this._costPerByte, fee)];
             });
         });
     };
@@ -96,10 +104,10 @@ var NaiveEstimateProvider = /** @class */ (function () {
      * @param Estimate
      */
     NaiveEstimateProvider.prototype.setDelegate = function (_a) {
-        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? constants_1.DEFAULT_GAS_LIMIT.DELEGATION : _c;
+        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? constants_1.DEFAULT_GAS_LIMIT.DELEGATION * 1000 : _c;
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_d) {
-                return [2 /*return*/, new estimate_1.Estimate(gasLimit, 0, 157, fee)];
+                return [2 /*return*/, new estimate_1.Estimate(gasLimit, 0, 157, this._costPerByte, fee)];
             });
         });
     };
@@ -112,10 +120,10 @@ var NaiveEstimateProvider = /** @class */ (function () {
      * @param Estimate
      */
     NaiveEstimateProvider.prototype.registerDelegate = function (_a) {
-        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? constants_1.DEFAULT_GAS_LIMIT.DELEGATION : _c;
+        var _b = _a.fee, fee = _b === void 0 ? constants_1.DEFAULT_FEE.DELEGATION : _b, _c = _a.gasLimit, gasLimit = _c === void 0 ? constants_1.DEFAULT_GAS_LIMIT.DELEGATION * 1000 : _c;
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_d) {
-                return [2 /*return*/, new estimate_1.Estimate(gasLimit, 0, 157, fee)];
+                return [2 /*return*/, new estimate_1.Estimate(gasLimit, 0, 157, this._costPerByte, fee)];
             });
         });
     };
@@ -162,7 +170,7 @@ var NaiveEstimateProvider = /** @class */ (function () {
                         _g.apply(_f, [_j.sent()]);
                         return [3 /*break*/, 11];
                     case 9:
-                        estimates.push(new estimate_1.Estimate(0, 0, 0, 0));
+                        estimates.push(new estimate_1.Estimate(0, 0, 0, this._costPerByte, 0));
                         return [3 /*break*/, 11];
                     case 10: throw new Error("Unsupported operation kind: " + param.kind);
                     case 11:

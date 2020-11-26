@@ -10,7 +10,7 @@ import {
   ForgedBytes,
   ParamsWithKind,
 } from '../operations/types';
-import { Contract } from './contract';
+import { ContractAbstraction } from './contract';
 import { Estimate } from './estimate';
 
 export type ContractSchema = Schema | unknown;
@@ -58,7 +58,7 @@ export interface EstimationProvider {
   batch(params: ParamsWithKind[]): Promise<Estimate[]>;
 }
 
-export interface ContractProvider {
+export interface StorageProvider {
   /**
    *
    * @description Return a well formatted json object of the contract storage
@@ -95,6 +95,9 @@ export interface ContractProvider {
    * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-big-maps-big-map-id-script-expr
    */
   getBigMapKeyByID<T>(id: string, keyToEncode: string, schema: Schema): Promise<T>;
+}
+
+export interface ContractProvider extends StorageProvider {
   /**
    *
    * @description Originate a new contract according to the script in parameters. Will sign and inject an operation using the current context
@@ -187,5 +190,5 @@ export interface ContractProvider {
     sbytes: string
   ): Promise<TransactionOperation>;
 
-  at(address: string, schema?: ContractSchema): Promise<Contract>;
+  at(address: string, schema?: ContractSchema): Promise<ContractAbstraction<ContractProvider>>;
 }

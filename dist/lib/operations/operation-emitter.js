@@ -78,6 +78,7 @@ var __spread = (this && this.__spread) || function () {
     return ar;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.OperationEmitter = void 0;
 var rpc_1 = require("@taquito/rpc");
 var constants_1 = require("../constants");
 var operation_errors_1 = require("./operation-errors");
@@ -90,21 +91,22 @@ var OperationEmitter = /** @class */ (function () {
         get: function () {
             return this.context.rpc;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     Object.defineProperty(OperationEmitter.prototype, "signer", {
         get: function () {
             return this.context.signer;
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     // Originally from sotez (Copyright (c) 2018 Andrew Kishino)
     OperationEmitter.prototype.prepareOperation = function (_a) {
         var operation = _a.operation, source = _a.source;
         return __awaiter(this, void 0, void 0, function () {
-            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, managerPromise, i, counter_1, _b, header, metadata, headCounter, manager, haveManager, reveal, _c, getFee, getSource, constructOps, branch, contents, protocol;
+            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, managerPromise, i, counter_1, _b, header, metadata, headCounter, manager, haveManager, reveal, getFee, getSource, constructOps, branch, contents, protocol;
+            var _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
                     case 0:
@@ -148,7 +150,7 @@ var OperationEmitter = /** @class */ (function () {
                     case 6:
                         _b = __read.apply(void 0, [_d.sent(), 4]), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
                         if (!header) {
-                            throw new Error('Unable to latest block header');
+                            throw new Error('Unable to fetch latest block header');
                         }
                         if (!metadata) {
                             throw new Error('Unable to fetch latest metadata');
@@ -330,7 +332,8 @@ var OperationEmitter = /** @class */ (function () {
     };
     OperationEmitter.prototype.inject = function (forgedBytes, prefixSig, sbytes) {
         return __awaiter(this, void 0, void 0, function () {
-            var opResponse, results, i, j, errors, _a;
+            var opResponse, results, i, j, errors;
+            var _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:

@@ -11,22 +11,27 @@ var __values = (this && this.__values) || function(o) {
     throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ObservableSubscription = void 0;
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
 var ObservableSubscription = /** @class */ (function () {
-    function ObservableSubscription(obs) {
+    function ObservableSubscription(obs, shouldRetry) {
         var _this = this;
+        if (shouldRetry === void 0) { shouldRetry = false; }
+        this.shouldRetry = shouldRetry;
         this.errorListeners = [];
         this.messageListeners = [];
         this.closeListeners = [];
         this.completed$ = new rxjs_1.Subject();
-        obs.pipe(operators_1.takeUntil(this.completed$)).subscribe(function (data) {
+        obs
+            .pipe(operators_1.takeUntil(this.completed$), operators_1.tap(function (data) {
             _this.call(_this.messageListeners, data);
         }, function (error) {
             _this.call(_this.errorListeners, error);
         }, function () {
             _this.call(_this.closeListeners);
-        });
+        }), this.shouldRetry ? operators_1.retry() : operators_1.tap(), operators_1.catchError(function () { return rxjs_1.NEVER; }))
+            .subscribe();
     }
     ObservableSubscription.prototype.call = function (listeners, value) {
         var e_1, _a;

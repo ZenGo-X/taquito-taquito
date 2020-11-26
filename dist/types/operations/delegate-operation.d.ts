@@ -11,12 +11,13 @@ export declare class DelegateOperation extends Operation implements GasConsuming
     private readonly params;
     readonly source: string;
     constructor(hash: string, params: RPCDelegateOperation, source: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
-    readonly operationResults: import("@taquito/rpc").OperationResultDelegation | undefined;
-    readonly delegate: string;
-    readonly isRegisterOperation: boolean;
-    readonly fee: number;
-    readonly gasLimit: number;
-    readonly storageLimit: number;
-    readonly consumedGas: string | undefined;
-    readonly errors: import("@taquito/rpc").TezosGenericOperationError[] | undefined;
+    get operationResults(): import("@taquito/rpc").OperationResultDelegation | undefined;
+    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get delegate(): string;
+    get isRegisterOperation(): boolean;
+    get fee(): number;
+    get gasLimit(): number;
+    get storageLimit(): number;
+    get consumedGas(): string | undefined;
+    get errors(): import("@taquito/rpc").TezosGenericOperationError[] | undefined;
 }

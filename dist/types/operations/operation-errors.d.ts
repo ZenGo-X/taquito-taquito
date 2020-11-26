@@ -1,4 +1,4 @@
-import { MichelsonV1ExpressionBase, PreapplyResponse, TezosGenericOperationError } from '@taquito/rpc';
+import { MichelsonV1ExpressionBase, OperationResultDelegation, OperationResultOrigination, OperationResultReveal, OperationResultTransaction, PreapplyResponse, TezosGenericOperationError } from '@taquito/rpc';
 export interface TezosOperationErrorWithMessage extends TezosGenericOperationError {
     with: MichelsonV1ExpressionBase;
 }
@@ -16,7 +16,10 @@ export declare class TezosPreapplyFailureError implements Error {
     message: string;
     constructor(result: any);
 }
-export declare const flattenOperationResult: (response: PreapplyResponse | PreapplyResponse[]) => any[];
+export declare type MergedOperationResult = OperationResultDelegation & OperationResultOrigination & OperationResultTransaction & OperationResultReveal & {
+    fee?: string;
+};
+export declare const flattenOperationResult: (response: PreapplyResponse | PreapplyResponse[]) => MergedOperationResult[];
 /***
  * @description Flatten all error from preapply response (including internal error)
  */

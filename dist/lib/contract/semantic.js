@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.smartContractAbstractionSemantic = void 0;
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
 var big_map_1 = require("./big-map");
 var bignumber_js_1 = require("bignumber.js");

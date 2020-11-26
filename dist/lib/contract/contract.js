@@ -20,9 +20,11 @@ var __spread = (this && this.__spread) || function () {
     return ar;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ContractAbstraction = exports.ContractMethod = void 0;
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
+var wallet_1 = require("../wallet");
 var errors_1 = require("./errors");
-var DEFAULT_SMART_CONTRACT_METHOD_NAME = 'main';
+var DEFAULT_SMART_CONTRACT_METHOD_NAME = 'default';
 /**
  * @description Utility class to send smart contract operation
  */
@@ -47,7 +49,7 @@ var ContractMethod = /** @class */ (function () {
                 ? this.parameterSchema.ExtractSchema()[this.name]
                 : this.parameterSchema.ExtractSchema();
         },
-        enumerable: true,
+        enumerable: false,
         configurable: true
     });
     /**
@@ -58,7 +60,13 @@ var ContractMethod = /** @class */ (function () {
      */
     ContractMethod.prototype.send = function (params) {
         if (params === void 0) { params = {}; }
-        return this.provider.transfer(this.toTransferParams(params));
+        if (this.provider instanceof wallet_1.Wallet) {
+            // TODO got around TS2352: Conversion of type 'T & Wallet' to type 'Wallet' by adding `as unknown`. Needs clarification
+            return this.provider.transfer(this.toTransferParams(params)).send();
+        }
+        else {
+            return this.provider.transfer(this.toTransferParams(params));
+        }
     };
     /**
      *
@@ -82,7 +90,6 @@ var ContractMethod = /** @class */ (function () {
                 value: this.isAnonymous
                     ? (_b = this.parameterSchema).Encode.apply(_b, __spread([this.name], this.args)) : (_c = this.parameterSchema).Encode.apply(_c, __spread(this.args)),
             },
-            rawParam: true,
         };
         return fullTransferParams;
     };
@@ -98,11 +105,11 @@ var validateArgs = function (args, schema, name) {
 /**
  * @description Smart contract abstraction
  */
-var Contract = /** @class */ (function () {
-    function Contract(address, script, provider, entrypoints) {
+var ContractAbstraction = /** @class */ (function () {
+    function ContractAbstraction(address, script, provider, storageProvider, entrypoints) {
         this.address = address;
         this.script = script;
-        this.provider = provider;
+        this.storageProvider = storageProvider;
         this.entrypoints = entrypoints;
         /**
          * @description Contains methods that are implemented by the target Tezos Smart Contract, and offers the user to call the Smart Contract methods as if they were native TS/JS methods.
@@ -114,7 +121,7 @@ var Contract = /** @class */ (function () {
         this.parameterSchema = michelson_encoder_1.ParameterSchema.fromRPCResponse({ script: this.script });
         this._initializeMethods(address, provider, this.entrypoints.entrypoints);
     }
-    Contract.prototype._initializeMethods = function (address, provider, entrypoints) {
+    ContractAbstraction.prototype._initializeMethods = function (address, provider, entrypoints) {
         var _this = this;
         var parameterSchema = this.parameterSchema;
         var keys = Object.keys(entrypoints);
@@ -162,20 +169,24 @@ var Contract = /** @class */ (function () {
     /**
      * @description Return a friendly representation of the smart contract storage
      */
-    Contract.prototype.storage = function () {
-        return this.provider.getStorage(this.address, this.schema);
+    ContractAbstraction.prototype.storage = function () {
+        return this.storageProvider.getStorage(this.address, this.schema);
     };
     /**
      *
      * @description Return a friendly representation of the smart contract big map value
      *
      * @param key BigMap key to fetch
+     *
+     * @deprecated getBigMapKey has been deprecated in favor of getBigMapKeyByID
+     *
+     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
      */
-    Contract.prototype.bigMap = function (key) {
+    ContractAbstraction.prototype.bigMap = function (key) {
         // tslint:disable-next-line: deprecation
-        return this.provider.getBigMapKey(this.address, key, this.schema);
+        return this.storageProvider.getBigMapKey(this.address, key, this.schema);
     };
-    return Contract;
+    return ContractAbstraction;
 }());
-exports.Contract = Contract;
+exports.ContractAbstraction = ContractAbstraction;
 //# sourceMappingURL=contract.js.map

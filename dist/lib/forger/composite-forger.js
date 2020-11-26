@@ -36,6 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CompositeForger = exports.ForgingMismatchError = void 0;
 var ForgingMismatchError = /** @class */ (function () {
     function ForgingMismatchError(results) {
         this.results = results;

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.RpcForger = void 0;
 var RpcForger = /** @class */ (function () {
     function RpcForger(context) {
         this.context = context;
