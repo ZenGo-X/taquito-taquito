@@ -4598,6 +4598,80 @@ var RpcContractProvider = /** @class */ (function (_super) {
     };
     /**
      *
+     * @description Get relevant parameters for later signing and broadcast of a delegate transaction
+     *
+     * @returns ForgedBytes parameters needed to sign and broadcast
+     *
+     * @param params delegate parameters
+     */
+    RpcContractProvider.prototype.getDelegateSignatureHash = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var estimate, operation, sourceOrDefault, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.context.isAnyProtocolActive(protocols['005'])];
+                    case 1:
+                        // Since babylon delegation source cannot smart contract
+                        if ((_b.sent()) && /kt1/i.test(params.source)) {
+                            throw new InvalidDelegationSource(params.source);
+                        }
+                        return [4 /*yield*/, this.estimate(params, this.estimator.setDelegate.bind(this.estimator))];
+                    case 2:
+                        estimate = _b.sent();
+                        return [4 /*yield*/, createSetDelegateOperation(__assign(__assign({}, params), estimate))];
+                    case 3:
+                        operation = _b.sent();
+                        _a = params.source;
+                        if (_a) return [3 /*break*/, 5];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 4:
+                        _a = (_b.sent());
+                        _b.label = 5;
+                    case 5:
+                        sourceOrDefault = _a;
+                        return [2 /*return*/, this.prepareAndForge({
+                                operation: operation,
+                                source: sourceOrDefault,
+                            })];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description inject a signature to construct a delegate operation
+     *
+     * @returns A delegate operation handle with the result from the rpc node
+     *
+     * @param params result of `getTransferSignatureHash`
+     * @param prefixSig the prefix to be used for the encoding of the signature bytes
+     * @param sbytes signature bytes in hex
+     */
+    RpcContractProvider.prototype.injectDelegateSignatureAndBroadcast = function (params, prefixSig, sbytes) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, hash, context, forgedBytes, opResponse, delegationParams, operation;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.inject(params, prefixSig, sbytes)];
+                    case 1:
+                        _a = _b.sent(), hash = _a.hash, context = _a.context, forgedBytes = _a.forgedBytes, opResponse = _a.opResponse;
+                        if (!params.opOb.contents) {
+                            throw new Error('Invalid operation contents');
+                        }
+                        delegationParams = params.opOb.contents.find(function (content) { return content.kind === 'delegation'; });
+                        if (!delegationParams) {
+                            throw new Error('No delegation in operation contents');
+                        }
+                        return [4 /*yield*/, createSetDelegateOperation(operationContentsToDelegateParams(delegationParams))];
+                    case 2:
+                        operation = _b.sent();
+                        return [2 /*return*/, new DelegateOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
+                }
+            });
+        });
+    };
+    /**
+     *
      * @description Register the current address as delegate. Will sign and inject an operation using the current context
      *
      * @returns An operation handle with the result from the rpc node
@@ -4671,6 +4745,71 @@ var RpcContractProvider = /** @class */ (function (_super) {
                     case 7:
                         _a = _b.sent(), hash = _a.hash, context = _a.context, forgedBytes = _a.forgedBytes, opResponse = _a.opResponse;
                         return [2 /*return*/, new TransactionOperation(hash, operation, source, forgedBytes, opResponse, context)];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Get relevant parameters for later signing and broadcast of a transfer transaction
+     *
+     * @returns GetTransferSignatureHashResponse parameters needed to sign and broadcast
+     *
+     * @param params operation parameters
+     */
+    RpcContractProvider.prototype.getTransferSignatureHash = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var estimate, operation, source, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.estimate(params, this.estimator.transfer.bind(this.estimator))];
+                    case 1:
+                        estimate = _b.sent();
+                        return [4 /*yield*/, createTransferOperation(__assign(__assign({}, params), estimate))];
+                    case 2:
+                        operation = _b.sent();
+                        _a = params.source;
+                        if (_a) return [3 /*break*/, 4];
+                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 3:
+                        _a = (_b.sent());
+                        _b.label = 4;
+                    case 4:
+                        source = _a;
+                        return [2 /*return*/, this.prepareAndForge({ operation: operation, source: source })];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Transfer tz from current address to a specific address. Will sign and inject an operation using the current context
+     *
+     * @returns An operation handle with the result from the rpc node
+     *
+     * @param params result of `getTransferSignatureHash`
+     * @param prefixSig the prefix to be used for the encoding of the signature bytes
+     * @param sbytes signature bytes in hex
+     */
+    RpcContractProvider.prototype.injectTransferSignatureAndBroadcast = function (params, prefixSig, sbytes) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, hash, context, forgedBytes, opResponse, transactionParams, operation;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.inject(params, prefixSig, sbytes)];
+                    case 1:
+                        _a = _b.sent(), hash = _a.hash, context = _a.context, forgedBytes = _a.forgedBytes, opResponse = _a.opResponse;
+                        if (!params.opOb.contents) {
+                            throw new Error('Invalid operation contents');
+                        }
+                        transactionParams = params.opOb.contents.find(function (content) { return content.kind === 'transaction'; });
+                        if (!transactionParams) {
+                            throw new Error('No transaction in operation contents');
+                        }
+                        return [4 /*yield*/, createTransferOperation(operationContentsToTransferParams(transactionParams))];
+                    case 2:
+                        operation = _b.sent();
+                        return [2 /*return*/, new TransactionOperation(hash, operation, params.opOb.contents[0].source, forgedBytes, opResponse, context)];
                 }
             });
         });
@@ -4761,6 +4900,22 @@ var RpcContractProvider = /** @class */ (function (_super) {
     };
     return RpcContractProvider;
 }(OperationEmitter));
+function operationContentsToTransferParams(op) {
+    return __assign({ to: op.destination, 
+        // @ts-ignore
+        amount: Number(op.amount), parameter: op.parameters, 
+        // @ts-ignore
+        fee: Number(op.fee), gasLimit: Number(op.gas_limit), storageLimit: Number(op.storage_limit) }, op);
+}
+function operationContentsToDelegateParams(op) {
+    return {
+        source: op.source,
+        delegate: op.delegate || '',
+        fee: Number(op.fee),
+        gasLimit: Number(op.gas_limit),
+        storageLimit: Number(op.storage_limit),
+    };
+}
 
 var MichelCodecParser = /** @class */ (function () {
     function MichelCodecParser(context) {
@@ -5343,7 +5498,7 @@ var PollingSubscribeProvider = /** @class */ (function () {
 // IMPORTANT: THIS FILE IS AUTO GENERATED! DO NOT MANUALLY EDIT OR CHECKIN!
 /* tslint:disable */
 var VERSION = {
-    "commitHash": "bf5bdb3d6fe4d21ab1dead0f3b7ec00cbf2c4134",
+    "commitHash": "ce486aeb32644585a045b7440907e54e616af630",
     "version": "10.1.1"
 };
 /* tslint:enable */

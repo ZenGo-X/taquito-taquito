@@ -1,6 +1,12 @@
 import { HttpResponseError, STATUS_CODE } from '@taquito/http-utils';
 import { BigMapKeyType, MichelsonMap, MichelsonMapKey, Schema } from '@taquito/michelson-encoder';
-import { OpKind, ScriptResponse } from '@taquito/rpc';
+import {
+  OperationContents,
+  OperationContentsDelegation,
+  OperationContentsTransaction,
+  OpKind,
+  ScriptResponse
+} from '@taquito/rpc';
 import { encodeExpr } from '@taquito/utils';
 import { OperationBatch } from '../batch/rpc-batch-provider';
 import { Context } from '../context';
@@ -11,6 +17,7 @@ import { RevealOperation } from '../operations/reveal-operation';
 import { TransactionOperation } from '../operations/transaction-operation';
 import {
   DelegateParams,
+  ForgedBytes,
   isOpRequireReveal,
   OriginateParams,
   ParamsWithKind,
@@ -31,6 +38,7 @@ import {
   createTransferOperation,
 } from './prepare';
 import { smartContractAbstractionSemantic } from './semantic';
+import { protocols } from '../constants';
 
 export class RpcContractProvider extends OperationEmitter
   implements ContractProvider, StorageProvider {
@@ -122,7 +130,7 @@ export class RpcContractProvider extends OperationEmitter
   /**
    *
    * @description Fetch multiple values in a big map
-   * All values will be fetched on the same block level. If a block is specified in the request, the values will be fetched at it. 
+   * All values will be fetched on the same block level. If a block is specified in the request, the values will be fetched at it.
    * Otherwise, a first request will be done to the node to fetch the level of the head and all values will be fetched at this level.
    * If one of the keys does not exist in the big map, its value will be set to undefined.
    *
@@ -263,6 +271,69 @@ export class RpcContractProvider extends OperationEmitter
 
   /**
    *
+   * @description Get relevant parameters for later signing and broadcast of a delegate transaction
+   *
+   * @returns ForgedBytes parameters needed to sign and broadcast
+   *
+   * @param params delegate parameters
+   */
+  async getDelegateSignatureHash(params: DelegateParams): Promise<ForgedBytes> {
+    // Since babylon delegation source cannot smart contract
+    if ((await this.context.isAnyProtocolActive(protocols['005'])) && /kt1/i.test(params.source)) {
+      throw new InvalidDelegationSource(params.source);
+    }
+
+    const estimate = await this.estimate(params, this.estimator.setDelegate.bind(this.estimator));
+    const operation = await createSetDelegateOperation({ ...params, ...estimate });
+    const sourceOrDefault = params.source || (await this.signer.publicKeyHash());
+    return this.prepareAndForge({
+      operation,
+      source: sourceOrDefault,
+    });
+  }
+
+  /**
+   *
+   * @description inject a signature to construct a delegate operation
+   *
+   * @returns A delegate operation handle with the result from the rpc node
+   *
+   * @param params result of `getTransferSignatureHash`
+   * @param prefixSig the prefix to be used for the encoding of the signature bytes
+   * @param sbytes signature bytes in hex
+   */
+  async injectDelegateSignatureAndBroadcast(
+    params: ForgedBytes,
+    prefixSig: string,
+    sbytes: string
+  ): Promise<DelegateOperation> {
+    const { hash, context, forgedBytes, opResponse } = await this.inject(params, prefixSig, sbytes);
+    if (!params.opOb.contents) {
+      throw new Error('Invalid operation contents');
+    }
+
+    const delegationParams: OperationContents | undefined = params.opOb.contents.find(
+      content => content.kind === 'delegation'
+    );
+    if (!delegationParams) {
+      throw new Error('No delegation in operation contents');
+    }
+
+    const operation = await createSetDelegateOperation(
+      operationContentsToDelegateParams(delegationParams as OperationContentsDelegation)
+    );
+    return new DelegateOperation(
+      hash,
+      operation,
+      (params.opOb.contents[0] as OperationContentsDelegation).source,
+      forgedBytes,
+      opResponse,
+      context
+    );
+  }
+
+  /**
+   *
    * @description Register the current address as delegate. Will sign and inject an operation using the current context
    *
    * @returns An operation handle with the result from the rpc node
@@ -308,6 +379,64 @@ export class RpcContractProvider extends OperationEmitter
 
   /**
    *
+   * @description Get relevant parameters for later signing and broadcast of a transfer transaction
+   *
+   * @returns GetTransferSignatureHashResponse parameters needed to sign and broadcast
+   *
+   * @param params operation parameters
+   */
+  async getTransferSignatureHash(params: TransferParams): Promise<ForgedBytes> {
+    const estimate = await this.estimate(params, this.estimator.transfer.bind(this.estimator));
+    const operation = await createTransferOperation({
+      ...params,
+      ...estimate,
+    });
+    const source = params.source || (await this.signer.publicKeyHash());
+    return this.prepareAndForge({ operation, source });
+  }
+
+  /**
+   *
+   * @description Transfer tz from current address to a specific address. Will sign and inject an operation using the current context
+   *
+   * @returns An operation handle with the result from the rpc node
+   *
+   * @param params result of `getTransferSignatureHash`
+   * @param prefixSig the prefix to be used for the encoding of the signature bytes
+   * @param sbytes signature bytes in hex
+   */
+  async injectTransferSignatureAndBroadcast(
+    params: ForgedBytes,
+    prefixSig: string,
+    sbytes: string
+  ): Promise<TransactionOperation> {
+    const { hash, context, forgedBytes, opResponse } = await this.inject(params, prefixSig, sbytes);
+    if (!params.opOb.contents) {
+      throw new Error('Invalid operation contents');
+    }
+
+    const transactionParams: OperationContents | undefined = params.opOb.contents.find(
+      content => content.kind === 'transaction'
+    );
+    if (!transactionParams) {
+      throw new Error('No transaction in operation contents');
+    }
+
+    const operation = await createTransferOperation(
+      operationContentsToTransferParams(transactionParams as OperationContentsTransaction)
+    );
+    return new TransactionOperation(
+      hash,
+      operation,
+      (params.opOb.contents[0] as OperationContentsTransaction).source,
+      forgedBytes,
+      opResponse,
+      context
+    );
+  }
+
+  /**
+   *
    * @description Reveal the current address. Will throw an error if the address is already revealed.
    *
    * @returns An operation handle with the result from the rpc node
@@ -345,7 +474,7 @@ export class RpcContractProvider extends OperationEmitter
    * @description Batch a group of operation together. Operations will be applied in the order in which they are added to the batch
    *
    * @returns A batch object from which we can add more operation or send a command to execute the batch
-   * 
+   *
    * @param params List of operation to batch together
    */
   batch(params?: ParamsWithKind[]) {
@@ -361,3 +490,27 @@ export class RpcContractProvider extends OperationEmitter
 }
 
 type ContractAbstractionComposer<T> = (abs: ContractAbstraction<ContractProvider>, context: Context) => T
+
+function operationContentsToTransferParams(op: OperationContentsTransaction): TransferParams {
+  return {
+    to: op.destination,
+    // @ts-ignore
+    amount: Number(op.amount),
+    parameter: op.parameters,
+    // @ts-ignore
+    fee: Number(op.fee),
+    gasLimit: Number(op.gas_limit),
+    storageLimit: Number(op.storage_limit),
+    ...op,
+  };
+}
+
+function operationContentsToDelegateParams(op: OperationContentsDelegation): DelegateParams {
+  return {
+    source: op.source,
+    delegate: op.delegate || '',
+    fee: Number(op.fee),
+    gasLimit: Number(op.gas_limit),
+    storageLimit: Number(op.storage_limit),
+  };
+}

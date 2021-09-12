@@ -6,7 +6,7 @@ import { OperationEmitter } from '../operations/operation-emitter';
 import { OriginationOperation } from '../operations/origination-operation';
 import { RevealOperation } from '../operations/reveal-operation';
 import { TransactionOperation } from '../operations/transaction-operation';
-import { DelegateParams, OriginateParams, ParamsWithKind, RegisterDelegateParams, RevealParams, TransferParams } from '../operations/types';
+import { DelegateParams, ForgedBytes, OriginateParams, ParamsWithKind, RegisterDelegateParams, RevealParams, TransferParams } from '../operations/types';
 import { ContractAbstraction } from './contract';
 import { ContractProvider, ContractSchema, EstimationProvider, StorageProvider } from './interface';
 export declare class RpcContractProvider extends OperationEmitter implements ContractProvider, StorageProvider {
@@ -98,6 +98,26 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
     setDelegate(params: DelegateParams): Promise<DelegateOperation>;
     /**
      *
+     * @description Get relevant parameters for later signing and broadcast of a delegate transaction
+     *
+     * @returns ForgedBytes parameters needed to sign and broadcast
+     *
+     * @param params delegate parameters
+     */
+    getDelegateSignatureHash(params: DelegateParams): Promise<ForgedBytes>;
+    /**
+     *
+     * @description inject a signature to construct a delegate operation
+     *
+     * @returns A delegate operation handle with the result from the rpc node
+     *
+     * @param params result of `getTransferSignatureHash`
+     * @param prefixSig the prefix to be used for the encoding of the signature bytes
+     * @param sbytes signature bytes in hex
+     */
+    injectDelegateSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<DelegateOperation>;
+    /**
+     *
      * @description Register the current address as delegate. Will sign and inject an operation using the current context
      *
      * @returns An operation handle with the result from the rpc node
@@ -114,6 +134,26 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      * @param Transfer operation parameter
      */
     transfer(params: TransferParams): Promise<TransactionOperation>;
+    /**
+     *
+     * @description Get relevant parameters for later signing and broadcast of a transfer transaction
+     *
+     * @returns GetTransferSignatureHashResponse parameters needed to sign and broadcast
+     *
+     * @param params operation parameters
+     */
+    getTransferSignatureHash(params: TransferParams): Promise<ForgedBytes>;
+    /**
+     *
+     * @description Transfer tz from current address to a specific address. Will sign and inject an operation using the current context
+     *
+     * @returns An operation handle with the result from the rpc node
+     *
+     * @param params result of `getTransferSignatureHash`
+     * @param prefixSig the prefix to be used for the encoding of the signature bytes
+     * @param sbytes signature bytes in hex
+     */
+    injectTransferSignatureAndBroadcast(params: ForgedBytes, prefixSig: string, sbytes: string): Promise<TransactionOperation>;
     /**
      *
      * @description Reveal the current address. Will throw an error if the address is already revealed.
