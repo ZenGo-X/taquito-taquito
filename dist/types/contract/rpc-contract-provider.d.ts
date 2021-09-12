@@ -64,6 +64,7 @@ export declare class RpcContractProvider extends OperationEmitter implements Con
      *
      */
     getBigMapKeysByID<T>(id: string, keys: Array<BigMapKeyType>, schema: Schema, block?: number, batchSize?: number): Promise<MichelsonMap<MichelsonMapKey, T | undefined>>;
+    private prepareAndForge;
     private getBlockForRequest;
     private getBigMapValueOrUndefined;
     /**

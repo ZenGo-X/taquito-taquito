@@ -19,15 +19,6 @@ export declare abstract class OperationEmitter {
     protected isAccountRevealRequired(publicKeyHash: string): Promise<boolean>;
     protected isRevealRequiredForOpType(op: RPCOperation[] | ParamsWithKind[]): boolean;
     protected prepareOperation({ operation, source, }: PrepareOperationParams): Promise<PreparedOperation>;
-    protected prepareAndForge(params: PrepareOperationParams): Promise<{
-        opbytes: string;
-        opOb: {
-            branch: string;
-            contents: OperationContents[];
-            protocol: string;
-        };
-        counter: number;
-    }>;
     protected forge({ opOb: { branch, contents, protocol }, counter }: PreparedOperation): Promise<{
         opbytes: string;
         opOb: {

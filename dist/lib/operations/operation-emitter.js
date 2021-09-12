@@ -266,19 +266,6 @@ var OperationEmitter = /** @class */ (function () {
             });
         });
     };
-    OperationEmitter.prototype.prepareAndForge = function (params) {
-        return __awaiter(this, void 0, void 0, function () {
-            var prepared;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.prepareOperation(params)];
-                    case 1:
-                        prepared = _a.sent();
-                        return [2 /*return*/, this.forge(prepared)];
-                }
-            });
-        });
-    };
     OperationEmitter.prototype.forge = function (_a) {
         var _b = _a.opOb, branch = _b.branch, contents = _b.contents, protocol = _b.protocol, counter = _a.counter;
         return __awaiter(this, void 0, void 0, function () {

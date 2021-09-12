@@ -268,6 +268,22 @@ var RpcContractProvider = /** @class */ (function (_super) {
             });
         });
     };
+    RpcContractProvider.prototype.prepareAndForge = function (operation, source) {
+        return __awaiter(this, void 0, void 0, function () {
+            var ops, prepared;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.addRevealOperationIfNeeded(operation, source)];
+                    case 1:
+                        ops = _a.sent();
+                        return [4 /*yield*/, this.prepareOperation({ operation: ops, source: source })];
+                    case 2:
+                        prepared = _a.sent();
+                        return [2 /*return*/, this.forge(prepared)];
+                }
+            });
+        });
+    };
     RpcContractProvider.prototype.getBlockForRequest = function (keys, block) {
         var _a;
         return __awaiter(this, void 0, void 0, function () {
@@ -473,7 +489,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
      */
     RpcContractProvider.prototype.getDelegateSignatureHash = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var estimate, operation, sourceOrDefault, _a;
+            var estimate, operation, source, _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, this.context.isAnyProtocolActive(constants_1.protocols['005'])];
@@ -495,11 +511,8 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         _a = (_b.sent());
                         _b.label = 5;
                     case 5:
-                        sourceOrDefault = _a;
-                        return [2 /*return*/, this.prepareAndForge({
-                                operation: operation,
-                                source: sourceOrDefault,
-                            })];
+                        source = _a;
+                        return [2 /*return*/, this.prepareAndForge(operation, source)];
                 }
             });
         });
@@ -643,7 +656,7 @@ var RpcContractProvider = /** @class */ (function (_super) {
                         _b.label = 4;
                     case 4:
                         source = _a;
-                        return [2 /*return*/, this.prepareAndForge({ operation: operation, source: source })];
+                        return [2 /*return*/, this.prepareAndForge(operation, source)];
                 }
             });
         });

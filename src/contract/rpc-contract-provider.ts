@@ -20,7 +20,7 @@ import {
   ForgedBytes,
   isOpRequireReveal,
   OriginateParams,
-  ParamsWithKind,
+  ParamsWithKind, PrepareOperationParams,
   RegisterDelegateParams,
   RevealParams,
   RPCOperation,
@@ -164,6 +164,12 @@ export class RpcContractProvider extends OperationEmitter
     return bigMapValues;
   }
 
+  private async prepareAndForge(operation: RPCOperation, source: string) {
+    const ops = await this.addRevealOperationIfNeeded(operation, source);
+    const prepared = await this.prepareOperation({ operation: ops, source });
+    return this.forge(prepared);
+  }
+
   private async getBlockForRequest(keys: Array<BigMapKeyType>, block?: number) {
     return keys.length === 1 || typeof block !== 'undefined' ? block : (await this.rpc.getBlock())?.header.level
   }
@@ -285,11 +291,11 @@ export class RpcContractProvider extends OperationEmitter
 
     const estimate = await this.estimate(params, this.estimator.setDelegate.bind(this.estimator));
     const operation = await createSetDelegateOperation({ ...params, ...estimate });
-    const sourceOrDefault = params.source || (await this.signer.publicKeyHash());
-    return this.prepareAndForge({
+    const source = params.source || (await this.signer.publicKeyHash());
+    return this.prepareAndForge(
       operation,
-      source: sourceOrDefault,
-    });
+      source
+    );
   }
 
   /**
@@ -392,7 +398,7 @@ export class RpcContractProvider extends OperationEmitter
       ...estimate,
     });
     const source = params.source || (await this.signer.publicKeyHash());
-    return this.prepareAndForge({ operation, source });
+    return this.prepareAndForge(operation, source);
   }
 
   /**

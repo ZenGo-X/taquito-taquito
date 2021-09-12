@@ -190,11 +190,6 @@ export abstract class OperationEmitter {
     };
   }
 
-  protected async prepareAndForge(params: PrepareOperationParams) {
-    const prepared = await this.prepareOperation(params);
-    return this.forge(prepared);
-  }
-
   protected async forge({ opOb: { branch, contents, protocol }, counter }: PreparedOperation) {
     let forgedBytes = await this.context.forger.forge({ branch, contents });
 
