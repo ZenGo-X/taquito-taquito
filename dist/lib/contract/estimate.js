@@ -145,6 +145,26 @@ var Estimate = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
+    Estimate.createEstimateInstanceFromProperties = function (estimateProperties) {
+        var milligasLimit = 0;
+        var storageLimit = 0;
+        var opSize = 0;
+        var minimalFeePerStorageByteMutez = 0;
+        var baseFeeMutez;
+        estimateProperties.forEach(function (estimate) {
+            milligasLimit += estimate.milligasLimit;
+            storageLimit += estimate.storageLimit;
+            opSize += estimate.opSize;
+            minimalFeePerStorageByteMutez = Math.max(estimate.minimalFeePerStorageByteMutez, minimalFeePerStorageByteMutez);
+            if (estimate.baseFeeMutez) {
+                baseFeeMutez = baseFeeMutez ? baseFeeMutez + estimate.baseFeeMutez : estimate.baseFeeMutez;
+            }
+        });
+        return new Estimate(milligasLimit, storageLimit, opSize, minimalFeePerStorageByteMutez, baseFeeMutez);
+    };
+    Estimate.createArrayEstimateInstancesFromProperties = function (estimateProperties) {
+        return estimateProperties.map(function (x) { return new Estimate(x.milligasLimit, x.storageLimit, x.opSize, x.minimalFeePerStorageByteMutez, x.baseFeeMutez); });
+    };
     return Estimate;
 }());
 exports.Estimate = Estimate;

@@ -78,18 +78,18 @@ var applyFilter = function (filter) {
     });
 };
 var PollingSubscribeProvider = /** @class */ (function () {
-    function PollingSubscribeProvider(context, POLL_INTERVAL) {
+    function PollingSubscribeProvider(context) {
         var _this = this;
-        if (POLL_INTERVAL === void 0) { POLL_INTERVAL = 20000; }
         this.context = context;
-        this.POLL_INTERVAL = POLL_INTERVAL;
-        this.newBlock$ = rxjs_1.timer(0, this.POLL_INTERVAL).pipe(operators_1.map(function () { return _this.context; }), operators_1.switchMap(getLastBlock), operators_1.distinctUntilKeyChanged('hash'));
+        // Map the changing polling interval to a timer, which will automatically terminate the previous timer when the next one starts.
+        this.timer$ = this.context._config.pipe(operators_1.switchMap(function (val) { return rxjs_1.timer(0, val.streamerPollingIntervalMilliseconds); }));
+        this.newBlock$ = this.timer$.pipe(operators_1.map(function () { return _this.context; }), operators_1.switchMap(getLastBlock), operators_1.distinctUntilKeyChanged('hash'), operators_1.publish(), operators_1.refCount());
     }
     PollingSubscribeProvider.prototype.subscribe = function (_filter) {
-        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(operators_1.pluck('hash')), this.context.config.shouldObservableSubscriptionRetry);
+        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(operators_1.pluck('hash')), this.context.config.shouldObservableSubscriptionRetry, this.context.config.observableSubscriptionRetryFunction);
     };
     PollingSubscribeProvider.prototype.subscribeOperation = function (filter) {
-        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)), this.context.config.shouldObservableSubscriptionRetry);
+        return new observable_subscription_1.ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)), this.context.config.shouldObservableSubscriptionRetry, this.context.config.observableSubscriptionRetryFunction);
     };
     return PollingSubscribeProvider;
 }());

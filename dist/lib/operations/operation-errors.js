@@ -57,7 +57,7 @@ exports.TezosPreapplyFailureError = TezosPreapplyFailureError;
 // - When an operation includes a reveal operation
 // - When an operation is made using the batch API
 // - Smart contract call can contains internal operation results when they call other smart contract internally or originate contracts
-exports.flattenOperationResult = function (response) {
+var flattenOperationResult = function (response) {
     var results = Array.isArray(response) ? response : [response];
     var returnedResults = [];
     for (var i = 0; i < results.length; i++) {
@@ -73,10 +73,11 @@ exports.flattenOperationResult = function (response) {
     }
     return returnedResults;
 };
+exports.flattenOperationResult = flattenOperationResult;
 /***
  * @description Flatten all error from preapply response (including internal error)
  */
-exports.flattenErrors = function (response, status) {
+var flattenErrors = function (response, status) {
     var e_1, _a;
     if (status === void 0) { status = 'failed'; }
     var results = Array.isArray(response) ? response : [response];
@@ -112,4 +113,5 @@ exports.flattenErrors = function (response, status) {
     }
     return errors;
 };
+exports.flattenErrors = flattenErrors;
 //# sourceMappingURL=operation-errors.js.map

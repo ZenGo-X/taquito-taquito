@@ -1,3 +1,10 @@
+export interface EstimateProperties {
+    milligasLimit: number;
+    storageLimit: number;
+    opSize: number;
+    minimalFeePerStorageByteMutez: number;
+    baseFeeMutez?: number;
+}
 /**
  * Examples of use :
  *
@@ -82,4 +89,6 @@ export declare class Estimate {
      * This function returns an estimation of the gas that operation will consume in milligas.
      */
     get consumedMilligas(): number;
+    static createEstimateInstanceFromProperties(estimateProperties: EstimateProperties[]): Estimate;
+    static createArrayEstimateInstancesFromProperties(estimateProperties: EstimateProperties[]): Estimate[];
 }

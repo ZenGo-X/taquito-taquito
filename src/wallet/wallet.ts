@@ -1,5 +1,6 @@
+import { Protocols } from '../constants';
 import { Context } from '../context';
-import { ContractAbstraction, ContractMethod, WalletContract } from '../contract';
+import { ContractAbstraction, ContractMethod } from '../contract';
 import { OpKind, withKind } from '../operations/types';
 import {
   WalletDelegateParams,
@@ -7,7 +8,6 @@ import {
   WalletProvider,
   WalletTransferParams,
 } from './interface';
-import { OperationFactory } from './opreation-factory';
 
 export interface PKHOption {
   forceRefetch?: boolean;
@@ -21,7 +21,7 @@ export type WalletParamsWithKind =
 export class WalletOperationBatch {
   private operations: WalletParamsWithKind[] = [];
 
-  constructor(private walletProvider: WalletProvider, private operationFactory: OperationFactory) {}
+  constructor(private walletProvider: WalletProvider, private context: Context) {}
 
   /**
    *
@@ -69,17 +69,15 @@ export class WalletOperationBatch {
   private async mapOperation(param: WalletParamsWithKind) {
     switch (param.kind) {
       case OpKind.TRANSACTION:
-        return this.walletProvider.mapTransferParamsToWalletParams({
-          ...param,
-        });
+        return this.walletProvider.mapTransferParamsToWalletParams(async () => param);
       case OpKind.ORIGINATION:
-        return this.walletProvider.mapOriginateParamsToWalletParams({
-          ...param,
-        });
+        return this.walletProvider.mapOriginateParamsToWalletParams(async () =>
+          this.context.parser.prepareCodeOrigination({
+            ...param,
+          })
+        );
       case OpKind.DELEGATION:
-        return this.walletProvider.mapDelegateParamsToWalletParams({
-          ...param,
-        });
+        return this.walletProvider.mapDelegateParamsToWalletParams(async () => param);
       default:
         throw new Error(`Unsupported operation kind: ${(param as any).kind}`);
     }
@@ -125,7 +123,7 @@ export class WalletOperationBatch {
 
     const opHash = await this.walletProvider.sendOperations(ops);
 
-    return this.operationFactory.createOperation(opHash);
+    return this.context.operationFactory.createBatchOperation(opHash);
   }
 }
 
@@ -168,10 +166,15 @@ export class Wallet {
    */
   originate(params: WalletOriginateParams) {
     return this.walletCommand(async () => {
-      const mappedParams = await this.walletProvider.mapOriginateParamsToWalletParams({
-        ...params,
-      });
+      const mappedParams = await this.walletProvider.mapOriginateParamsToWalletParams(() =>
+        this.context.parser.prepareCodeOrigination({
+          ...params,
+        })
+      );
       const opHash = await this.walletProvider.sendOperations([mappedParams]);
+      if (!this.context.proto) {
+        this.context.proto = (await this.context.rpc.getBlock()).protocol as Protocols;
+      }
       return this.context.operationFactory.createOriginationOperation(opHash);
     });
   }
@@ -186,7 +189,9 @@ export class Wallet {
    */
   setDelegate(params: WalletDelegateParams) {
     return this.walletCommand(async () => {
-      const mappedParams = await this.walletProvider.mapDelegateParamsToWalletParams({ ...params });
+      const mappedParams = await this.walletProvider.mapDelegateParamsToWalletParams(
+        async () => params
+      );
       const opHash = await this.walletProvider.sendOperations([mappedParams]);
       return this.context.operationFactory.createDelegationOperation(opHash);
     });
@@ -201,8 +206,9 @@ export class Wallet {
    */
   registerDelegate() {
     return this.walletCommand(async () => {
-      const mappedParams = await this.walletProvider.mapDelegateParamsToWalletParams({
-        delegate: await this.pkh(),
+      const mappedParams = await this.walletProvider.mapDelegateParamsToWalletParams(async () => {
+        const delegate = await this.pkh();
+        return { delegate };
       });
       const opHash = await this.walletProvider.sendOperations([mappedParams]);
       return this.context.operationFactory.createDelegationOperation(opHash);
@@ -219,7 +225,9 @@ export class Wallet {
    */
   transfer(params: WalletTransferParams) {
     return this.walletCommand(async () => {
-      const mappedParams = await this.walletProvider.mapTransferParamsToWalletParams(params);
+      const mappedParams = await this.walletProvider.mapTransferParamsToWalletParams(
+        async () => params
+      );
       const opHash = await this.walletProvider.sendOperations([mappedParams]);
       return this.context.operationFactory.createTransactionOperation(opHash);
     });
@@ -233,9 +241,13 @@ export class Wallet {
    *
    * @param params List of operation to initialize the batch with
    */
-  batch(params: Parameters<WalletOperationBatch['with']>[0]) {
-    const batch = new WalletOperationBatch(this.walletProvider, this.context.operationFactory);
-    batch.with(params);
+  batch(params?: Parameters<WalletOperationBatch['with']>[0]) {
+    const batch = new WalletOperationBatch(this.walletProvider, this.context);
+
+    if (Array.isArray(params)) {
+      batch.with(params);
+    }
+
     return batch;
   }
 
@@ -246,9 +258,23 @@ export class Wallet {
    *
    * @param address Smart contract address
    */
-  async at(address: string): Promise<WalletContract> {
+  async at<T extends ContractAbstraction<Wallet>>(
+    address: string,
+    contractAbstractionComposer: (abs: ContractAbstraction<Wallet>, context: Context) => T = (x) =>
+      x as any
+  ): Promise<T> {
     const script = await this.context.rpc.getScript(address);
     const entrypoints = await this.context.rpc.getEntrypoints(address);
-    return new ContractAbstraction(address, script, this, this.context.contract, entrypoints);
+    const blockHeader = await this.context.rpc.getBlockHeader();
+    const chainId = blockHeader.chain_id;
+    const abs = new ContractAbstraction(
+      address,
+      script,
+      this,
+      this.context.contract,
+      entrypoints,
+      chainId
+    );
+    return contractAbstractionComposer(abs, this.context);
   }
 }

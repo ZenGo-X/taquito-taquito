@@ -1,17 +1,27 @@
+/**
+ * @packageDocumentation
+ * @module @taquito/taquito
+ */
+
 import { RpcClient } from '@taquito/rpc';
+import { RPCBatchProvider } from './batch/rpc-batch-provider';
 import { Protocols } from './constants';
-import { Config, Context, TaquitoProvider } from './context';
+import { ConfigConfirmation, ConfigStreamer, Context, TaquitoProvider } from './context';
 import { ContractProvider, EstimationProvider } from './contract/interface';
+import { Extension } from './extension/extension';
 import { Forger } from './forger/interface';
 import { RpcForger } from './forger/rpc-forger';
 import { format } from './format';
+import { Packer } from './packer/interface';
+import { RpcPacker } from './packer/rpc-packer';
 import { Signer } from './signer/interface';
 import { NoopSigner } from './signer/noop';
 import { SubscribeProvider } from './subscribe/interface';
 import { PollingSubscribeProvider } from './subscribe/polling-provider';
 import { TzProvider } from './tz/interface';
+import { VERSION } from './version';
 import { LegacyWalletProvider, Wallet, WalletProvider } from './wallet';
-import { OperationFactory } from './wallet/opreation-factory';
+import { OperationFactory } from './wallet/operation-factory';
 
 export { MichelsonMap, UnitValue } from '@taquito/michelson-encoder';
 export * from './constants';
@@ -22,18 +32,21 @@ export * from './contract/big-map';
 export { CompositeForger } from './forger/composite-forger';
 export * from './forger/interface';
 export { RpcForger } from './forger/rpc-forger';
-export {
-  TezosOperationError,
-  TezosOperationErrorWithMessage,
-  TezosPreapplyFailureError,
-} from './operations/operation-errors';
-export { OpKind } from './operations/types';
+export * from './operations';
+export { OperationBatch } from './batch/rpc-batch-provider';
 export * from './signer/interface';
 export * from './subscribe/interface';
 export { SubscribeProvider } from './subscribe/interface';
 export { PollingSubscribeProvider } from './subscribe/polling-provider';
 export * from './tz/interface';
 export * from './wallet';
+export { Extension } from './extension/extension';
+export * from './parser/interface';
+export * from './parser/michel-codec-parser';
+export * from './parser/noop-parser';
+export * from './packer/interface';
+export * from './packer/michel-codec-packer';
+export * from './packer/rpc-packer';
 
 export interface SetProviderOptions {
   forger?: Forger;
@@ -42,33 +55,45 @@ export interface SetProviderOptions {
   stream?: string | SubscribeProvider;
   signer?: Signer;
   protocol?: Protocols;
-  config?: Config;
+  config?: Partial<ConfigConfirmation> & Partial<ConfigStreamer>;
+  packer?: Packer;
+}
+
+export interface VersionInfo {
+  commitHash: string;
+  version: string;
 }
 
 /**
  * @description Facade class that surfaces all of the libraries capability and allow it's configuration
- * 
+ *
  * @param _rpc The RPC server to use
  */
 export class TezosToolkit {
   private _stream!: SubscribeProvider;
   private _options: SetProviderOptions = {};
-  private _rpcClient: RpcClient
+  private _rpcClient: RpcClient;
   private _wallet: Wallet;
+  private _context: Context;
+  /**
+   * @deprecated TezosToolkit.batch has been deprecated in favor of TezosToolkit.contract.batch
+   *
+   */
+  public batch: RPCBatchProvider['batch'];
 
   public readonly format = format;
 
-  constructor(
-    private _rpc: RpcClient | string,
-    private _context: Context = new Context(_rpc)
-  ) {
+  constructor(private _rpc: RpcClient | string) {
     if (typeof this._rpc === 'string') {
       this._rpcClient = new RpcClient(this._rpc);
     } else {
       this._rpcClient = this._rpc;
     }
+    this._context = new Context(_rpc);
     this._wallet = new Wallet(this._context);
     this.setProvider({ rpc: this._rpcClient });
+    // tslint:disable-next-line: deprecation
+    this.batch = this._context.batch.batch.bind(this._context.batch);
   }
 
   /**
@@ -76,20 +101,32 @@ export class TezosToolkit {
    *
    * @param options rpc url or rpcClient to use to interact with the Tezos network
    *
-   * @example Tezos.setProvider({rpc: 'https://api.tez.ie/rpc/mainnet', signer: new InMemorySigner.fromSecretKey(“edsk...”)})
+   * @example Tezos.setProvider({rpc: 'https://mainnet.api.tez.ie/', signer: new InMemorySigner.fromSecretKey(“edsk...”)})
    * @example Tezos.setProvider({ config: { confirmationPollingTimeoutSecond: 300 }})
    *
    */
 
-  setProvider({ rpc, stream, signer, protocol, config, forger, wallet }: SetProviderOptions) {
+  setProvider({
+    rpc,
+    stream,
+    signer,
+    protocol,
+    config,
+    forger,
+    wallet,
+    packer,
+  }: SetProviderOptions) {
     this.setRpcProvider(rpc);
     this.setStreamProvider(stream);
     this.setSignerProvider(signer);
     this.setForgerProvider(forger);
     this.setWalletProvider(wallet);
+    this.setPackerProvider(packer);
 
     this._context.proto = protocol;
-    this._context.config = config as Required<Config>;
+    if(config) {
+      this._context.setPartialConfig(config);
+    }
   }
 
   /**
@@ -115,7 +152,7 @@ export class TezosToolkit {
    *
    * @param options rpc url or rpcClient to use to interact with the Tezos network
    *
-   * @example Tezos.setRpcProvider('https://api.tez.ie/rpc/mainnet')
+   * @example Tezos.setRpcProvider('https://mainnet.api.tez.ie/')
    *
    */
   setRpcProvider(rpc?: SetProviderOptions['rpc']) {
@@ -123,8 +160,8 @@ export class TezosToolkit {
       this._rpcClient = new RpcClient(rpc);
     } else if (rpc instanceof RpcClient) {
       this._rpcClient = rpc;
-    } 
-/*     else if (this._options.rpc === undefined) {
+    }
+    /*     else if (this._options.rpc === undefined) {
       this._rpcClient = new RpcClient();
     } */
     this._options.rpc = this._rpcClient;
@@ -184,6 +221,20 @@ export class TezosToolkit {
   }
 
   /**
+   * @description Sets Packer provider on the Tezos Taquito instance
+   *
+   * @param options packer to use to interact with the Tezos network
+   *
+   * @example Tezos.setPackerProvider(new MichelCodecPacker())
+   *
+   */
+  setPackerProvider(packer?: SetProviderOptions['packer']) {
+    const p = typeof packer === 'undefined' ? this.getFactory(RpcPacker)() : packer;
+    this._options.packer = p;
+    this._context.packer = p;
+  }
+
+  /**
    * @description Provide access to tezos account management
    */
   get tz(): TzProvider {
@@ -204,8 +255,6 @@ export class TezosToolkit {
   get operation(): OperationFactory {
     return this._context.operationFactory;
   }
-
-  public batch = this._context.batch.batch.bind(this._context.batch);
 
   /**
    * @description Provide access to operation estimation utilities
@@ -235,9 +284,27 @@ export class TezosToolkit {
     return this._context.signer;
   }
 
+  /**
+   * @description Allow to add a module to the TezosToolkit instance. This method adds the appropriate Providers(s) required by the module to the internal context.
+   *
+   * @param module extension to add to the TezosToolkit instance
+   *
+   * @example Tezos.addExtension(new Tzip16Module());
+   */
+  addExtension(module: Extension) {
+    module.configureContext(this._context);
+  }
+
   getFactory<T, K extends Array<any>>(ctor: TaquitoProvider<T, K>) {
     return (...args: K) => {
       return new ctor(this._context, ...args);
     };
+  }
+
+  /**
+   * @description Gets an object containing the version of Taquito library and git sha of the commit this library is compiled from
+   */
+  getVersionInfo(): VersionInfo {
+    return VERSION;
   }
 }

@@ -7,6 +7,8 @@ var __extends = (this && this.__extends) || (function () {
         return extendStatics(d, b);
     };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -86,9 +88,10 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
+var __spreadArray = (this && this.__spreadArray) || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+        to[j] = from[i];
+    return to;
 };
 var __values = (this && this.__values) || function(o) {
     var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
@@ -105,6 +108,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RPCEstimateProvider = void 0;
 var rpc_1 = require("@taquito/rpc");
 var bignumber_js_1 = require("bignumber.js");
+var constants_1 = require("../constants");
 var operation_emitter_1 = require("../operations/operation-emitter");
 var operation_errors_1 = require("../operations/operation-errors");
 var types_1 = require("../operations/types");
@@ -129,12 +133,13 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.ALLOCATION_STORAGE = 257;
         _this.ORIGINATION_STORAGE = 257;
+        _this.OP_SIZE_REVEAL = 128;
         return _this;
     }
     // Maximum values defined by the protocol
-    RPCEstimateProvider.prototype.getAccountLimits = function (pkh) {
+    RPCEstimateProvider.prototype.getAccountLimits = function (pkh, numberOfOps) {
         return __awaiter(this, void 0, void 0, function () {
-            var balance, _a, hard_gas_limit_per_operation, hard_storage_limit_per_operation, cost_per_byte;
+            var balance, _a, hard_gas_limit_per_operation, hard_gas_limit_per_block, hard_storage_limit_per_operation, cost_per_byte;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, this.rpc.getBalance(pkh)];
@@ -142,17 +147,26 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
                         balance = _b.sent();
                         return [4 /*yield*/, this.rpc.getConstants()];
                     case 2:
-                        _a = _b.sent(), hard_gas_limit_per_operation = _a.hard_gas_limit_per_operation, hard_storage_limit_per_operation = _a.hard_storage_limit_per_operation, cost_per_byte = _a.cost_per_byte;
+                        _a = _b.sent(), hard_gas_limit_per_operation = _a.hard_gas_limit_per_operation, hard_gas_limit_per_block = _a.hard_gas_limit_per_block, hard_storage_limit_per_operation = _a.hard_storage_limit_per_operation, cost_per_byte = _a.cost_per_byte;
                         return [2 /*return*/, {
                                 fee: 0,
-                                gasLimit: hard_gas_limit_per_operation.toNumber(),
+                                gasLimit: numberOfOps
+                                    ? Math.floor(this.ajustGasForBatchOperation(hard_gas_limit_per_block, hard_gas_limit_per_operation, numberOfOps).toNumber())
+                                    : hard_gas_limit_per_operation.toNumber(),
                                 storageLimit: Math.floor(bignumber_js_1.default.min(balance.dividedBy(cost_per_byte), hard_storage_limit_per_operation).toNumber()),
                             }];
                 }
             });
         });
     };
-    RPCEstimateProvider.prototype.createEstimateFromOperationContent = function (content, size, costPerByte) {
+    // Fix for Granada where the total gasLimit of a batch can not exceed the hard_gas_limit_per_block.
+    // If the total gasLimit of the batch is higher than the hard_gas_limit_per_block,
+    // the gasLimit is calculated by dividing the hard_gas_limit_per_block by the number of operation in the batch (numberOfOps).
+    // numberOfOps is incremented by 1 for safety in case a reveal operation is needed
+    RPCEstimateProvider.prototype.ajustGasForBatchOperation = function (gasLimitBlock, gaslimitOp, numberOfOps) {
+        return bignumber_js_1.default.min(gaslimitOp, gasLimitBlock.div(numberOfOps + 1));
+    };
+    RPCEstimateProvider.prototype.getEstimationPropertiesFromOperationContent = function (content, size, costPerByte) {
         var _this = this;
         var operationResults = operation_errors_1.flattenOperationResult({ contents: [content] });
         var totalGas = 0;
@@ -174,45 +188,65 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
             totalMilligas = totalGas * 1000;
         }
         if (types_1.isOpWithFee(content)) {
-            return new estimate_1.Estimate(totalMilligas || 0, Number(totalStorage || 0), size, costPerByte.toNumber());
+            return {
+                milligasLimit: totalMilligas || 0,
+                storageLimit: Number(totalStorage || 0),
+                opSize: size,
+                minimalFeePerStorageByteMutez: costPerByte.toNumber(),
+            };
         }
         else {
-            return new estimate_1.Estimate(0, 0, size, costPerByte.toNumber(), 0);
+            return {
+                milligasLimit: 0,
+                storageLimit: 0,
+                opSize: size,
+                minimalFeePerStorageByteMutez: costPerByte.toNumber(),
+                baseFeeMutez: 0,
+            };
         }
     };
-    RPCEstimateProvider.prototype.createEstimate = function (params) {
+    RPCEstimateProvider.prototype.prepareEstimate = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, opbytes, _b, branch, contents, operation, opResponse, cost_per_byte, errors;
+            var prepared, _a, opbytes, _b, branch, contents, operation, opResponse, cost_per_byte, errors, numberOfOps;
             var _c;
             var _this = this;
             return __generator(this, function (_d) {
                 switch (_d.label) {
-                    case 0: return [4 /*yield*/, this.prepareAndForge(params)];
+                    case 0: return [4 /*yield*/, this.prepareOperation(params)];
                     case 1:
+                        prepared = _d.sent();
+                        return [4 /*yield*/, this.forge(prepared)];
+                    case 2:
                         _a = _d.sent(), opbytes = _a.opbytes, _b = _a.opOb, branch = _b.branch, contents = _b.contents;
                         _c = {
                             operation: { branch: branch, contents: contents, signature: SIGNATURE_STUB }
                         };
                         return [4 /*yield*/, this.rpc.getChainId()];
-                    case 2:
+                    case 3:
                         operation = (_c.chain_id = _d.sent(),
                             _c);
                         return [4 /*yield*/, this.simulate(operation)];
-                    case 3:
+                    case 4:
                         opResponse = (_d.sent()).opResponse;
                         return [4 /*yield*/, this.rpc.getConstants()];
-                    case 4:
+                    case 5:
                         cost_per_byte = (_d.sent()).cost_per_byte;
-                        errors = __spread(operation_errors_1.flattenErrors(opResponse, 'backtracked'), operation_errors_1.flattenErrors(opResponse));
+                        errors = __spreadArray(__spreadArray([], __read(operation_errors_1.flattenErrors(opResponse, 'backtracked'))), __read(operation_errors_1.flattenErrors(opResponse)));
                         // Fail early in case of errors
                         if (errors.length) {
                             throw new operation_errors_1.TezosOperationError(errors);
                         }
-                        while (opResponse.contents.length !== (Array.isArray(params.operation) ? params.operation.length : 1)) {
-                            opResponse.contents.shift();
+                        numberOfOps = 1;
+                        if (Array.isArray(params.operation) && params.operation.length > 1) {
+                            numberOfOps =
+                                opResponse.contents[0].kind === 'reveal'
+                                    ? params.operation.length - 1
+                                    : params.operation.length;
                         }
                         return [2 /*return*/, opResponse.contents.map(function (x) {
-                                return _this.createEstimateFromOperationContent(x, opbytes.length / 2 / opResponse.contents.length, cost_per_byte);
+                                return _this.getEstimationPropertiesFromOperationContent(x, 
+                                // TODO: Calculate a specific opSize for each operation.
+                                x.kind === 'reveal' ? _this.OP_SIZE_REVEAL / 2 : opbytes.length / 2 / numberOfOps, cost_per_byte);
                             })];
                 }
             });
@@ -229,20 +263,40 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     RPCEstimateProvider.prototype.originate = function (_a) {
         var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
         return __awaiter(this, void 0, void 0, function () {
-            var pkh, DEFAULT_PARAMS, op;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var pkh, DEFAULT_PARAMS, op, _b, isRevealNeeded, ops, _c, estimateProperties;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        pkh = _b.sent();
+                        pkh = _d.sent();
                         return [4 /*yield*/, this.getAccountLimits(pkh)];
                     case 2:
-                        DEFAULT_PARAMS = _b.sent();
-                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, rest), mergeLimits({ fee: fee, storageLimit: storageLimit, gasLimit: gasLimit }, DEFAULT_PARAMS)))];
-                    case 3:
-                        op = _b.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
-                    case 4: return [2 /*return*/, (_b.sent())[0]];
+                        DEFAULT_PARAMS = _d.sent();
+                        _b = prepare_1.createOriginationOperation;
+                        return [4 /*yield*/, this.context.parser.prepareCodeOrigination(__assign(__assign({}, rest), mergeLimits({ fee: fee, storageLimit: storageLimit, gasLimit: gasLimit }, DEFAULT_PARAMS)))];
+                    case 3: return [4 /*yield*/, _b.apply(void 0, [_d.sent()])];
+                    case 4:
+                        op = _d.sent();
+                        return [4 /*yield*/, this.isRevealOpNeeded([op], pkh)];
+                    case 5:
+                        isRevealNeeded = _d.sent();
+                        if (!isRevealNeeded) return [3 /*break*/, 7];
+                        return [4 /*yield*/, this.addRevealOp([op], pkh)];
+                    case 6:
+                        _c = _d.sent();
+                        return [3 /*break*/, 8];
+                    case 7:
+                        _c = op;
+                        _d.label = 8;
+                    case 8:
+                        ops = _c;
+                        return [4 /*yield*/, this.prepareEstimate({ operation: ops, source: pkh })];
+                    case 9:
+                        estimateProperties = _d.sent();
+                        if (isRevealNeeded) {
+                            estimateProperties.shift();
+                        }
+                        return [2 /*return*/, estimate_1.Estimate.createEstimateInstanceFromProperties(estimateProperties)];
                 }
             });
         });
@@ -258,20 +312,38 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     RPCEstimateProvider.prototype.transfer = function (_a) {
         var fee = _a.fee, storageLimit = _a.storageLimit, gasLimit = _a.gasLimit, rest = __rest(_a, ["fee", "storageLimit", "gasLimit"]);
         return __awaiter(this, void 0, void 0, function () {
-            var pkh, DEFAULT_PARAMS, op;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var pkh, DEFAULT_PARAMS, op, isRevealNeeded, ops, _b, estimateProperties;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        pkh = _b.sent();
+                        pkh = _c.sent();
                         return [4 /*yield*/, this.getAccountLimits(pkh)];
                     case 2:
-                        DEFAULT_PARAMS = _b.sent();
+                        DEFAULT_PARAMS = _c.sent();
                         return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, rest), mergeLimits({ fee: fee, storageLimit: storageLimit, gasLimit: gasLimit }, DEFAULT_PARAMS)))];
                     case 3:
-                        op = _b.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: pkh })];
-                    case 4: return [2 /*return*/, (_b.sent())[0]];
+                        op = _c.sent();
+                        return [4 /*yield*/, this.isRevealOpNeeded([op], pkh)];
+                    case 4:
+                        isRevealNeeded = _c.sent();
+                        if (!isRevealNeeded) return [3 /*break*/, 6];
+                        return [4 /*yield*/, this.addRevealOp([op], pkh)];
+                    case 5:
+                        _b = _c.sent();
+                        return [3 /*break*/, 7];
+                    case 6:
+                        _b = op;
+                        _c.label = 7;
+                    case 7:
+                        ops = _b;
+                        return [4 /*yield*/, this.prepareEstimate({ operation: ops, source: pkh })];
+                    case 8:
+                        estimateProperties = _c.sent();
+                        if (isRevealNeeded) {
+                            estimateProperties.shift();
+                        }
+                        return [2 /*return*/, estimate_1.Estimate.createEstimateInstanceFromProperties(estimateProperties)];
                 }
             });
         });
@@ -287,96 +359,133 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
     RPCEstimateProvider.prototype.setDelegate = function (_a) {
         var fee = _a.fee, gasLimit = _a.gasLimit, storageLimit = _a.storageLimit, rest = __rest(_a, ["fee", "gasLimit", "storageLimit"]);
         return __awaiter(this, void 0, void 0, function () {
-            var sourceOrDefault, _b, DEFAULT_PARAMS, op;
+            var pkh, sourceOrDefault, DEFAULT_PARAMS, op, isRevealNeeded, ops, _b, estimateProperties;
             return __generator(this, function (_c) {
                 switch (_c.label) {
-                    case 0:
-                        _b = rest.source;
-                        if (_b) return [3 /*break*/, 2];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        _b = (_c.sent());
-                        _c.label = 2;
-                    case 2:
-                        sourceOrDefault = _b;
+                        pkh = _c.sent();
+                        sourceOrDefault = rest.source || pkh;
                         return [4 /*yield*/, this.getAccountLimits(sourceOrDefault)];
-                    case 3:
+                    case 2:
                         DEFAULT_PARAMS = _c.sent();
                         return [4 /*yield*/, prepare_1.createSetDelegateOperation(__assign(__assign({}, rest), mergeLimits({ fee: fee, storageLimit: storageLimit, gasLimit: gasLimit }, DEFAULT_PARAMS)))];
-                    case 4:
+                    case 3:
                         op = _c.sent();
-                        return [4 /*yield*/, this.createEstimate({ operation: op, source: sourceOrDefault })];
-                    case 5: return [2 /*return*/, (_c.sent())[0]];
+                        return [4 /*yield*/, this.isRevealOpNeeded([op], pkh)];
+                    case 4:
+                        isRevealNeeded = _c.sent();
+                        if (!isRevealNeeded) return [3 /*break*/, 6];
+                        return [4 /*yield*/, this.addRevealOp([op], pkh)];
+                    case 5:
+                        _b = _c.sent();
+                        return [3 /*break*/, 7];
+                    case 6:
+                        _b = op;
+                        _c.label = 7;
+                    case 7:
+                        ops = _b;
+                        return [4 /*yield*/, this.prepareEstimate({ operation: ops, source: pkh })];
+                    case 8:
+                        estimateProperties = _c.sent();
+                        if (isRevealNeeded) {
+                            estimateProperties.shift();
+                        }
+                        return [2 /*return*/, estimate_1.Estimate.createEstimateInstanceFromProperties(estimateProperties)];
                 }
             });
         });
     };
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees for a each operation in the batch
+     *
+     * @returns An array of Estimate objects. If a reveal operation is needed, the first element of the array is the Estimate for the reveal operation.
+     */
     RPCEstimateProvider.prototype.batch = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var operations, DEFAULT_PARAMS, _a, params_1, params_1_1, param, _b, _c, _d, _e, _f, _g, _h, e_1_1;
-            var e_1, _j;
-            return __generator(this, function (_k) {
-                switch (_k.label) {
-                    case 0:
+            var pkh, operations, DEFAULT_PARAMS, params_1, params_1_1, param, _a, _b, _c, _d, _e, _f, _g, _h, e_1_1, isRevealNeeded, _j, estimateProperties;
+            var e_1, _k;
+            return __generator(this, function (_l) {
+                switch (_l.label) {
+                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1:
+                        pkh = _l.sent();
                         operations = [];
-                        _a = this.getAccountLimits;
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1: return [4 /*yield*/, _a.apply(this, [_k.sent()])];
+                        return [4 /*yield*/, this.getAccountLimits(pkh, params.length)];
                     case 2:
-                        DEFAULT_PARAMS = _k.sent();
-                        _k.label = 3;
+                        DEFAULT_PARAMS = _l.sent();
+                        _l.label = 3;
                     case 3:
-                        _k.trys.push([3, 15, 16, 17]);
+                        _l.trys.push([3, 16, 17, 18]);
                         params_1 = __values(params), params_1_1 = params_1.next();
-                        _k.label = 4;
+                        _l.label = 4;
                     case 4:
-                        if (!!params_1_1.done) return [3 /*break*/, 14];
+                        if (!!params_1_1.done) return [3 /*break*/, 15];
                         param = params_1_1.value;
-                        _b = param.kind;
-                        switch (_b) {
+                        _a = param.kind;
+                        switch (_a) {
                             case rpc_1.OpKind.TRANSACTION: return [3 /*break*/, 5];
                             case rpc_1.OpKind.ORIGINATION: return [3 /*break*/, 7];
-                            case rpc_1.OpKind.DELEGATION: return [3 /*break*/, 9];
-                            case rpc_1.OpKind.ACTIVATION: return [3 /*break*/, 11];
+                            case rpc_1.OpKind.DELEGATION: return [3 /*break*/, 10];
+                            case rpc_1.OpKind.ACTIVATION: return [3 /*break*/, 12];
                         }
-                        return [3 /*break*/, 12];
+                        return [3 /*break*/, 13];
                     case 5:
-                        _d = (_c = operations).push;
+                        _c = (_b = operations).push;
                         return [4 /*yield*/, prepare_1.createTransferOperation(__assign(__assign({}, param), mergeLimits(param, DEFAULT_PARAMS)))];
                     case 6:
-                        _d.apply(_c, [_k.sent()]);
-                        return [3 /*break*/, 13];
+                        _c.apply(_b, [_l.sent()]);
+                        return [3 /*break*/, 14];
                     case 7:
-                        _f = (_e = operations).push;
-                        return [4 /*yield*/, prepare_1.createOriginationOperation(__assign(__assign({}, param), mergeLimits(param, DEFAULT_PARAMS)))];
-                    case 8:
-                        _f.apply(_e, [_k.sent()]);
-                        return [3 /*break*/, 13];
+                        _e = (_d = operations).push;
+                        _f = prepare_1.createOriginationOperation;
+                        return [4 /*yield*/, this.context.parser.prepareCodeOrigination(__assign(__assign({}, param), mergeLimits(param, DEFAULT_PARAMS)))];
+                    case 8: return [4 /*yield*/, _f.apply(void 0, [_l.sent()])];
                     case 9:
+                        _e.apply(_d, [_l.sent()]);
+                        return [3 /*break*/, 14];
+                    case 10:
                         _h = (_g = operations).push;
                         return [4 /*yield*/, prepare_1.createSetDelegateOperation(__assign(__assign({}, param), mergeLimits(param, DEFAULT_PARAMS)))];
-                    case 10:
-                        _h.apply(_g, [_k.sent()]);
-                        return [3 /*break*/, 13];
                     case 11:
+                        _h.apply(_g, [_l.sent()]);
+                        return [3 /*break*/, 14];
+                    case 12:
                         operations.push(__assign(__assign({}, param), DEFAULT_PARAMS));
-                        return [3 /*break*/, 13];
-                    case 12: throw new Error("Unsupported operation kind: " + param.kind);
-                    case 13:
+                        return [3 /*break*/, 14];
+                    case 13: throw new Error("Unsupported operation kind: " + param.kind);
+                    case 14:
                         params_1_1 = params_1.next();
                         return [3 /*break*/, 4];
-                    case 14: return [3 /*break*/, 17];
-                    case 15:
-                        e_1_1 = _k.sent();
-                        e_1 = { error: e_1_1 };
-                        return [3 /*break*/, 17];
+                    case 15: return [3 /*break*/, 18];
                     case 16:
+                        e_1_1 = _l.sent();
+                        e_1 = { error: e_1_1 };
+                        return [3 /*break*/, 18];
+                    case 17:
                         try {
-                            if (params_1_1 && !params_1_1.done && (_j = params_1.return)) _j.call(params_1);
+                            if (params_1_1 && !params_1_1.done && (_k = params_1.return)) _k.call(params_1);
                         }
                         finally { if (e_1) throw e_1.error; }
                         return [7 /*endfinally*/];
-                    case 17: return [2 /*return*/, this.createEstimate({ operation: operations })];
+                    case 18: return [4 /*yield*/, this.isRevealOpNeeded(operations, pkh)];
+                    case 19:
+                        isRevealNeeded = _l.sent();
+                        if (!isRevealNeeded) return [3 /*break*/, 21];
+                        return [4 /*yield*/, this.addRevealOp(operations, pkh)];
+                    case 20:
+                        _j = _l.sent();
+                        return [3 /*break*/, 22];
+                    case 21:
+                        _j = operations;
+                        _l.label = 22;
+                    case 22:
+                        operations = _j;
+                        return [4 /*yield*/, this.prepareEstimate({ operation: operations, source: pkh })];
+                    case 23:
+                        estimateProperties = _l.sent();
+                        return [2 /*return*/, estimate_1.Estimate.createArrayEstimateInstancesFromProperties(estimateProperties)];
                 }
             });
         });
@@ -391,27 +500,97 @@ var RPCEstimateProvider = /** @class */ (function (_super) {
      */
     RPCEstimateProvider.prototype.registerDelegate = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var DEFAULT_PARAMS, _a, op, _b, _c, _d;
-            var _e;
-            return __generator(this, function (_f) {
-                switch (_f.label) {
-                    case 0:
-                        _a = this.getAccountLimits;
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 1: return [4 /*yield*/, _a.apply(this, [_f.sent()])];
+            var pkh, DEFAULT_PARAMS, op, isRevealNeeded, ops, _a, estimateProperties;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1:
+                        pkh = _b.sent();
+                        return [4 /*yield*/, this.getAccountLimits(pkh)];
                     case 2:
-                        DEFAULT_PARAMS = _f.sent();
-                        _b = prepare_1.createRegisterDelegateOperation;
-                        _c = [__assign(__assign({}, params), DEFAULT_PARAMS)];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 3: return [4 /*yield*/, _b.apply(void 0, _c.concat([_f.sent()]))];
+                        DEFAULT_PARAMS = _b.sent();
+                        return [4 /*yield*/, prepare_1.createRegisterDelegateOperation(__assign(__assign({}, params), DEFAULT_PARAMS), pkh)];
+                    case 3:
+                        op = _b.sent();
+                        return [4 /*yield*/, this.isRevealOpNeeded([op], pkh)];
                     case 4:
-                        op = _f.sent();
-                        _d = this.createEstimate;
-                        _e = { operation: op };
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 5: return [4 /*yield*/, _d.apply(this, [(_e.source = _f.sent(), _e)])];
-                    case 6: return [2 /*return*/, (_f.sent())[0]];
+                        isRevealNeeded = _b.sent();
+                        if (!isRevealNeeded) return [3 /*break*/, 6];
+                        return [4 /*yield*/, this.addRevealOp([op], pkh)];
+                    case 5:
+                        _a = _b.sent();
+                        return [3 /*break*/, 7];
+                    case 6:
+                        _a = op;
+                        _b.label = 7;
+                    case 7:
+                        ops = _a;
+                        return [4 /*yield*/, this.prepareEstimate({ operation: ops, source: pkh })];
+                    case 8:
+                        estimateProperties = _b.sent();
+                        if (isRevealNeeded) {
+                            estimateProperties.shift();
+                        }
+                        return [2 /*return*/, estimate_1.Estimate.createEstimateInstanceFromProperties(estimateProperties)];
+                }
+            });
+        });
+    };
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees to reveal the current account
+     *
+     * @returns An estimation of gasLimit, storageLimit and fees for the operation or undefined if the account is already revealed
+     *
+     * @param Estimate
+     */
+    RPCEstimateProvider.prototype.reveal = function (params) {
+        return __awaiter(this, void 0, void 0, function () {
+            var pkh, DEFAULT_PARAMS, op, _a, _b, estimateProperties;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
+                    case 1:
+                        pkh = _c.sent();
+                        return [4 /*yield*/, this.isAccountRevealRequired(pkh)];
+                    case 2:
+                        if (!_c.sent()) return [3 /*break*/, 7];
+                        return [4 /*yield*/, this.getAccountLimits(pkh)];
+                    case 3:
+                        DEFAULT_PARAMS = _c.sent();
+                        _a = prepare_1.createRevealOperation;
+                        _b = [__assign(__assign({}, params), DEFAULT_PARAMS), pkh];
+                        return [4 /*yield*/, this.signer.publicKey()];
+                    case 4: return [4 /*yield*/, _a.apply(void 0, _b.concat([_c.sent()]))];
+                    case 5:
+                        op = _c.sent();
+                        return [4 /*yield*/, this.prepareEstimate({ operation: op, source: pkh })];
+                    case 6:
+                        estimateProperties = _c.sent();
+                        return [2 /*return*/, estimate_1.Estimate.createEstimateInstanceFromProperties(estimateProperties)];
+                    case 7: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    RPCEstimateProvider.prototype.addRevealOp = function (op, pkh) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, _b, _c, _d;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
+                    case 0:
+                        _b = (_a = op).unshift;
+                        _c = prepare_1.createRevealOperation;
+                        _d = [__assign({
+                                fee: constants_1.DEFAULT_FEE.REVEAL,
+                                gasLimit: constants_1.DEFAULT_GAS_LIMIT.REVEAL,
+                                storageLimit: constants_1.DEFAULT_STORAGE_LIMIT.REVEAL,
+                            }), pkh];
+                        return [4 /*yield*/, this.signer.publicKey()];
+                    case 1: return [4 /*yield*/, _c.apply(void 0, _d.concat([_e.sent()]))];
+                    case 2:
+                        _b.apply(_a, [_e.sent()]);
+                        return [2 /*return*/, op];
                 }
             });
         });

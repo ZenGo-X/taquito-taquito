@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.InvalidDelegationSource = exports.InvalidParameterError = void 0;
+exports.InvalidInitParameter = exports.InvalidCodeParameter = exports.InvalidDelegationSource = exports.UndefinedLambdaContractError = exports.InvalidParameterError = void 0;
 var InvalidParameterError = /** @class */ (function () {
     function InvalidParameterError(smartContractMethodName, sigs, args) {
         this.smartContractMethodName = smartContractMethodName;
@@ -12,6 +12,14 @@ var InvalidParameterError = /** @class */ (function () {
     return InvalidParameterError;
 }());
 exports.InvalidParameterError = InvalidParameterError;
+var UndefinedLambdaContractError = /** @class */ (function () {
+    function UndefinedLambdaContractError() {
+        this.name = 'Undefined LambdaContract error';
+        this.message = "This might happen if you are using a sandbox. Please provide the address of a lambda contract as a parameter of the read method.";
+    }
+    return UndefinedLambdaContractError;
+}());
+exports.UndefinedLambdaContractError = UndefinedLambdaContractError;
 var InvalidDelegationSource = /** @class */ (function () {
     function InvalidDelegationSource(source) {
         this.source = source;
@@ -21,4 +29,22 @@ var InvalidDelegationSource = /** @class */ (function () {
     return InvalidDelegationSource;
 }());
 exports.InvalidDelegationSource = InvalidDelegationSource;
+var InvalidCodeParameter = /** @class */ (function () {
+    function InvalidCodeParameter(message, data) {
+        this.message = message;
+        this.data = data;
+        this.name = 'InvalidCodeParameter';
+    }
+    return InvalidCodeParameter;
+}());
+exports.InvalidCodeParameter = InvalidCodeParameter;
+var InvalidInitParameter = /** @class */ (function () {
+    function InvalidInitParameter(message, data) {
+        this.message = message;
+        this.data = data;
+        this.name = 'InvalidInitParameter';
+    }
+    return InvalidInitParameter;
+}());
+exports.InvalidInitParameter = InvalidInitParameter;
 //# sourceMappingURL=errors.js.map

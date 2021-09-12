@@ -80,7 +80,7 @@ export class OperationFactory {
 
   private createNewHeadObservable() {
     return createNewPollingBasedHeadObservable(
-      timer(0, this.context.config.confirmationPollingIntervalSecond * 1000),
+      timer(0, (this.context.config.confirmationPollingIntervalSecond || 0) * 1000),
       this.sharedHeadObs,
       this.context
     );

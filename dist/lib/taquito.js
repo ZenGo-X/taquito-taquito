@@ -1,4 +1,8 @@
 "use strict";
+/**
+ * @packageDocumentation
+ * @module @taquito/taquito
+ */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
@@ -25,18 +29,21 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
+var __spreadArray = (this && this.__spreadArray) || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+        to[j] = from[i];
+    return to;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TezosToolkit = exports.PollingSubscribeProvider = exports.OpKind = exports.TezosPreapplyFailureError = exports.TezosOperationError = exports.RpcForger = exports.CompositeForger = exports.UnitValue = exports.MichelsonMap = void 0;
+exports.TezosToolkit = exports.PollingSubscribeProvider = exports.OperationBatch = exports.RpcForger = exports.CompositeForger = exports.UnitValue = exports.MichelsonMap = void 0;
 var rpc_1 = require("@taquito/rpc");
 var context_1 = require("./context");
 var rpc_forger_1 = require("./forger/rpc-forger");
 var format_1 = require("./format");
+var rpc_packer_1 = require("./packer/rpc-packer");
 var noop_1 = require("./signer/noop");
 var polling_provider_1 = require("./subscribe/polling-provider");
+var version_1 = require("./version");
 var wallet_1 = require("./wallet");
 var michelson_encoder_1 = require("@taquito/michelson-encoder");
 Object.defineProperty(exports, "MichelsonMap", { enumerable: true, get: function () { return michelson_encoder_1.MichelsonMap; } });
@@ -50,57 +57,64 @@ Object.defineProperty(exports, "CompositeForger", { enumerable: true, get: funct
 __exportStar(require("./forger/interface"), exports);
 var rpc_forger_2 = require("./forger/rpc-forger");
 Object.defineProperty(exports, "RpcForger", { enumerable: true, get: function () { return rpc_forger_2.RpcForger; } });
-var operation_errors_1 = require("./operations/operation-errors");
-Object.defineProperty(exports, "TezosOperationError", { enumerable: true, get: function () { return operation_errors_1.TezosOperationError; } });
-Object.defineProperty(exports, "TezosPreapplyFailureError", { enumerable: true, get: function () { return operation_errors_1.TezosPreapplyFailureError; } });
-var types_1 = require("./operations/types");
-Object.defineProperty(exports, "OpKind", { enumerable: true, get: function () { return types_1.OpKind; } });
+__exportStar(require("./operations"), exports);
+var rpc_batch_provider_1 = require("./batch/rpc-batch-provider");
+Object.defineProperty(exports, "OperationBatch", { enumerable: true, get: function () { return rpc_batch_provider_1.OperationBatch; } });
 __exportStar(require("./signer/interface"), exports);
 __exportStar(require("./subscribe/interface"), exports);
 var polling_provider_2 = require("./subscribe/polling-provider");
 Object.defineProperty(exports, "PollingSubscribeProvider", { enumerable: true, get: function () { return polling_provider_2.PollingSubscribeProvider; } });
 __exportStar(require("./tz/interface"), exports);
 __exportStar(require("./wallet"), exports);
+__exportStar(require("./parser/interface"), exports);
+__exportStar(require("./parser/michel-codec-parser"), exports);
+__exportStar(require("./parser/noop-parser"), exports);
+__exportStar(require("./packer/interface"), exports);
+__exportStar(require("./packer/michel-codec-packer"), exports);
+__exportStar(require("./packer/rpc-packer"), exports);
 /**
  * @description Facade class that surfaces all of the libraries capability and allow it's configuration
  *
  * @param _rpc The RPC server to use
  */
 var TezosToolkit = /** @class */ (function () {
-    function TezosToolkit(_rpc, _context) {
-        if (_context === void 0) { _context = new context_1.Context(_rpc); }
+    function TezosToolkit(_rpc) {
         this._rpc = _rpc;
-        this._context = _context;
         this._options = {};
         this.format = format_1.format;
-        this.batch = this._context.batch.batch.bind(this._context.batch);
         if (typeof this._rpc === 'string') {
             this._rpcClient = new rpc_1.RpcClient(this._rpc);
         }
         else {
             this._rpcClient = this._rpc;
         }
+        this._context = new context_1.Context(_rpc);
         this._wallet = new wallet_1.Wallet(this._context);
         this.setProvider({ rpc: this._rpcClient });
+        // tslint:disable-next-line: deprecation
+        this.batch = this._context.batch.batch.bind(this._context.batch);
     }
     /**
      * @description Sets configuration on the Tezos Taquito instance. Allows user to choose which signer, rpc client, rpc url, forger and so forth
      *
      * @param options rpc url or rpcClient to use to interact with the Tezos network
      *
-     * @example Tezos.setProvider({rpc: 'https://api.tez.ie/rpc/mainnet', signer: new InMemorySigner.fromSecretKey(“edsk...”)})
+     * @example Tezos.setProvider({rpc: 'https://mainnet.api.tez.ie/', signer: new InMemorySigner.fromSecretKey(“edsk...”)})
      * @example Tezos.setProvider({ config: { confirmationPollingTimeoutSecond: 300 }})
      *
      */
     TezosToolkit.prototype.setProvider = function (_a) {
-        var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger, wallet = _a.wallet;
+        var rpc = _a.rpc, stream = _a.stream, signer = _a.signer, protocol = _a.protocol, config = _a.config, forger = _a.forger, wallet = _a.wallet, packer = _a.packer;
         this.setRpcProvider(rpc);
         this.setStreamProvider(stream);
         this.setSignerProvider(signer);
         this.setForgerProvider(forger);
         this.setWalletProvider(wallet);
+        this.setPackerProvider(packer);
         this._context.proto = protocol;
-        this._context.config = config;
+        if (config) {
+            this._context.setPartialConfig(config);
+        }
     };
     /**
      * @description Sets signer provider on the Tezos Taquito instance.
@@ -125,7 +139,7 @@ var TezosToolkit = /** @class */ (function () {
      *
      * @param options rpc url or rpcClient to use to interact with the Tezos network
      *
-     * @example Tezos.setRpcProvider('https://api.tez.ie/rpc/mainnet')
+     * @example Tezos.setRpcProvider('https://mainnet.api.tez.ie/')
      *
      */
     TezosToolkit.prototype.setRpcProvider = function (rpc) {
@@ -136,8 +150,8 @@ var TezosToolkit = /** @class */ (function () {
             this._rpcClient = rpc;
         }
         /*     else if (this._options.rpc === undefined) {
-              this._rpcClient = new RpcClient();
-            } */
+          this._rpcClient = new RpcClient();
+        } */
         this._options.rpc = this._rpcClient;
         this._context.rpc = this._rpcClient;
     };
@@ -192,6 +206,19 @@ var TezosToolkit = /** @class */ (function () {
             this._options.wallet = wallet;
             this._context.walletProvider = wallet;
         }
+    };
+    /**
+     * @description Sets Packer provider on the Tezos Taquito instance
+     *
+     * @param options packer to use to interact with the Tezos network
+     *
+     * @example Tezos.setPackerProvider(new MichelCodecPacker())
+     *
+     */
+    TezosToolkit.prototype.setPackerProvider = function (packer) {
+        var p = typeof packer === 'undefined' ? this.getFactory(rpc_packer_1.RpcPacker)() : packer;
+        this._options.packer = p;
+        this._context.packer = p;
     };
     Object.defineProperty(TezosToolkit.prototype, "tz", {
         /**
@@ -267,6 +294,16 @@ var TezosToolkit = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
+    /**
+     * @description Allow to add a module to the TezosToolkit instance. This method adds the appropriate Providers(s) required by the module to the internal context.
+     *
+     * @param module extension to add to the TezosToolkit instance
+     *
+     * @example Tezos.addExtension(new Tzip16Module());
+     */
+    TezosToolkit.prototype.addExtension = function (module) {
+        module.configureContext(this._context);
+    };
     TezosToolkit.prototype.getFactory = function (ctor) {
         var _this = this;
         return function () {
@@ -274,8 +311,14 @@ var TezosToolkit = /** @class */ (function () {
             for (var _i = 0; _i < arguments.length; _i++) {
                 args[_i] = arguments[_i];
             }
-            return new (ctor.bind.apply(ctor, __spread([void 0, _this._context], args)))();
+            return new (ctor.bind.apply(ctor, __spreadArray([void 0, _this._context], __read(args))))();
         };
+    };
+    /**
+     * @description Gets an object containing the version of Taquito library and git sha of the commit this library is compiled from
+     */
+    TezosToolkit.prototype.getVersionInfo = function () {
+        return version_1.VERSION;
     };
     return TezosToolkit;
 }());

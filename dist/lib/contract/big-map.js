@@ -44,14 +44,23 @@ var BigMapAbstraction = /** @class */ (function () {
         this.schema = schema;
         this.provider = provider;
     }
-    BigMapAbstraction.prototype.get = function (keyToEncode) {
+    /**
+     *
+     * @description Fetch one value in a big map
+     *
+     * @param keysToEncode Key to query (will be encoded properly according to the schema)
+     * @param block optional block level to fetch the values from (head will be use by default)
+     * @returns Return a well formatted json object of a big map value or undefined if the key is not found in the big map
+     *
+     */
+    BigMapAbstraction.prototype.get = function (keyToEncode, block) {
         return __awaiter(this, void 0, void 0, function () {
             var id, e_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         _a.trys.push([0, 2, , 3]);
-                        return [4 /*yield*/, this.provider.getBigMapKeyByID(this.id.toString(), keyToEncode, this.schema)];
+                        return [4 /*yield*/, this.provider.getBigMapKeyByID(this.id.toString(), keyToEncode, this.schema, block)];
                     case 1:
                         id = _a.sent();
                         return [2 /*return*/, id];
@@ -66,6 +75,27 @@ var BigMapAbstraction = /** @class */ (function () {
                         return [3 /*break*/, 3];
                     case 3: return [2 /*return*/];
                 }
+            });
+        });
+    };
+    /**
+     *
+     * @description Fetch multiple values in a big map
+     * All values will be fetched on the same block level. If a block is specified in the request, the values will be fetched at it.
+     * Otherwise, a first request will be done to the node to fetch the level of the head and all values will be fetched at this level.
+     * If one of the keys does not exist in the big map, its value will be set to undefined.
+     *
+     * @param keysToEncode Array of keys to query (will be encoded properly according to the schema)
+     * @param block optional block level to fetch the values from
+     * @param batchSize optional batch size representing the number of requests to execute in parallel
+     * @returns A MichelsonMap containing the keys queried in the big map and their value in a well-formatted JSON object format
+     *
+     */
+    BigMapAbstraction.prototype.getMultipleValues = function (keysToEncode, block, batchSize) {
+        if (batchSize === void 0) { batchSize = 5; }
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, this.provider.getBigMapKeysByID(this.id.toString(), keysToEncode, this.schema, block, batchSize)];
             });
         });
     };

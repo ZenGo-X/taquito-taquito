@@ -4,6 +4,7 @@ export declare type withKind<T, K extends OpKind> = T & {
     kind: K;
 };
 export declare type ParamsWithKind = withKind<OriginateParams, OpKind.ORIGINATION> | withKind<DelegateParams, OpKind.DELEGATION> | withKind<TransferParams, OpKind.TRANSACTION> | withKind<ActivationParams, OpKind.ACTIVATION>;
+export declare type ParamsWithKindExtended = ParamsWithKind | withKind<RevealParams, OpKind.REVEAL>;
 export declare const attachKind: <T, K extends OpKind>(op: T, kind: K) => withKind<T, K>;
 export declare const findWithKind: <T extends {
     kind: OpKind;
@@ -63,6 +64,7 @@ export declare type OriginateParamsBase = {
     fee?: number;
     gasLimit?: number;
     storageLimit?: number;
+    mutez?: boolean;
 };
 /**
  * @description Parameters for originate method
@@ -107,6 +109,11 @@ export interface RPCRevealOperation {
     gas_limit: number;
     storage_limit: number;
 }
+export interface RevealParams {
+    fee?: number;
+    gasLimit?: number;
+    storageLimit?: number;
+}
 /**
  * @description Result of a forge operation contains the operation plus its encoded version
  */
@@ -120,7 +127,7 @@ export interface ForgedBytes {
  */
 export interface DelegateParams {
     source: string;
-    delegate: string;
+    delegate?: string;
     fee?: number;
     gasLimit?: number;
     storageLimit?: number;
@@ -142,7 +149,7 @@ export interface RPCDelegateOperation {
     fee: number;
     gas_limit: number;
     storage_limit: number;
-    delegate: string;
+    delegate?: string;
 }
 /**
  * @description Parameters for transfer method

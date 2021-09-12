@@ -1,6 +1,15 @@
-import { BlockResponse, OperationEntry } from '@taquito/rpc';
+import { BlockResponse } from '@taquito/rpc';
 import { from, Observable, ObservableInput, timer } from 'rxjs';
-import { concatMap, distinctUntilKeyChanged, first, map, pluck, switchMap } from 'rxjs/operators';
+import {
+  concatMap,
+  distinctUntilKeyChanged,
+  first,
+  map,
+  pluck,
+  publish,
+  refCount,
+  switchMap,
+} from 'rxjs/operators';
 import { Context } from '../context';
 import { evaluateFilter } from './filters';
 import { Filter, SubscribeProvider, Subscription, OperationContent } from './interface';
@@ -16,8 +25,8 @@ const applyFilter = (filter: Filter) =>
       for (const ops of block.operations) {
         for (const op of ops) {
           for (const content of op.contents) {
-            if (evaluateFilter({ hash: op.hash, ...content }, filter)) {
-              sub.next({ hash: op.hash, ...content });
+            if (evaluateFilter({hash: op.hash, ...content}, filter)) {
+              sub.next({hash: op.hash, ...content});
             }
           }
         }
@@ -27,19 +36,30 @@ const applyFilter = (filter: Filter) =>
   });
 
 export class PollingSubscribeProvider implements SubscribeProvider {
-  private newBlock$ = timer(0, this.POLL_INTERVAL).pipe(
+  // Map the changing polling interval to a timer, which will automatically terminate the previous timer when the next one starts.
+  private timer$ = this.context._config.pipe(
+    switchMap((val) => timer(0, val.streamerPollingIntervalMilliseconds)),
+  )
+
+  private newBlock$ = this.timer$.pipe(
     map(() => this.context),
     switchMap(getLastBlock),
-    distinctUntilKeyChanged('hash')
+    distinctUntilKeyChanged('hash'),
+    publish(),
+    refCount()
   );
 
-  constructor(private context: Context, public readonly POLL_INTERVAL = 20000) {}
+  constructor(private context: Context) { }
 
   subscribe(_filter: 'head'): Subscription<string> {
-    return new ObservableSubscription(this.newBlock$.pipe(pluck('hash')), this.context.config.shouldObservableSubscriptionRetry);
+    return new ObservableSubscription(this.newBlock$.pipe(pluck('hash')), 
+                                      this.context.config.shouldObservableSubscriptionRetry,
+                                      this.context.config.observableSubscriptionRetryFunction);
   }
 
   subscribeOperation(filter: Filter): Subscription<OperationContent> {
-    return new ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)), this.context.config.shouldObservableSubscriptionRetry);
+    return new ObservableSubscription(this.newBlock$.pipe(applyFilter(filter)),
+                                      this.context.config.shouldObservableSubscriptionRetry,
+                                      this.context.config.observableSubscriptionRetryFunction);
   }
 }

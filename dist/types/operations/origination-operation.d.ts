@@ -1,4 +1,4 @@
-import { OperationContentsAndResult, OperationResultOrigination } from '@taquito/rpc';
+import { OperationContentsAndResult } from '@taquito/rpc';
 import { Context } from '../context';
 import { RpcContractProvider } from '../contract/rpc-contract-provider';
 import { Operation } from './operations';
@@ -16,8 +16,8 @@ export declare class OriginationOperation extends Operation implements GasConsum
      */
     readonly contractAddress?: string;
     constructor(hash: string, params: RPCOriginationOperation, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context, contractProvider: RpcContractProvider);
-    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
-    get operationResults(): OperationResultOrigination | undefined;
+    get status(): import("@taquito/rpc").OperationResultStatusEnum | "unknown";
+    get operationResults(): import("@taquito/rpc").OperationResultOrigination | undefined;
     get fee(): number;
     get gasLimit(): number;
     get storageLimit(): number;

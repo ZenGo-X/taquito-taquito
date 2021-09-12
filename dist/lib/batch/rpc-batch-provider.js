@@ -7,6 +7,8 @@ var __extends = (this && this.__extends) || (function () {
         return extendStatics(d, b);
     };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -143,20 +145,27 @@ var OperationBatch = /** @class */ (function (_super) {
     };
     OperationBatch.prototype.getRPCOp = function (param) {
         return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (param.kind) {
-                    case rpc_1.OpKind.TRANSACTION:
-                        return [2 /*return*/, prepare_1.createTransferOperation(__assign({}, param))];
-                    case rpc_1.OpKind.ORIGINATION:
-                        return [2 /*return*/, prepare_1.createOriginationOperation(__assign({}, param))];
-                    case rpc_1.OpKind.DELEGATION:
-                        return [2 /*return*/, prepare_1.createSetDelegateOperation(__assign({}, param))];
-                    case rpc_1.OpKind.ACTIVATION:
-                        return [2 /*return*/, __assign({}, param)];
-                    default:
-                        throw new Error("Unsupported operation kind: " + param.kind);
+            var _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        _a = param.kind;
+                        switch (_a) {
+                            case rpc_1.OpKind.TRANSACTION: return [3 /*break*/, 1];
+                            case rpc_1.OpKind.ORIGINATION: return [3 /*break*/, 2];
+                            case rpc_1.OpKind.DELEGATION: return [3 /*break*/, 4];
+                            case rpc_1.OpKind.ACTIVATION: return [3 /*break*/, 5];
+                        }
+                        return [3 /*break*/, 6];
+                    case 1: return [2 /*return*/, prepare_1.createTransferOperation(__assign({}, param))];
+                    case 2:
+                        _b = prepare_1.createOriginationOperation;
+                        return [4 /*yield*/, this.context.parser.prepareCodeOrigination(__assign({}, param))];
+                    case 3: return [2 /*return*/, _b.apply(void 0, [_c.sent()])];
+                    case 4: return [2 /*return*/, prepare_1.createSetDelegateOperation(__assign({}, param))];
+                    case 5: return [2 /*return*/, __assign({}, param)];
+                    case 6: throw new Error("Unsupported operation kind: " + param.kind);
                 }
-                return [2 /*return*/];
             });
         });
     };
@@ -206,73 +215,91 @@ var OperationBatch = /** @class */ (function (_super) {
      */
     OperationBatch.prototype.send = function (params) {
         return __awaiter(this, void 0, void 0, function () {
-            var estimates, ops, i, _a, _b, op, estimated, _c, _d, e_2_1, source, _e, opBytes, _f, hash, context, forgedBytes, opResponse;
-            var e_2, _g;
+            var publicKeyHash, publicKey, estimates, revealNeeded, i, ops, _a, _b, op, estimated, _c, _d, e_2_1, reveal, estimatedReveal, _e, _f, source, prepared, opBytes, _g, hash, context, forgedBytes, opResponse;
+            var e_2, _h;
             var _this = this;
-            return __generator(this, function (_h) {
-                switch (_h.label) {
-                    case 0: return [4 /*yield*/, this.estimator.batch(this.operations)];
+            return __generator(this, function (_j) {
+                switch (_j.label) {
+                    case 0: return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        estimates = _h.sent();
-                        ops = [];
-                        i = 0;
-                        _h.label = 2;
+                        publicKeyHash = _j.sent();
+                        return [4 /*yield*/, this.signer.publicKey()];
                     case 2:
-                        _h.trys.push([2, 10, 11, 12]);
-                        _a = __values(this.operations), _b = _a.next();
-                        _h.label = 3;
+                        publicKey = _j.sent();
+                        return [4 /*yield*/, this.estimator.batch(this.operations)];
                     case 3:
-                        if (!!_b.done) return [3 /*break*/, 9];
+                        estimates = _j.sent();
+                        return [4 /*yield*/, this.isRevealOpNeeded(this.operations, publicKeyHash)];
+                    case 4:
+                        revealNeeded = _j.sent();
+                        i = revealNeeded ? 1 : 0;
+                        ops = [];
+                        _j.label = 5;
+                    case 5:
+                        _j.trys.push([5, 13, 14, 15]);
+                        _a = __values(this.operations), _b = _a.next();
+                        _j.label = 6;
+                    case 6:
+                        if (!!_b.done) return [3 /*break*/, 12];
                         op = _b.value;
-                        if (!types_1.isOpWithFee(op)) return [3 /*break*/, 6];
+                        if (!types_1.isOpWithFee(op)) return [3 /*break*/, 9];
                         return [4 /*yield*/, this.estimate(op, function () { return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
                                 return [2 /*return*/, estimates[i]];
                             }); }); })];
-                    case 4:
-                        estimated = _h.sent();
+                    case 7:
+                        estimated = _j.sent();
                         _d = (_c = ops).push;
                         return [4 /*yield*/, this.getRPCOp(__assign(__assign({}, op), estimated))];
-                    case 5:
-                        _d.apply(_c, [_h.sent()]);
-                        return [3 /*break*/, 7];
-                    case 6:
-                        ops.push(__assign({}, op));
-                        _h.label = 7;
-                    case 7:
-                        i++;
-                        _h.label = 8;
                     case 8:
-                        _b = _a.next();
-                        return [3 /*break*/, 3];
-                    case 9: return [3 /*break*/, 12];
+                        _d.apply(_c, [_j.sent()]);
+                        return [3 /*break*/, 10];
+                    case 9:
+                        ops.push(__assign({}, op));
+                        _j.label = 10;
                     case 10:
-                        e_2_1 = _h.sent();
-                        e_2 = { error: e_2_1 };
-                        return [3 /*break*/, 12];
+                        i++;
+                        _j.label = 11;
                     case 11:
+                        _b = _a.next();
+                        return [3 /*break*/, 6];
+                    case 12: return [3 /*break*/, 15];
+                    case 13:
+                        e_2_1 = _j.sent();
+                        e_2 = { error: e_2_1 };
+                        return [3 /*break*/, 15];
+                    case 14:
                         try {
-                            if (_b && !_b.done && (_g = _a.return)) _g.call(_a);
+                            if (_b && !_b.done && (_h = _a.return)) _h.call(_a);
                         }
                         finally { if (e_2) throw e_2.error; }
                         return [7 /*endfinally*/];
-                    case 12:
-                        _e = (params && params.source);
-                        if (_e) return [3 /*break*/, 14];
-                        return [4 /*yield*/, this.signer.publicKeyHash()];
-                    case 13:
-                        _e = (_h.sent());
-                        _h.label = 14;
-                    case 14:
-                        source = _e;
-                        return [4 /*yield*/, this.prepareAndForge({
+                    case 15:
+                        if (!revealNeeded) return [3 /*break*/, 18];
+                        reveal = { kind: rpc_1.OpKind.REVEAL };
+                        return [4 /*yield*/, this.estimate(reveal, function () { return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
+                                return [2 /*return*/, estimates[0]];
+                            }); }); })];
+                    case 16:
+                        estimatedReveal = _j.sent();
+                        _f = (_e = ops).unshift;
+                        return [4 /*yield*/, prepare_1.createRevealOperation(__assign({}, estimatedReveal), publicKeyHash, publicKey)];
+                    case 17:
+                        _f.apply(_e, [_j.sent()]);
+                        _j.label = 18;
+                    case 18:
+                        source = (params && params.source) || publicKeyHash;
+                        return [4 /*yield*/, this.prepareOperation({
                                 operation: ops,
                                 source: source,
                             })];
-                    case 15:
-                        opBytes = _h.sent();
+                    case 19:
+                        prepared = _j.sent();
+                        return [4 /*yield*/, this.forge(prepared)];
+                    case 20:
+                        opBytes = _j.sent();
                         return [4 /*yield*/, this.signAndInject(opBytes)];
-                    case 16:
-                        _f = _h.sent(), hash = _f.hash, context = _f.context, forgedBytes = _f.forgedBytes, opResponse = _f.opResponse;
+                    case 21:
+                        _g = _j.sent(), hash = _g.hash, context = _g.context, forgedBytes = _g.forgedBytes, opResponse = _g.opResponse;
                         return [2 /*return*/, new batch_operation_1.BatchOperation(hash, ops, source, forgedBytes, opResponse, context)];
                 }
             });

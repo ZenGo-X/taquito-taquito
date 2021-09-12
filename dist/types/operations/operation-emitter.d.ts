@@ -1,7 +1,7 @@
 import { OperationContents, OperationContentsAndResult, RpcClient, RPCRunOperationParam } from '@taquito/rpc';
 import { Context } from '../context';
 import { Estimate } from '../contract/estimate';
-import { ForgedBytes, PrepareOperationParams } from './types';
+import { ForgedBytes, ParamsWithKind, PrepareOperationParams, RPCOperation } from './types';
 export interface PreparedOperation {
     opOb: {
         branch: string;
@@ -15,6 +15,9 @@ export declare abstract class OperationEmitter {
     get rpc(): RpcClient;
     get signer(): import("../taquito").Signer;
     constructor(context: Context);
+    protected isRevealOpNeeded(op: RPCOperation[] | ParamsWithKind[], pkh: string): Promise<boolean>;
+    protected isAccountRevealRequired(publicKeyHash: string): Promise<boolean>;
+    protected isRevealRequiredForOpType(op: RPCOperation[] | ParamsWithKind[]): boolean;
     protected prepareOperation({ operation, source, }: PrepareOperationParams): Promise<PreparedOperation>;
     protected prepareAndForge(params: PrepareOperationParams): Promise<{
         opbytes: string;

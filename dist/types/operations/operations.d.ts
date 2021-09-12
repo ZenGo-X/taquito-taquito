@@ -24,8 +24,8 @@ export declare class Operation {
      */
     constructor(hash: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
     get revealOperation(): false | OperationContentsAndResultReveal | undefined;
-    get revealStatus(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
-    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get revealStatus(): import("@taquito/rpc").OperationResultStatusEnum | "unknown";
+    get status(): import("@taquito/rpc").OperationResultStatusEnum | "unknown";
     /**
      *
      * @param confirmations [0] Number of confirmation to wait for

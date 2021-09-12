@@ -127,6 +127,21 @@ var NaiveEstimateProvider = /** @class */ (function () {
             });
         });
     };
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees for a reveal operation
+     *
+     * @returns An estimation of gasLimit, storageLimit and fees for the operation
+     *
+     * @param Estimate
+     */
+    NaiveEstimateProvider.prototype.reveal = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, new estimate_1.Estimate(constants_1.DEFAULT_GAS_LIMIT.REVEAL * 1000, constants_1.DEFAULT_STORAGE_LIMIT.REVEAL, 64, this._costPerByte, constants_1.DEFAULT_FEE.REVEAL)];
+            });
+        });
+    };
     NaiveEstimateProvider.prototype.batch = function (params) {
         return __awaiter(this, void 0, void 0, function () {
             var estimates, params_1, params_1_1, param, _a, _b, _c, _d, _e, _f, _g, e_1_1;

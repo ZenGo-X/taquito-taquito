@@ -57,6 +57,17 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 var __read = (this && this.__read) || function (o, n) {
     var m = typeof Symbol === "function" && o[Symbol.iterator];
     if (!m) return o;
@@ -73,9 +84,10 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
+var __spreadArray = (this && this.__spreadArray) || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+        to[j] = from[i];
+    return to;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OperationEmitter = void 0;
@@ -101,42 +113,82 @@ var OperationEmitter = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
+    OperationEmitter.prototype.isRevealOpNeeded = function (op, pkh) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.isAccountRevealRequired(pkh)];
+                    case 1: return [2 /*return*/, (!(_a.sent()) || !this.isRevealRequiredForOpType(op)) ? false : true];
+                }
+            });
+        });
+    };
+    OperationEmitter.prototype.isAccountRevealRequired = function (publicKeyHash) {
+        return __awaiter(this, void 0, void 0, function () {
+            var manager, haveManager;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.rpc.getManagerKey(publicKeyHash)];
+                    case 1:
+                        manager = _a.sent();
+                        haveManager = manager && typeof manager === 'object' ? !!manager.key : !!manager;
+                        return [2 /*return*/, !haveManager];
+                }
+            });
+        });
+    };
+    OperationEmitter.prototype.isRevealRequiredForOpType = function (op) {
+        var e_1, _a;
+        var opRequireReveal = false;
+        try {
+            for (var op_1 = __values(op), op_1_1 = op_1.next(); !op_1_1.done; op_1_1 = op_1.next()) {
+                var operation = op_1_1.value;
+                if (types_1.isOpRequireReveal(operation)) {
+                    opRequireReveal = true;
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (op_1_1 && !op_1_1.done && (_a = op_1.return)) _a.call(op_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return opRequireReveal;
+    };
+    ;
     // Originally from sotez (Copyright (c) 2018 Andrew Kishino)
     OperationEmitter.prototype.prepareOperation = function (_a) {
         var operation = _a.operation, source = _a.source;
         return __awaiter(this, void 0, void 0, function () {
-            var counter, counters, requiresReveal, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, managerPromise, i, counter_1, _b, header, metadata, headCounter, manager, haveManager, reveal, getFee, getSource, constructOps, branch, contents, protocol;
-            var _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
+            var counter, counters, ops, head, blockHeaderPromise, blockMetaPromise, publicKeyHash, counterPromise, i, counter_1, _b, header, metadata, headCounter, getFee, getSource, constructOps, branch, contents, protocol;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         counters = {};
-                        requiresReveal = false;
                         ops = [];
                         blockHeaderPromise = this.rpc.getBlockHeader();
                         blockMetaPromise = this.rpc.getBlockMetadata();
                         if (Array.isArray(operation)) {
-                            ops = __spread(operation);
+                            ops = __spreadArray([], __read(operation));
                         }
                         else {
                             ops = [operation];
                         }
                         return [4 /*yield*/, this.signer.publicKeyHash()];
                     case 1:
-                        publicKeyHash = _d.sent();
+                        publicKeyHash = _c.sent();
                         counterPromise = Promise.resolve(undefined);
-                        managerPromise = Promise.resolve(undefined);
                         i = 0;
-                        _d.label = 2;
+                        _c.label = 2;
                     case 2:
                         if (!(i < ops.length)) return [3 /*break*/, 5];
-                        if (!types_1.isOpRequireReveal(ops[i])) return [3 /*break*/, 4];
-                        requiresReveal = true;
+                        if (!(types_1.isOpRequireReveal(ops[i]) || ops[i].kind === 'reveal')) return [3 /*break*/, 4];
                         return [4 /*yield*/, this.rpc.getContract(publicKeyHash)];
                     case 3:
-                        counter_1 = (_d.sent()).counter;
+                        counter_1 = (_c.sent()).counter;
                         counterPromise = Promise.resolve(counter_1);
-                        managerPromise = this.rpc.getManagerKey(publicKeyHash);
                         return [3 /*break*/, 5];
                     case 4:
                         i++;
@@ -144,11 +196,10 @@ var OperationEmitter = /** @class */ (function () {
                     case 5: return [4 /*yield*/, Promise.all([
                             blockHeaderPromise,
                             blockMetaPromise,
-                            counterPromise,
-                            managerPromise,
+                            counterPromise
                         ])];
                     case 6:
-                        _b = __read.apply(void 0, [_d.sent(), 4]), header = _b[0], metadata = _b[1], headCounter = _b[2], manager = _b[3];
+                        _b = __read.apply(void 0, [_c.sent(), 3]), header = _b[0], metadata = _b[1], headCounter = _b[2];
                         if (!header) {
                             throw new Error('Unable to fetch latest block header');
                         }
@@ -156,23 +207,6 @@ var OperationEmitter = /** @class */ (function () {
                             throw new Error('Unable to fetch latest metadata');
                         }
                         head = header;
-                        if (!requiresReveal) return [3 /*break*/, 8];
-                        haveManager = manager && typeof manager === 'object' ? !!manager.key : !!manager;
-                        if (!!haveManager) return [3 /*break*/, 8];
-                        _c = {
-                            kind: rpc_1.OpKind.REVEAL,
-                            fee: constants_1.DEFAULT_FEE.REVEAL
-                        };
-                        return [4 /*yield*/, this.signer.publicKey()];
-                    case 7:
-                        reveal = (_c.public_key = _d.sent(),
-                            _c.source = publicKeyHash,
-                            _c.gas_limit = constants_1.DEFAULT_GAS_LIMIT.REVEAL,
-                            _c.storage_limit = constants_1.DEFAULT_STORAGE_LIMIT.REVEAL,
-                            _c);
-                        ops.unshift(reveal);
-                        _d.label = 8;
-                    case 8:
                         counter = parseInt(headCounter || '0', 10);
                         if (!counters[publicKeyHash] || counters[publicKeyHash] < counter) {
                             counters[publicKeyHash] = counter;

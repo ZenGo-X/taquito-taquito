@@ -15,9 +15,10 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
+var __spreadArray = (this && this.__spreadArray) || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+        to[j] = from[i];
+    return to;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.evaluateFilter = exports.evaluateExpression = exports.evaluateOpFilter = void 0;
@@ -51,7 +52,7 @@ var destinationFilter = function (x, filter) {
             return false;
     }
 };
-exports.evaluateOpFilter = function (op, filter) {
+var evaluateOpFilter = function (op, filter) {
     if ('opHash' in filter) {
         return opHashFilter(op, filter);
     }
@@ -66,7 +67,8 @@ exports.evaluateOpFilter = function (op, filter) {
     }
     return false;
 };
-exports.evaluateExpression = function (op, exp) {
+exports.evaluateOpFilter = evaluateOpFilter;
+var evaluateExpression = function (op, exp) {
     if (Array.isArray(exp.and)) {
         return exp.and.every(function (x) { return exports.evaluateFilter(op, x); });
     }
@@ -77,13 +79,14 @@ exports.evaluateExpression = function (op, exp) {
         throw new Error('Filter expression must contains either and/or property');
     }
 };
-exports.evaluateFilter = function (op, filter) {
+exports.evaluateExpression = evaluateExpression;
+var evaluateFilter = function (op, filter) {
     var filters = [];
     if (!Array.isArray(filter)) {
         filters.push(filter);
     }
     else {
-        filters.push.apply(filters, __spread(filter));
+        filters.push.apply(filters, __spreadArray([], __read(filter)));
     }
     return filters.every(function (filterOrExp) {
         if ('and' in filterOrExp || 'or' in filterOrExp) {
@@ -94,4 +97,5 @@ exports.evaluateFilter = function (op, filter) {
         }
     });
 };
+exports.evaluateFilter = evaluateFilter;
 //# sourceMappingURL=filters.js.map

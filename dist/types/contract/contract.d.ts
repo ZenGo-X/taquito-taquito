@@ -43,6 +43,29 @@ export declare class ContractMethod<T extends ContractProvider | Wallet> {
      */
     toTransferParams({ fee, gasLimit, storageLimit, source, amount, mutez, }?: Partial<SendParams>): TransferParams;
 }
+/**
+ * @description Utility class to retrieve data from a smart contract's storage without incurring fees via a contract's view method
+ */
+export declare class ContractView {
+    private currentContract;
+    private provider;
+    private name;
+    private chainId;
+    private callbackParametersSchema;
+    private parameterSchema;
+    private args;
+    constructor(currentContract: ContractAbstraction<ContractProvider | Wallet>, provider: ContractProvider, name: string, chainId: string, callbackParametersSchema: ParameterSchema, parameterSchema: ParameterSchema, args: any[]);
+    /**
+     *
+     * @description Find which lambda contract to use based on the current network,
+     * encode parameters to Michelson,
+     * create an instance of Lambdaview to retrive data, and
+     * Decode Michelson response
+     *
+     * @param Options Address of a lambda contract (sandbox users)
+     */
+    read(customLambdaAddress?: string): Promise<any>;
+}
 export declare type Contract = ContractAbstraction<ContractProvider>;
 export declare type WalletContract = ContractAbstraction<Wallet>;
 /**
@@ -52,7 +75,8 @@ export declare class ContractAbstraction<T extends ContractProvider | Wallet> {
     readonly address: string;
     readonly script: ScriptResponse;
     private storageProvider;
-    private entrypoints;
+    readonly entrypoints: EntrypointsResponse;
+    private chainId;
     /**
      * @description Contains methods that are implemented by the target Tezos Smart Contract, and offers the user to call the Smart Contract methods as if they were native TS/JS methods.
      * NB: if the contract contains annotation it will include named properties; if not it will be indexed by a number.
@@ -61,9 +85,12 @@ export declare class ContractAbstraction<T extends ContractProvider | Wallet> {
     methods: {
         [key: string]: (...args: any[]) => ContractMethod<T>;
     };
+    views: {
+        [key: string]: (...args: any[]) => ContractView;
+    };
     readonly schema: Schema;
     readonly parameterSchema: ParameterSchema;
-    constructor(address: string, script: ScriptResponse, provider: T, storageProvider: StorageProvider, entrypoints: EntrypointsResponse);
+    constructor(address: string, script: ScriptResponse, provider: T, storageProvider: StorageProvider, entrypoints: EntrypointsResponse, chainId: string);
     private _initializeMethods;
     /**
      * @description Return a friendly representation of the smart contract storage
@@ -77,7 +104,7 @@ export declare class ContractAbstraction<T extends ContractProvider | Wallet> {
      *
      * @deprecated getBigMapKey has been deprecated in favor of getBigMapKeyByID
      *
-     * @see https://tezos.gitlab.io/api/rpc.html#get-block-id-context-contracts-contract-id-script
+     * @see https://tezos.gitlab.io/api/rpc.html#post-block-id-context-contracts-contract-id-big-map-get
      */
     bigMap(key: string): Promise<unknown>;
 }

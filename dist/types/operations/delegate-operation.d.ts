@@ -12,7 +12,7 @@ export declare class DelegateOperation extends Operation implements GasConsuming
     readonly source: string;
     constructor(hash: string, params: RPCDelegateOperation, source: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
     get operationResults(): import("@taquito/rpc").OperationResultDelegation | undefined;
-    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get status(): import("@taquito/rpc").OperationResultStatusEnum | "unknown";
     get delegate(): string;
     get isRegisterOperation(): boolean;
     get fee(): number;

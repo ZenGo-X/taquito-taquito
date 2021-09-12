@@ -15,10 +15,12 @@ exports.ObservableSubscription = void 0;
 var rxjs_1 = require("rxjs");
 var operators_1 = require("rxjs/operators");
 var ObservableSubscription = /** @class */ (function () {
-    function ObservableSubscription(obs, shouldRetry) {
+    function ObservableSubscription(obs, shouldRetry, operatorFunction) {
         var _this = this;
         if (shouldRetry === void 0) { shouldRetry = false; }
+        if (operatorFunction === void 0) { operatorFunction = operators_1.retry(); }
         this.shouldRetry = shouldRetry;
+        this.operatorFunction = operatorFunction;
         this.errorListeners = [];
         this.messageListeners = [];
         this.closeListeners = [];
@@ -30,7 +32,7 @@ var ObservableSubscription = /** @class */ (function () {
             _this.call(_this.errorListeners, error);
         }, function () {
             _this.call(_this.closeListeners);
-        }), this.shouldRetry ? operators_1.retry() : operators_1.tap(), operators_1.catchError(function () { return rxjs_1.NEVER; }))
+        }), this.shouldRetry ? operatorFunction : operators_1.tap(), operators_1.catchError(function () { return rxjs_1.NEVER; }))
             .subscribe();
     }
     ObservableSubscription.prototype.call = function (listeners, value) {

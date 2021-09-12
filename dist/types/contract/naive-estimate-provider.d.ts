@@ -51,5 +51,14 @@ export declare class NaiveEstimateProvider implements EstimationProvider {
         fee?: DEFAULT_FEE | undefined;
         gasLimit?: number | undefined;
     }): Promise<Estimate>;
+    /**
+     *
+     * @description Estimate gasLimit, storageLimit and fees for a reveal operation
+     *
+     * @returns An estimation of gasLimit, storageLimit and fees for the operation
+     *
+     * @param Estimate
+     */
+    reveal(): Promise<Estimate>;
     batch(params: ParamsWithKind[]): Promise<Estimate[]>;
 }

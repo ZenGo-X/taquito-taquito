@@ -7,6 +7,8 @@ var __extends = (this && this.__extends) || (function () {
         return extendStatics(d, b);
     };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -85,7 +87,7 @@ var RpcTzProvider = /** @class */ (function (_super) {
     };
     RpcTzProvider.prototype.activate = function (pkh, secret) {
         return __awaiter(this, void 0, void 0, function () {
-            var operation, forgedBytes, bytes, _a;
+            var operation, prepared, forgedBytes, bytes, _a;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -94,13 +96,16 @@ var RpcTzProvider = /** @class */ (function (_super) {
                             pkh: pkh,
                             secret: secret,
                         };
-                        return [4 /*yield*/, this.prepareAndForge({ operation: [operation], source: pkh })];
+                        return [4 /*yield*/, this.prepareOperation({ operation: [operation], source: pkh })];
                     case 1:
+                        prepared = _b.sent();
+                        return [4 /*yield*/, this.forge(prepared)];
+                    case 2:
                         forgedBytes = _b.sent();
                         bytes = forgedBytes.opbytes + "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
                         _a = operations_1.Operation.bind;
                         return [4 /*yield*/, this.rpc.injectOperation(bytes)];
-                    case 2: return [2 /*return*/, new (_a.apply(operations_1.Operation, [void 0, _b.sent(), __assign(__assign({}, forgedBytes), { opbytes: bytes }), [],
+                    case 3: return [2 /*return*/, new (_a.apply(operations_1.Operation, [void 0, _b.sent(), __assign(__assign({}, forgedBytes), { opbytes: bytes }), [],
                             this.context.clone()]))()];
                 }
             });

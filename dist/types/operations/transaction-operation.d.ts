@@ -13,7 +13,7 @@ export declare class TransactionOperation extends Operation implements GasConsum
     readonly source: string;
     constructor(hash: string, params: RPCTransferOperation, source: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
     get operationResults(): OperationContentsAndResultTransaction[];
-    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get status(): import("@taquito/rpc").OperationResultStatusEnum | "unknown";
     get amount(): BigNumber;
     get destination(): string;
     get fee(): number;

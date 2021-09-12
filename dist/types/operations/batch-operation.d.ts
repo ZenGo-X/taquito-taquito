@@ -1,4 +1,4 @@
-import { OperationContentsAndResult } from '@taquito/rpc';
+import { OperationContentsAndResult, OperationResultStatusEnum } from '@taquito/rpc';
 import { Context } from '../context';
 import { Operation } from './operations';
 import { FeeConsumingOperation, ForgedBytes, GasConsumingOperation, RPCOperation, StorageConsumingOperation } from './types';
@@ -7,7 +7,7 @@ export declare class BatchOperation extends Operation implements GasConsumingOpe
     readonly source: string;
     constructor(hash: string, params: RPCOperation[], source: string, raw: ForgedBytes, results: OperationContentsAndResult[], context: Context);
     private sumProp;
-    get status(): "applied" | "failed" | "skipped" | "backtracked" | "unknown";
+    get status(): OperationResultStatusEnum | "unknown";
     get fee(): any;
     get gasLimit(): any;
     get storageLimit(): any;
