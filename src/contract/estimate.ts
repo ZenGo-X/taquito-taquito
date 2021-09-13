@@ -103,7 +103,7 @@ export class Estimate {
    * @description The suggested fee for the operation which includes minimal fees and a small buffer.
    */
   get suggestedFeeMutez() {
-    return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 2);
+    return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 20);
   }
 
   /**
@@ -123,8 +123,8 @@ export class Estimate {
   }
 
   /**
-   * @description Since Delphinet, consumed gas is provided in milligas for more precision. 
-   * This function returns an estimation of the gas that operation will consume in milligas. 
+   * @description Since Delphinet, consumed gas is provided in milligas for more precision.
+   * This function returns an estimation of the gas that operation will consume in milligas.
    */
   get consumedMilligas() {
     return Number(this._milligasLimit);

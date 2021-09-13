@@ -2097,7 +2097,7 @@
              * @description The suggested fee for the operation which includes minimal fees and a small buffer.
              */
             get: function () {
-                return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 2);
+                return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 20);
             },
             enumerable: false,
             configurable: true
@@ -5497,7 +5497,7 @@
     // IMPORTANT: THIS FILE IS AUTO GENERATED! DO NOT MANUALLY EDIT OR CHECKIN!
     /* tslint:disable */
     var VERSION = {
-        "commitHash": "ae1e4b39ba3d83eb1679d69cc86ccd37a4b7f8f8",
+        "commitHash": "51afbeac799dff4b2ebdcac04961641eb145f7c0",
         "version": "10.1.1"
     };
     /* tslint:enable */

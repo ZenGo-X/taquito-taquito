@@ -109,7 +109,7 @@ var Estimate = /** @class */ (function () {
          * @description The suggested fee for the operation which includes minimal fees and a small buffer.
          */
         get: function () {
-            return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 2);
+            return this.roundUp(this.operationFeeMutez + MINIMAL_FEE_MUTEZ * 20);
         },
         enumerable: false,
         configurable: true
